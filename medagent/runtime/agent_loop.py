@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from typing import Any
 
 from medagent.agents.base import BaseAgent, WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
-from medagent.retrieval.evidence import EvidenceBundle
 
 
 class AgentLoop:
@@ -18,7 +18,7 @@ class AgentLoop:
         question: str,
         contract: AnswerContract,
         ledger: EvidenceLedger,
-        evidence: EvidenceBundle,
+        evidence: list[dict[str, Any]],
     ) -> list[WorkerResult]:
         if not agents:
             return []

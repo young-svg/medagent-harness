@@ -131,7 +131,7 @@ def test_sanitizer_removes_private_reasoning_markers() -> None:
 
 
 def test_trace_parent_lifecycle_and_replay() -> None:
-    trace_root = Path("artifacts/test-runs") / str(uuid4())
+    trace_root = Path("runs/tests") / str(uuid4())
     config = RuntimeConfig(trace_dir=str(trace_root))
     result = Coordinator(config=config).analyze("SYNTHETIC EXAMPLE; fatigue", "assess", "s")
     run_dir = trace_root / result["run_id"]
@@ -157,7 +157,7 @@ def test_presentation_adapter_never_invents_source() -> None:
 
 
 def test_api_schema_health_and_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
-    trace_root = Path("artifacts/test-runs") / str(uuid4())
+    trace_root = Path("runs/tests") / str(uuid4())
     monkeypatch.setattr(
         "api.main._coordinator", Coordinator(RuntimeConfig(trace_dir=str(trace_root)))
     )

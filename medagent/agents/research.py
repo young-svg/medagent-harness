@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from medagent.agents.base import BaseAgent, WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
-from medagent.retrieval.evidence import EvidenceBundle
 
 
 class ResearchAgent(BaseAgent):
@@ -14,10 +15,10 @@ class ResearchAgent(BaseAgent):
         question: str,
         contract: AnswerContract,
         ledger: EvidenceLedger,
-        evidence: EvidenceBundle,
+        evidence: list[dict[str, Any]],
     ) -> WorkerResult:
-        if evidence.admitted_items:
-            ids = ", ".join(item.evidence_id for item in evidence.admitted_items)
+        if evidence:
+            ids = ", ".join(str(item["evidence_id"]) for item in evidence)
             text = f"【证据检索】\n已接纳证据：{ids}。具体内容见 Evidence Cards。"
         else:
             text = "【证据检索】\n未配置外部检索后端；未返回或伪造文献证据。"

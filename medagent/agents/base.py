@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
-from medagent.retrieval.evidence import EvidenceBundle
 
 
 @dataclass(slots=True)
@@ -31,7 +31,7 @@ class BaseAgent:
         question: str,
         contract: AnswerContract,
         ledger: EvidenceLedger,
-        evidence: EvidenceBundle,
+        evidence: list[dict[str, Any]],
     ) -> WorkerResult:
         raise NotImplementedError
 

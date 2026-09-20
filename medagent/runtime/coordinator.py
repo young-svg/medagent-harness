@@ -88,8 +88,9 @@ class Coordinator:
             trace.record("retrieval_result", bundle.to_dict())
 
             workers = [self.AGENTS[name]() for name in route.workers]
+            worker_evidence = bundle.compact(retrieval_config.max_evidence_chars)
             results = AgentLoop(self.config.swarm_timeout).execute(
-                workers, question, contract, ledger, bundle
+                workers, question, contract, ledger, worker_evidence
             )
             for result in results:
                 trace.record("worker_draft", result.to_dict())

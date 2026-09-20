@@ -5,7 +5,7 @@ Interpreter: Python 3.12.7 (isolated project virtual environment)
 pip install -e ".[dev]": PASS
 ruff check .: PASS (All checks passed)
 pytest -m "not integration": PASS
-Result: 16 passed, 0 failed, 2 upstream deprecation warnings in 1.25s
+Result: 16 passed, 0 failed, 2 upstream deprecation warnings in 0.84s
 
 FastAPI import smoke: PASS (MedAgent Harness 1.0.0)
 CLI --help: PASS
@@ -16,4 +16,3 @@ CLI replay: PASS
 Notes:
 - Default tests made no real LLM, Mem0, remote Milvus, or internet calls.
 - Warnings came from the FastAPI/Starlette TestClient dependency boundary.
-
