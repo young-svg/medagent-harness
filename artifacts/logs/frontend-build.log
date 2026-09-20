@@ -1,0 +1,15 @@
+MedAgent Harness v1 frontend validation
+Date: 2026-09-20
+Node.js: v24.19.0
+npm: 11.17.0
+
+npm install: PASS (package-lock.json generated, 0 vulnerabilities)
+npm ci: PASS (24 packages, 0 vulnerabilities)
+npm run build: PASS
+
+Vite 8.3.0 production output:
+- dist/index.html: 0.44 kB (gzip 0.29 kB)
+- dist/assets/index-Cj2bSs7j.css: 2.76 kB (gzip 1.18 kB)
+- dist/assets/index-CmlGGbQ8.js: 223.96 kB (gzip 70.45 kB)
+- 16 modules transformed
+

@@ -22,4 +22,6 @@ datasets/
 eval/outputs/
 artifacts/logs/*.log
 !artifacts/logs/.gitkeep
+!artifacts/logs/python-validation.log
+!artifacts/logs/frontend-build.log
 artifacts/test-runs/
