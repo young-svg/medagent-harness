@@ -100,14 +100,13 @@ required notices, rerun host secret scanning, and execute hosted CI.
 
 ## 13. Review bundle
 
-- Archive: `E:/agent/medagent-harness_review_20260920_221211.zip`
-- SHA-256: `864dc7f5860afc4c57e55039824d3dd9b053cfa4419fff7110119ce7c3688a0e`
-- Size: 67,865 bytes
-- Archived Git commit: `3717ed75359cad6bf75d65e3516ec17a7250799f`
+- Archive: `E:/agent/medagent-harness_review_20260920_222334.zip`
+- SHA-256: `4bc63710843b49e5bd39770d060cd0c487ba07f102c5e1fb5e76bb438d47aa13`
+- Size: 67,900 bytes
+- Archived Git commit: `3c3cf91b345d922ffd6258a630788035d0ce208d`
 
 The archive is a `git archive` of the validated source commit, so it excludes
 `.git`, ignored environments, `node_modules`, `dist`, databases, models,
 runtime traces and private benchmark artifacts. This companion report was
 created after hashing and is intentionally outside the archive to avoid a
 self-referential checksum.
-
