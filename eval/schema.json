@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MedAgent evaluation record",
+  "type": "object",
+  "required": ["case_id", "expected", "observed"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "expected": {"type": "object"},
+    "observed": {"type": "object"}
+  },
+  "additionalProperties": false
+}
+

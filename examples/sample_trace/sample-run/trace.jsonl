@@ -1,0 +1,15 @@
+{"event":"run_start","run_id":"sample-run","payload":{"session_id":"synthetic-preview","runtime":{"long_term_memory_enabled":false}},"timestamp":"2026-09-20T00:00:00+00:00","parent_id":null}
+{"event":"context","run_id":"sample-run","payload":{"description":"SYNTHETIC EXAMPLE — fatigue","question":"What should be assessed?"},"timestamp":"2026-09-20T00:00:00.010000+00:00","parent_id":null}
+{"event":"memory","run_id":"sample-run","payload":{"type":"session","long_term":"disabled"},"timestamp":"2026-09-20T00:00:00.020000+00:00","parent_id":null}
+{"event":"contract","run_id":"sample-run","payload":{"intent":"comprehensive_case_analysis","requested_deliverable":"COMPREHENSIVE_CASE_ANALYSIS"},"timestamp":"2026-09-20T00:00:00.030000+00:00","parent_id":null}
+{"event":"ledger","run_id":"sample-run","payload":{"findings":[{"finding_id":"E1","source_text":"SYNTHETIC EXAMPLE — fatigue"}]},"timestamp":"2026-09-20T00:00:00.040000+00:00","parent_id":null}
+{"event":"plan","run_id":"sample-run","payload":{"subtasks":[{"subtask_id":"task-1","assigned_agent":"diagnostic_agent"}]},"timestamp":"2026-09-20T00:00:00.050000+00:00","parent_id":null}
+{"event":"route","run_id":"sample-run","payload":{"mode":"single","workers":["diagnostic_agent"]},"timestamp":"2026-09-20T00:00:00.060000+00:00","parent_id":null}
+{"event":"retrieval_query","run_id":"sample-run","payload":{"collection":"medical_knowledge_v1"},"timestamp":"2026-09-20T00:00:00.070000+00:00","parent_id":null}
+{"event":"retrieval_result","run_id":"sample-run","payload":{"items":[]},"timestamp":"2026-09-20T00:00:00.080000+00:00","parent_id":null}
+{"event":"worker_draft","run_id":"sample-run","payload":{"worker":"diagnostic_agent","success":true},"timestamp":"2026-09-20T00:00:00.090000+00:00","parent_id":null}
+{"event":"synthesis","run_id":"sample-run","payload":{"status":"completed"},"timestamp":"2026-09-20T00:00:00.100000+00:00","parent_id":null}
+{"event":"checker","run_id":"sample-run","payload":{"passed":false,"edits_allowed":false},"timestamp":"2026-09-20T00:00:00.110000+00:00","parent_id":null}
+{"event":"patch","run_id":"sample-run","payload":{"applied":false,"reason":"no_edits"},"timestamp":"2026-09-20T00:00:00.120000+00:00","parent_id":null}
+{"event":"final_answer","run_id":"sample-run","payload":{"answer":"Offline synthetic demonstration. No clinical conclusion was generated."},"timestamp":"2026-09-20T00:00:00.130000+00:00","parent_id":null}
+{"event":"run_end","run_id":"sample-run","payload":{"status":"completed","latency_ms":140.0},"timestamp":"2026-09-20T00:00:00.140000+00:00","parent_id":null}
