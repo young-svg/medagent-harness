@@ -8,6 +8,7 @@ from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
+from medagent.planning.complexity import ResponseProfile, TaskComplexityProfile
 from medagent.planning.models import Subtask
 from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolRegistry
@@ -38,6 +39,8 @@ class AgentLoop:
         memory_context: list[dict[str, str]],
         skill: ProceduralSkill,
         trace: TraceRecorder,
+        complexity: TaskComplexityProfile,
+        response_profile: ResponseProfile,
     ) -> WorkerResult:
         messages: list[dict[str, object]] = [
             {
@@ -45,6 +48,9 @@ class AgentLoop:
                 "content": (
                     f"Role: {agent.role}. Scope: {agent.scope} Safety: {agent.safety_boundary} "
                     "Return a concise worker draft; do not reveal hidden reasoning.\n\n"
+                    "Use tools only when they materially help satisfy the requested "
+                    "deliverables. Do not expand into unrequested clinical sections. "
+                    f"Response objective: {response_profile.objective}\n\n"
                     f"Public procedural skill ({skill.name}):\n{skill.instructions}"
                 ),
             },
@@ -56,6 +62,8 @@ class AgentLoop:
                         "current_context": current_context,
                         "subtask": subtask.to_dict(),
                         "contract": contract.to_dict(),
+                        "complexity_profile": complexity.to_dict(),
+                        "response_profile": response_profile.to_dict(),
                         "patient_facts": ledger.to_dict(),
                     },
                     ensure_ascii=False,

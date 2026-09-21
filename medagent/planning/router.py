@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from medagent.planning.complexity import TaskComplexityProfile
 from medagent.planning.models import VALID_WORKERS, Plan
 
 
@@ -16,7 +17,9 @@ class Route:
 
 
 class Router:
-    def route(self, plan: Plan) -> Route:
+    def route(
+        self, plan: Plan, complexity: TaskComplexityProfile | None = None
+    ) -> Route:
         workers = list(
             dict.fromkeys(
                 item.assigned_agent
@@ -29,4 +32,6 @@ class Router:
             reason = "dispatchability_fallback"
         else:
             reason = "single_subtask" if len(plan.subtasks) == 1 else "multiple_subtasks"
+            if complexity is not None:
+                reason = f"complexity_{complexity.breadth}:{reason}"
         return Route("single" if len(plan.subtasks) == 1 else "multi", workers, reason)

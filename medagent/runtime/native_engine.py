@@ -19,7 +19,14 @@ from medagent.llm.fakes import DeterministicLLM
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.memory.session import SessionMemory
 from medagent.observability.tracer import TraceRecorder
-from medagent.planning.planner import Planner
+from medagent.planning.complexity import (
+    ResponseProfile,
+    TaskComplexityProfile,
+    build_complexity_profile,
+    build_response_profile,
+    tool_capabilities,
+)
+from medagent.planning.planner import Planner, apply_contract_policy
 from medagent.planning.router import Router
 from medagent.presentation.adapter import PresentationAdapter
 from medagent.retrieval.admission import admit_evidence
@@ -122,6 +129,14 @@ class NativeMedAgentEngine:
             )
             contract = build_answer_contract(question)
             trace.record("contract_built", contract.to_dict(), stage="context")
+            complexity = build_complexity_profile(question, contract)
+            response_profile = build_response_profile(complexity)
+            trace.record(
+                "complexity_profile_built", complexity.to_dict(), stage="planning"
+            )
+            trace.record(
+                "response_profile_built", response_profile.to_dict(), stage="planning"
+            )
             ledger = build_evidence_ledger(description)
             trace.record("evidence_ledger_built", ledger.to_dict(), stage="context")
 
@@ -136,14 +151,30 @@ class NativeMedAgentEngine:
                 trace,
                 current_context=current_context,
                 memory_context=injected_memory,
+                complexity=complexity,
             )
+            plan = apply_contract_policy(plan, contract, complexity)
             trace.record("plan_created", plan.to_dict(), stage="planning")
-            route = Router().route(plan)
+            route = Router().route(plan, complexity)
             trace.record("route_selected", route.to_dict(), stage="routing")
 
             evidence_bundle = EvidenceBundle("", "", [])
+            capabilities = tool_capabilities(complexity)
             tools = self._tool_registry(
-                question, contract.requested_deliverables[0], evidence_bundle
+                question,
+                contract.requested_deliverables[0],
+                evidence_bundle,
+                capabilities,
+            )
+            trace.record(
+                "capability_policy_applied",
+                {
+                    "requires_external_evidence": complexity.requires_external_evidence,
+                    "allowed_tools": {
+                        worker: sorted(names) for worker, names in capabilities.items()
+                    },
+                },
+                stage="routing",
             )
             loop = AgentLoop(
                 self.llm,
@@ -163,6 +194,8 @@ class NativeMedAgentEngine:
                         injected_memory,
                         self.skills[subtask.assigned_agent],
                         trace,
+                        complexity,
+                        response_profile,
                     ),
                     timeout=self.config.worker_timeout_seconds,
                 )
@@ -203,7 +236,12 @@ class NativeMedAgentEngine:
 
             if len(successful) >= 2:
                 final_draft = await self._synthesize(
-                    question, contract.to_dict(), successful, trace
+                    question,
+                    contract.to_dict(),
+                    successful,
+                    trace,
+                    complexity,
+                    response_profile,
                 )
             else:
                 final_draft = successful[0].answer
@@ -239,6 +277,8 @@ class NativeMedAgentEngine:
             developer = {
                 "plan": plan.to_dict(),
                 "route": route.to_dict(),
+                "complexity_profile": complexity.to_dict(),
+                "response_profile": response_profile.to_dict(),
                 "workers": [item.to_dict() for item in workers],
                 "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                 "retrieval": {
@@ -277,9 +317,13 @@ class NativeMedAgentEngine:
             raise
 
     def _tool_registry(
-        self, question: str, deliverable: str, bundle: EvidenceBundle
+        self,
+        question: str,
+        deliverable: str,
+        bundle: EvidenceBundle,
+        capabilities: dict[str, set[str]],
     ) -> ToolRegistry:
-        registry = ToolRegistry(self.config.max_tool_calls)
+        registry = ToolRegistry(self.config.max_tool_calls, capabilities)
         collection_router = CollectionRouter(
             RetrievalConfig(
                 generic_collection=self.config.generic_collection,
@@ -356,10 +400,14 @@ class NativeMedAgentEngine:
         contract: dict[str, Any],
         workers: list[WorkerResult],
         trace: TraceRecorder,
+        complexity: TaskComplexityProfile,
+        response_profile: ResponseProfile,
     ) -> str:
         payload = {
             "question": question,
             "contract": contract,
+            "complexity_profile": complexity.to_dict(),
+            "response_profile": response_profile.to_dict(),
             "worker_drafts": [item.to_dict() for item in workers],
         }
         input_id = trace.record("synthesis_input", payload, stage="synthesis", agent="synthesizer")
@@ -367,8 +415,12 @@ class NativeMedAgentEngine:
             {
                 "role": "system",
                 "content": (
-                    "Combine completed worker drafts without adding patient facts or hidden "
-                    "reasoning.\n\nPublic procedural skill (synthesis):\n"
+                    "Produce the smallest complete answer that satisfies the AnswerContract. "
+                    "Answer requested deliverables and must_cover items first. Remove repetition "
+                    "and unrelated worker expansion; do not add new deliverables. Preserve only "
+                    "the rationale needed for the medical conclusion and necessary safety "
+                    "warnings. Do not add patient facts or hidden reasoning.\n\n"
+                    "Public procedural skill (synthesis):\n"
                     f"{self.skills['synthesizer'].instructions}"
                 ),
             },

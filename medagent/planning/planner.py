@@ -8,6 +8,7 @@ from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
+from medagent.planning.complexity import TaskComplexityProfile, preferred_worker
 from medagent.planning.models import VALID_WORKERS, Plan, Subtask
 
 
@@ -49,6 +50,8 @@ class Planner:
                         str(item.get("subtask_id") or f"task-{index}"),
                         str(item["description"]),
                         agent,
+                        [str(value) for value in item.get("deliverable_ids", [])],
+                        str(item.get("justification") or ""),
                     )
                 )
             plan = Plan(subtasks)
@@ -69,10 +72,14 @@ class Planner:
         trace: TraceRecorder | None = None,
         current_context: dict[str, str] | None = None,
         memory_context: list[dict[str, str]] | None = None,
+        complexity: TaskComplexityProfile | None = None,
     ) -> Plan:
         fallback_worker = _fallback_worker(contract)
         if self.llm is None:
             return self.parse({}, fallback_worker)
+        complexity_payload = json.dumps(
+            complexity.to_dict() if complexity else {}, ensure_ascii=False
+        )
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
@@ -81,6 +88,10 @@ class Planner:
                     "subtasks array. Each item needs subtask_id, a concise description, and "
                     "assigned_agent chosen only "
                     "from diagnostic_agent, consultation_agent, research_agent. "
+                    "Each item must also include deliverable_ids chosen only from the "
+                    "contract requested_deliverables and a short justification. Do not create "
+                    "diagnosis, differential, testing, management, prognosis, or follow-up "
+                    "work unless it is a requested deliverable or a necessary safety dependency. "
                     "Do not include reasoning. Current request data overrides session history."
                 ),
             },
@@ -93,6 +104,7 @@ class Planner:
                     f"{json.dumps(current_context or {'question': question}, ensure_ascii=False)}\n"
                     f"Question: {question}\n"
                     f"Contract: {json.dumps(contract.to_dict(), ensure_ascii=False)}\n"
+                    f"Complexity profile: {complexity_payload}\n"
                     f"Ledger: {json.dumps(ledger.to_dict(), ensure_ascii=False)}"
                 ),
             },
@@ -127,3 +139,121 @@ class Planner:
                 planner_parse_status="fallback",
                 planner_generation_status="provider_error",
             )
+
+
+def _mapped_deliverables(subtask: Subtask, contract: AnswerContract) -> list[str]:
+    requested = contract.requested_deliverables
+    explicit = [item for item in subtask.deliverable_ids if item in requested]
+    if explicit:
+        return list(dict.fromkeys(explicit))
+    if requested == ["COMPREHENSIVE_CASE_ANALYSIS"]:
+        return list(requested)
+    worker_matches = [
+        item
+        for item in requested
+        if preferred_worker(item) == subtask.assigned_agent
+    ]
+    if subtask.assigned_agent == "research_agent":
+        return []
+    return worker_matches
+
+
+def apply_contract_policy(
+    plan: Plan,
+    contract: AnswerContract,
+    complexity: TaskComplexityProfile,
+) -> Plan:
+    """Remove planner expansion and attach every retained subtask to contract scope."""
+
+    retained: list[Subtask] = []
+    actions: list[str] = []
+    for subtask in plan.subtasks:
+        mapped = _mapped_deliverables(subtask, contract)
+        if subtask.assigned_agent == "research_agent":
+            if not complexity.requires_external_evidence:
+                if len(plan.subtasks) > 1:
+                    actions.append(f"removed_unneeded_research:{subtask.subtask_id}")
+                    continue
+                mapped = mapped or list(contract.requested_deliverables)
+            mapped = mapped or list(contract.requested_deliverables)
+        if not mapped:
+            actions.append(f"removed_unmapped:{subtask.subtask_id}")
+            continue
+        retained.append(
+            Subtask(
+                subtask.subtask_id,
+                subtask.description,
+                subtask.assigned_agent,
+                mapped,
+                subtask.justification or "Serves requested contract deliverable(s).",
+            )
+        )
+
+    if complexity.breadth == "focused" and retained:
+        primary = contract.requested_deliverables[0]
+        selected = next(
+            (item for item in retained if primary in item.deliverable_ids), retained[0]
+        )
+        selected_worker = selected.assigned_agent
+        if primary != "COMPREHENSIVE_CASE_ANALYSIS":
+            selected_worker = preferred_worker(
+                primary, external_evidence=complexity.requires_external_evidence
+            )
+        retained = [
+            Subtask(
+                selected.subtask_id,
+                selected.description,
+                selected_worker,
+                list(contract.requested_deliverables),
+                "Focused request handled by the best-matching worker.",
+            )
+        ]
+        if len(plan.subtasks) > 1:
+            actions.append("collapsed_focused_plan")
+
+    if not retained:
+        primary = contract.requested_deliverables[0]
+        retained = [
+            Subtask(
+                "task-1",
+                "Address only the requested contract deliverable(s).",
+                preferred_worker(
+                    primary, external_evidence=complexity.requires_external_evidence
+                ),
+                list(contract.requested_deliverables),
+                "Deterministic contract-coverage fallback.",
+            )
+        ]
+        actions.append("contract_coverage_fallback")
+
+    by_worker: dict[str, Subtask] = {}
+    for item in retained:
+        existing = by_worker.get(item.assigned_agent)
+        if existing is None:
+            by_worker[item.assigned_agent] = item
+            continue
+        deliverable_ids = list(
+            dict.fromkeys(existing.deliverable_ids + item.deliverable_ids)
+        )
+        descriptions = list(
+            dict.fromkeys([existing.description.strip(), item.description.strip()])
+        )
+        by_worker[item.assigned_agent] = Subtask(
+            existing.subtask_id,
+            " ".join(description for description in descriptions if description),
+            item.assigned_agent,
+            deliverable_ids,
+            "Merged same-role work serving requested contract deliverables.",
+        )
+        actions.append(f"merged_same_worker:{item.subtask_id}")
+
+    constrained = Plan(
+        list(by_worker.values()),
+        plan.fallback_reason,
+        plan.planner_parse_status,
+        plan.planner_generation_status,
+        plan.planner_length_recovery_count,
+        actions,
+    )
+    constrained.validate()
+    return constrained

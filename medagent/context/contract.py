@@ -64,8 +64,25 @@ _DELIVERABLE_HINTS = (
 )
 
 
+def _remove_explicitly_excluded_scope(question: str) -> str:
+    patterns = (
+        r"\b(?:do not|don't|without)\s+(?:provide|make|perform|include)?\s*"
+        r"(?:a\s+)?(?:patient[- ]specific\s+)?diagnos\w*",
+        r"不(?:作|做|进行|需|需要|要求|要)?[^，。；;,.]{0,12}诊断",
+    )
+    scoped = question
+    for pattern in patterns:
+        scoped = re.sub(pattern, "", scoped, flags=re.I)
+    return scoped
+
+
 def build_answer_contract(question: str) -> AnswerContract:
-    matches = [value for pattern, value in _DELIVERABLE_HINTS if re.search(pattern, question, re.I)]
+    requested_scope = _remove_explicitly_excluded_scope(question)
+    matches = [
+        value
+        for pattern, value in _DELIVERABLE_HINTS
+        if re.search(pattern, requested_scope, re.I)
+    ]
     deliverables = list(dict.fromkeys(matches)) or ["COMPREHENSIVE_CASE_ANALYSIS"]
     intent = "multi_deliverable" if len(deliverables) > 1 else deliverables[0].lower()
     must_cover = [item.replace("_", " ").lower() for item in deliverables]
