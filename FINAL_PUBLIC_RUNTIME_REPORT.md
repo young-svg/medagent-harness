@@ -55,8 +55,5 @@
     project as legally open source. Real endpoint, corpus, embedding, and Milvus
     configuration remain deployment responsibilities, not public-runtime blockers.
 20. **Review archive:** sibling file
-    `../medagent-native-public-review_20260921_112717.zip`; SHA-256
-    `cd455a79519162cfd15afbea617be7bd2fe81e624ec98ab4891294a4c74f5f37`.
-    The archived report records the pre-packaging placeholder because an archive
-    cannot contain its own final digest; this post-packaging working-tree copy is
-    the authoritative digest record.
+    `../medagent-native-public-review_20260921_113017.zip`; SHA-256 will be
+    recorded in this working-tree copy after the immutable archive is produced.
