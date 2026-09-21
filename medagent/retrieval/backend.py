@@ -12,6 +12,11 @@ class RetrievalBackend(Protocol):
     async def search(self, query: str, collection: str, top_k: int) -> list[EvidenceItem]: ...
 
 
+class OffRetrievalBackend:
+    async def search(self, query: str, collection: str, top_k: int) -> list[EvidenceItem]:
+        raise RuntimeError("clinical retrieval is disabled by MEDAGENT_RETRIEVAL_MODE=off")
+
+
 class FakeRetrievalBackend:
     def __init__(self, items: Iterable[EvidenceItem] = ()) -> None:
         self.items = list(items)
@@ -38,7 +43,7 @@ class MilvusRetrievalBackend:
             from pymilvus import MilvusClient
         except ImportError as error:
             raise RuntimeError(
-                "Install the optional 'milvus' dependency to use this backend"
+                "Install the optional 'retrieval' dependency to use the Milvus backend"
             ) from error
         self._client = MilvusClient(uri=uri, token=token or None)
         self.embed_query = embed_query
@@ -82,8 +87,11 @@ class MilvusRetrievalBackend:
                     text=str(entity.get("text") or ""),
                     score=float(hit.get("distance", hit.get("score", 0.0))),
                     rank=rank,
-                    metadata={key: value for key, value in entity.items()
-                              if key not in self.output_fields},
+                    metadata={
+                        key: value
+                        for key, value in entity.items()
+                        if key not in self.output_fields
+                    },
                 )
             )
         return items

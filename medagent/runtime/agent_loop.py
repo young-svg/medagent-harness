@@ -6,8 +6,10 @@ from medagent.agents.base import AgentDefinition, WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.llm.client import LLMClient
+from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.models import Subtask
+from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolRegistry
 
 
@@ -24,6 +26,9 @@ class AgentLoop:
         contract: AnswerContract,
         ledger: EvidenceLedger,
         compact_evidence: list[dict[str, object]],
+        current_context: dict[str, str],
+        memory_context: list[dict[str, str]],
+        skill: ProceduralSkill,
         trace: TraceRecorder,
     ) -> WorkerResult:
         messages: list[dict[str, object]] = [
@@ -31,13 +36,16 @@ class AgentLoop:
                 "role": "system",
                 "content": (
                     f"Role: {agent.role}. Scope: {agent.scope} Safety: {agent.safety_boundary} "
-                    "Return a concise worker draft; do not reveal hidden reasoning."
+                    "Return a concise worker draft; do not reveal hidden reasoning.\n\n"
+                    f"Public procedural skill ({skill.name}):\n{skill.instructions}"
                 ),
             },
             {
                 "role": "user",
                 "content": json.dumps(
                     {
+                        "bounded_session_context": memory_context,
+                        "current_context": current_context,
                         "subtask": subtask.to_dict(),
                         "contract": contract.to_dict(),
                         "patient_facts": ledger.to_dict(),
@@ -50,26 +58,14 @@ class AgentLoop:
         calls = 0
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
-            request_id = trace.record(
-                "llm_request",
-                {
-                    "subtask_id": subtask.subtask_id,
-                    "visible_tools": [item["function"]["name"] for item in schemas],
-                },
+            response, response_id = await complete_with_trace(
+                self.llm,
+                trace,
                 stage="worker",
                 agent=agent.agent_id,
-            )
-            response = await self.llm.complete(messages, tools=schemas)
-            response_id = trace.record(
-                "llm_response",
-                {
-                    "subtask_id": subtask.subtask_id,
-                    "usage": response.usage,
-                    "tool_call_count": len(response.tool_calls),
-                },
-                stage="worker",
-                agent=agent.agent_id,
-                parent_event_id=request_id,
+                messages=messages,
+                tools=schemas,
+                purpose=f"worker:{subtask.subtask_id}",
             )
             if not response.tool_calls:
                 result = WorkerResult(
@@ -91,7 +87,17 @@ class AgentLoop:
                 {
                     "role": "assistant",
                     "content": response.content,
-                    "tool_calls": [call.id for call in response.tool_calls],
+                    "tool_calls": [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.name,
+                                "arguments": json.dumps(call.arguments, ensure_ascii=False),
+                            },
+                        }
+                        for call in response.tool_calls
+                    ],
                 }
             )
             for call in response.tool_calls:
@@ -105,43 +111,47 @@ class AgentLoop:
                         agent=agent.agent_id,
                         parent_event_id=response_id,
                     )
-                    retrieval_parent = call_id
-                    if call.name in {
-                        "clinical_guideline",
-                        "disease_code",
-                        "recommend_lifestyle",
-                        "deep_research",
-                        "search_knowledge",
-                    }:
-                        retrieval_parent = trace.record(
-                            "retrieval_query",
-                            {"tool": call.name, "arguments": call.arguments},
-                            stage="retrieval",
-                            agent=agent.agent_id,
-                            parent_event_id=call_id,
-                        )
+                    result_parent = call_id
                     try:
                         output = await self.tools.execute(agent.agent_id, call.name, call.arguments)
                     except (LookupError, PermissionError, RuntimeError, TypeError) as error:
                         output = {"error": str(error)}
-                    trace_output = output
-                    if isinstance(output, dict) and "_trace_bundle" in output:
+                    retrieval_trace = None
+                    if isinstance(output, dict) and "_trace_retrieval" in output:
                         output = dict(output)
-                        trace_output = output.pop("_trace_bundle")
-                    if retrieval_parent != call_id:
-                        retrieval_parent = trace.record(
-                            "retrieval_result",
-                            {"tool": call.name, "evidence_bundle": trace_output},
+                        retrieval_trace = output.pop("_trace_retrieval")
+                    if isinstance(retrieval_trace, dict):
+                        query_id = trace.record(
+                            "retrieval_query",
+                            {
+                                "tool": call.name,
+                                "query": retrieval_trace.get("query"),
+                                "collection": retrieval_trace.get("collection"),
+                                "routing_reason": retrieval_trace.get("routing_reason"),
+                                "top_k": retrieval_trace.get("top_k"),
+                            },
                             stage="retrieval",
                             agent=agent.agent_id,
-                            parent_event_id=retrieval_parent,
+                            parent_event_id=call_id,
+                        )
+                        result_parent = trace.record(
+                            "retrieval_result",
+                            {
+                                "tool": call.name,
+                                "raw_candidates": retrieval_trace.get("raw_candidates", []),
+                                "admission": retrieval_trace.get("admission", []),
+                                "compact_evidence": retrieval_trace.get("compact_evidence", []),
+                            },
+                            stage="retrieval",
+                            agent=agent.agent_id,
+                            parent_event_id=query_id,
                         )
                     trace.record(
                         "tool_result",
                         {"name": call.name, "result": output},
                         stage="tool",
                         agent=agent.agent_id,
-                        parent_event_id=retrieval_parent,
+                        parent_event_id=result_parent,
                     )
                     calls += 1
                 messages.append(

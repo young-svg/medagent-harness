@@ -1,12 +1,55 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
 from medagent.observability.schema import TraceEvent
+
+_REDACTED = "[REDACTED]"
+_SENSITIVE_KEYS = {
+    "authorization",
+    "api_key",
+    "apikey",
+    "cookie",
+    "password",
+    "secret",
+    "token",
+    "access_token",
+    "bearer_token",
+}
+_BEARER_PATTERN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
+_ASSIGNMENT_PATTERN = re.compile(
+    r"(?i)\b(authorization|api[_-]?key|cookie|password|secret)\b"
+    r"[\"']?\s*[:=]\s*[\"']?([^\"'\s,;}]+)"
+)
+
+
+def redact_trace_value(value: Any, key: str | None = None) -> Any:
+    """Remove credential-shaped values while preserving ordinary clinical text."""
+
+    normalized_key = (key or "").casefold().replace("-", "_")
+    if normalized_key in _SENSITIVE_KEYS or any(
+        normalized_key.endswith(f"_{suffix}")
+        for suffix in ("authorization", "api_key", "cookie", "password", "secret", "token")
+    ):
+        return _REDACTED
+    if isinstance(value, dict):
+        return {
+            item_key: redact_trace_value(item, str(item_key))
+            for item_key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_trace_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [redact_trace_value(item) for item in value]
+    if isinstance(value, str):
+        clean = _BEARER_PATTERN.sub("Bearer [REDACTED]", value)
+        return _ASSIGNMENT_PATTERN.sub(lambda match: f"{match.group(1)}={_REDACTED}", clean)
+    return value
 
 
 class TraceRecorder:
@@ -35,7 +78,7 @@ class TraceRecorder:
             event_type=event_type,
             agent=agent,
             parent_event_id=parent_event_id,
-            payload=payload or {},
+            payload=redact_trace_value(payload or {}),
         )
         self.events.append(event)
         with self.path.open("a", encoding="utf-8") as handle:

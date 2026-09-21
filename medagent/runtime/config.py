@@ -18,6 +18,12 @@ class RuntimeConfig:
     llm_timeout_seconds: float = 60.0
     max_tool_calls: int = 2
     worker_timeout_seconds: float = 180.0
+    retrieval_mode: str = "off"
+    milvus_uri: str = ""
+    milvus_token: str = ""
+    embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    generic_collection: str = "clinical_knowledge"
+    special_collection: str = "clinical_guidelines"
     retrieval_top_k: int = 5
     retrieval_threshold: float = 0.63
 
@@ -26,6 +32,9 @@ class RuntimeConfig:
         mode = os.getenv("MEDAGENT_RUNTIME_MODE", "native").strip().lower()
         if mode not in {"native", "replay"}:
             raise ValueError("MEDAGENT_RUNTIME_MODE must be 'native' or 'replay'")
+        retrieval_mode = os.getenv("MEDAGENT_RETRIEVAL_MODE", "off").strip().lower()
+        if retrieval_mode not in {"off", "fake", "milvus"}:
+            raise ValueError("MEDAGENT_RETRIEVAL_MODE must be 'off', 'fake', or 'milvus'")
         return cls(
             mode=mode,
             trace_dir=os.getenv("MEDAGENT_TRACE_DIR", "runs"),
@@ -37,6 +46,18 @@ class RuntimeConfig:
             llm_timeout_seconds=float(os.getenv("MEDAGENT_LLM_TIMEOUT_SECONDS", "60")),
             max_tool_calls=int(os.getenv("MEDAGENT_MAX_TOOL_CALLS", "2")),
             worker_timeout_seconds=float(os.getenv("MEDAGENT_WORKER_TIMEOUT_SECONDS", "180")),
+            retrieval_mode=retrieval_mode,
+            milvus_uri=os.getenv("MEDAGENT_MILVUS_URI", ""),
+            milvus_token=os.getenv("MEDAGENT_MILVUS_TOKEN", ""),
+            embedding_model=os.getenv(
+                "MEDAGENT_EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5"
+            ),
+            generic_collection=os.getenv(
+                "MEDAGENT_GENERIC_COLLECTION", "clinical_knowledge"
+            ),
+            special_collection=os.getenv(
+                "MEDAGENT_SPECIAL_COLLECTION", "clinical_guidelines"
+            ),
             retrieval_top_k=int(os.getenv("MEDAGENT_RETRIEVAL_TOP_K", "5")),
             retrieval_threshold=float(os.getenv("MEDAGENT_RETRIEVAL_THRESHOLD", "0.63")),
         )
@@ -44,4 +65,5 @@ class RuntimeConfig:
     def public_dict(self) -> dict[str, object]:
         data = asdict(self)
         data["llm_api_key"] = "configured" if self.llm_api_key else ""
+        data["milvus_token"] = "configured" if self.milvus_token else ""
         return data

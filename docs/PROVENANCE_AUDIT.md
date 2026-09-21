@@ -1,6 +1,6 @@
 # Provenance Text Audit
 
-Scope: 58 public production files under `medagent/` and `api/` were compared
+Scope: 61 public production files under `medagent/` and `api/` were compared
 with 121 read-only behavior-oracle production and skill files.
 
 Checks and results:
@@ -18,6 +18,10 @@ Standard imports, Python syntax, short generic expressions, and ordinary data
 class boilerplate were excluded from the line-level signal. One initial match
 was the required public deliverable vocabulary; its representation was
 independently reorganized and the scan was rerun clean.
+
+The scan was rerun after the final Memory, Skills, RAG, and Trace wiring. It
+performed read-only comparison and did not import, execute, or modify the
+private behavior oracle.
 
 `potential textual carryover: no`
 

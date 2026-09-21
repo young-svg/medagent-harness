@@ -6,6 +6,7 @@ from typing import Any
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.llm.client import LLMClient
+from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.models import VALID_WORKERS, Plan, Subtask
 
@@ -53,35 +54,51 @@ class Planner:
         contract: AnswerContract,
         ledger: EvidenceLedger,
         trace: TraceRecorder | None = None,
+        current_context: dict[str, str] | None = None,
+        memory_context: list[dict[str, str]] | None = None,
     ) -> Plan:
         fallback_worker = _fallback_worker(contract)
         if self.llm is None:
             return self.parse({}, fallback_worker)
-        prompt = (
-            "You are the public MedAgent centralized planner. Return JSON with a subtasks array. "
-            "Each item needs subtask_id, a concise description, and assigned_agent chosen only "
-            "from diagnostic_agent, consultation_agent, research_agent. Do not include reasoning.\n"
-            f"Question: {question}\n"
-            f"Contract: {json.dumps(contract.to_dict(), ensure_ascii=False)}\n"
-            f"Ledger: {json.dumps(ledger.to_dict(), ensure_ascii=False)}"
-        )
-        request_id = (
-            trace.record("llm_request", {"purpose": "planner"}, stage="planning", agent="planner")
-            if trace
-            else None
-        )
+        messages: list[dict[str, Any]] = [
+            {
+                "role": "system",
+                "content": (
+                    "You are the public MedAgent centralized planner. Return JSON with a "
+                    "subtasks array. Each item needs subtask_id, a concise description, and "
+                    "assigned_agent chosen only "
+                    "from diagnostic_agent, consultation_agent, research_agent. "
+                    "Do not include reasoning. Current request data overrides session history."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Bounded session context (background only): "
+                    f"{json.dumps(memory_context or [], ensure_ascii=False)}\n"
+                    "Current request (authoritative): "
+                    f"{json.dumps(current_context or {'question': question}, ensure_ascii=False)}\n"
+                    f"Question: {question}\n"
+                    f"Contract: {json.dumps(contract.to_dict(), ensure_ascii=False)}\n"
+                    f"Ledger: {json.dumps(ledger.to_dict(), ensure_ascii=False)}"
+                ),
+            },
+        ]
         try:
-            response = await self.llm.complete(
-                [{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-            )
             if trace:
-                trace.record(
-                    "llm_response",
-                    {"purpose": "planner", "usage": response.usage},
+                response, _ = await complete_with_trace(
+                    self.llm,
+                    trace,
                     stage="planning",
                     agent="planner",
-                    parent_event_id=request_id,
+                    messages=messages,
+                    response_format={"type": "json_object"},
+                    purpose="planner",
+                )
+            else:
+                response = await self.llm.complete(
+                    messages,
+                    response_format={"type": "json_object"},
                 )
             return self.parse(response.content, fallback_worker)
         except Exception as error:

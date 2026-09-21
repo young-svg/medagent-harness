@@ -13,13 +13,16 @@ class Message:
 class SessionMemory:
     """Bounded, process-local conversation memory with session isolation."""
 
-    def __init__(self, recent_limit: int = 10) -> None:
+    def __init__(self, recent_limit: int = 10, *, enabled: bool = True) -> None:
         if recent_limit < 1:
             raise ValueError("recent_limit must be positive")
         self.recent_limit = recent_limit
+        self.enabled = enabled
         self._messages: dict[str, list[Message]] = defaultdict(list)
 
     def add(self, session_id: str, role: str, content: str) -> None:
+        if not self.enabled:
+            return
         normalized = content.strip()
         if not normalized:
             return
@@ -31,6 +34,8 @@ class SessionMemory:
 
     def context(self, session_id: str, current_input: str) -> list[dict[str, str]]:
         normalized = current_input.strip()
+        if not self.enabled:
+            return [{"role": "user", "content": normalized}]
         previous = [
             asdict(item)
             for item in self._messages.get(session_id, [])

@@ -11,6 +11,10 @@ from medagent.llm.client import LLMResponse
 class ScriptedLLM:
     """Predictable async client used by public tests and parity fixtures."""
 
+    model = "scripted-test-model"
+    temperature = 0.0
+    max_tokens = 1200
+
     def __init__(self, responses: Iterable[LLMResponse | str | dict[str, Any]]) -> None:
         self.responses = deque(responses)
         self.requests: list[dict[str, Any]] = []
@@ -27,13 +31,19 @@ class ScriptedLLM:
             {"messages": messages, "tools": tools or [], "response_format": response_format}
         )
         if not self.responses:
-            return LLMResponse("No scripted response remains.")
+            return LLMResponse("No scripted response remains.", finish_reason="stop",
+                               model=self.model)
         response = self.responses.popleft()
         if isinstance(response, LLMResponse):
+            if response.model is None:
+                response.model = self.model
+            if response.finish_reason is None:
+                response.finish_reason = "tool_calls" if response.tool_calls else "stop"
             return response
         if isinstance(response, dict):
-            return LLMResponse(json.dumps(response, ensure_ascii=False))
-        return LLMResponse(response)
+            return LLMResponse(json.dumps(response, ensure_ascii=False),
+                               finish_reason="stop", model=self.model)
+        return LLMResponse(response, finish_reason="stop", model=self.model)
 
     async def close(self) -> None:
         self.closed = True
@@ -44,6 +54,10 @@ FakeLLM = ScriptedLLM
 
 class DeterministicLLM:
     """Offline-safe local response generator for installation and CLI smoke tests."""
+
+    model = "deterministic-local"
+    temperature = 0.0
+    max_tokens = 1200
 
     async def complete(
         self,
@@ -68,20 +82,34 @@ class DeterministicLLM:
                         "assigned_agent": "research_agent",
                     }
                 )
-            return LLMResponse(json.dumps({"subtasks": subtasks}, ensure_ascii=False))
+            return LLMResponse(
+                json.dumps({"subtasks": subtasks}, ensure_ascii=False),
+                finish_reason="stop",
+                model=self.model,
+            )
         if "synthesize" in lower:
             try:
                 payload = json.loads(prompt.split("\n", 1)[1])
                 drafts = [item["answer"] for item in payload["worker_drafts"] if item["answer"]]
                 unique = list(dict.fromkeys(drafts))
-                return LLMResponse("Clinical synthesis\n\n" + "\n\n".join(unique))
+                return LLMResponse(
+                    "Clinical synthesis\n\n" + "\n\n".join(unique),
+                    finish_reason="stop",
+                    model=self.model,
+                )
             except (IndexError, KeyError, TypeError, json.JSONDecodeError):
-                return LLMResponse("Clinical synthesis unavailable.")
+                return LLMResponse(
+                    "Clinical synthesis unavailable.",
+                    finish_reason="stop",
+                    model=self.model,
+                )
         return LLMResponse(
             "Clinical assessment\n\nThe available case facts are limited. Confirm the history, "
             "examination findings, urgent warning signs, and decision-changing tests before "
             "drawing a clinical conclusion.\n\nThis output is informational and requires "
-            "qualified clinical review."
+            "qualified clinical review.",
+            finish_reason="stop",
+            model=self.model,
         )
 
     async def close(self) -> None:

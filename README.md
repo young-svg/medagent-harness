@@ -1,33 +1,41 @@
 # MedAgent Harness
 
-MedAgent Harness is a self-contained, traceable clinical-domain agent runtime.
-Its public execution path is the **Centralized Planner–Worker Multi-Agent**
-architecture implemented by `NativeMedAgentEngine`.
+MedAgent Harness is a self-contained, traceable clinical-domain agent runtime. Its
+public execution path is the centralized Planner-Worker architecture implemented by
+`NativeMedAgentEngine`.
 
-This project is an engineering demonstration, not a medical device. It must not
-be used as a substitute for qualified clinical judgment.
+This project is an engineering demonstration, not a medical device. It must not be
+used as a substitute for qualified clinical judgment.
 
 ## Runtime flow
 
 ```text
-Case → Context → Contract + Ledger → Planner → Agent Runtime
-     → Tools / RAG → Synthesis → Guardrail → Answer → Trace + Presentation
+Case -> Context + bounded memory -> Contract + Ledger -> Planner -> Workers
+     -> Tools / optional RAG -> Synthesis -> Guardrail -> Answer -> Trace + Presentation
 ```
 
-- The Answer Contract records requested deliverables.
-- The Evidence Ledger records patient facts without turning them into medical knowledge.
-- A centralized planner assigns work to Diagnostic, Consultation, and Research agents.
-- Tool schemas are filtered before each model call and revalidated at execution time.
-- Retrieval passes only admitted compact evidence to workers; the full bundle remains in trace data.
-- Multi-agent results are synthesized, checked, and conservatively edited as stable units.
+- Bounded, process-local session memory is injected into the actual Planner and Worker
+  messages. Current description/question and the current Contract/Ledger remain
+  authoritative over history; sessions are isolated. Applications can explicitly disable
+  process-local history with `SessionMemory(enabled=False)`.
+- The four public procedural specs in `medagent/skills/specs/` are loaded at startup and
+  injected into the corresponding Diagnostic, Consultation, Research, and Synthesis
+  system messages. Trace metadata records each skill name and SHA-256 digest.
+- Tool schemas are filtered before every Worker model call and revalidated at execution.
+- Retrieval mode is selected by configuration: `off`, deterministic `fake`, or optional
+  `milvus`. Only admitted compact evidence reaches model context; raw candidates,
+  admission decisions, collection routing, and compact evidence are traced.
+- Every Planner, Worker, and Synthesis model boundary records actual messages, tool
+  schemas, model settings, content/tool calls, usage, finish reason, latency, and errors.
+  Central trace redaction removes credential-shaped values without deleting normal
+  clinical text.
+- Multi-agent drafts are synthesized, checked, and conservatively edited as stable units.
 - Patient, Clinical, and Developer views share the exact native final answer.
 
-Long-term memory is intentionally excluded from the stable public runtime. The
-runtime keeps only bounded, process-local session context. No model weights,
-clinical corpus, vector database, credentials, or third-party benchmark answers
-are distributed in this repository.
+Long-term memory is intentionally excluded. No model weights, clinical corpus, vector
+database, credentials, or third-party benchmark answers are distributed here.
 
-## Quick start
+## Quick start: offline smoke
 
 Requires Python 3.11+.
 
@@ -37,14 +45,20 @@ python -m venv .venv
 # POSIX: source .venv/bin/activate
 pip install -e ".[dev]"
 
+# This is the default; shown explicitly for reproducibility.
+MEDAGENT_RETRIEVAL_MODE=off medagent run examples/synthetic_case_1.json
 medagent --help
-medagent run examples/synthetic_case_1.json
 medagent serve
 ```
 
-The default is `MEDAGENT_RUNTIME_MODE=native`. Without endpoint configuration,
-the engine uses a deterministic offline client suitable for installation and
-workflow smoke tests. To use an OpenAI-compatible endpoint, set:
+On Windows PowerShell, set an environment value with
+`$env:MEDAGENT_RETRIEVAL_MODE = "off"`. With no model endpoint configured, the runtime
+uses a deterministic local client for installation and workflow smoke tests. It does not
+make a commercial API call.
+
+## Real OpenAI-compatible model endpoint
+
+Set the following variables before running the CLI or API:
 
 ```text
 MEDAGENT_LLM_BASE_URL=https://your-endpoint.example/v1
@@ -52,9 +66,40 @@ MEDAGENT_LLM_API_KEY=replace-me
 MEDAGENT_LLM_MODEL=your-model
 ```
 
-No real commercial API is called by the test suite.
+Temperature and maximum output tokens retain their documented defaults unless set through
+`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`.
 
-### API
+## Clinical RAG configuration
+
+Offline-safe modes require no optional dependency:
+
+```text
+MEDAGENT_RETRIEVAL_MODE=off   # retrieval calls fail explicitly
+MEDAGENT_RETRIEVAL_MODE=fake  # deterministic tests/fixtures
+```
+
+For a real Milvus deployment:
+
+```bash
+pip install -e ".[retrieval]"
+```
+
+```text
+MEDAGENT_RETRIEVAL_MODE=milvus
+MEDAGENT_MILVUS_URI=https://your-milvus-endpoint.example
+MEDAGENT_MILVUS_TOKEN=replace-me
+MEDAGENT_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+MEDAGENT_GENERIC_COLLECTION=clinical_knowledge
+MEDAGENT_SPECIAL_COLLECTION=clinical_guidelines
+MEDAGENT_RETRIEVAL_TOP_K=5
+MEDAGENT_RETRIEVAL_THRESHOLD=0.63
+```
+
+Milvus mode validates URI, embedding configuration, and optional packages. Missing
+configuration fails clearly; it never silently falls back to fake retrieval. Users must
+provide and govern their own lawfully obtained clinical corpus and database.
+
+## API
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -66,14 +111,7 @@ curl -X POST http://127.0.0.1:8000/api/analyze \
 The response contains `final_answer`, `run_id`, `trace`, and `presentation`.
 `presentation.professional_answer` is always identical to `final_answer`.
 
-### Optional retrieval
-
-`FakeRetrievalBackend` supports deterministic tests. `MilvusRetrievalBackend`
-is an optional connection adapter and requires an application-supplied embedding
-step plus `pip install -e ".[milvus]"`. Users must provide their own lawfully
-obtained corpus and database.
-
-### Frontend
+## Frontend and trace replay
 
 ```bash
 cd web
@@ -81,11 +119,17 @@ npm ci
 npm run build
 ```
 
-The frontend exposes Patient, Clinical, and Developer views. Evidence Cards are
-labeled **检索到的参考资料** and include only admitted items. They are references,
-not a claim that a document proves a patient-specific conclusion. Developer View
-shows Contract, Ledger, Plan, Route, Workers, Tool, Retrieval, Guardrail, latency,
-and token metadata—not chain-of-thought.
+Patient, Clinical, and Developer views are provided. Evidence Cards contain only admitted
+references and do not claim patient-specific proof. Large structured trace content is
+collapsed by default in Developer View; it exposes observable inputs/outputs, not hidden
+chain-of-thought.
+
+Every run writes `runs/<run_id>/trace.jsonl` by default. Replay reads the recorded final
+answer without invoking a model:
+
+```bash
+medagent replay runs/<run_id>
+```
 
 ## Validation
 
@@ -94,19 +138,15 @@ ruff check .
 pytest -m "not integration"
 ```
 
-CI uses Python 3.11, has no network requirement, and needs no LLM service,
-retrieval service, or long-term-memory service.
+The public tests need no model endpoint, Milvus service, or long-term-memory service.
+`tests/test_runtime_claims.py` prevents the documented Memory, Skills, RAG, and full Trace
+capabilities from becoming disconnected files or dead code.
 
-## Evaluation status
+## Evaluation and license status
 
-Historical design-baseline metrics in `docs/evaluation.md` came from a separately
-validated predecessor system. They are not measurements of this native engine.
-The native implementation is ready for a fresh benchmark run only when the
-criteria in `docs/NATIVE_BENCHMARK_READINESS.md` remain satisfied. This release
-does not rerun or alter that benchmark.
+Historical design-baseline metrics in `docs/evaluation.md` are not measurements of this
+native engine. Readiness for a future rerun is documented in
+`docs/NATIVE_BENCHMARK_READINESS.md`; this release does not rerun or alter the benchmark.
 
-## License status
-
-The technical public-runtime boundary is complete, but license selection and
-ownership confirmation remain user decisions. No legal-clearance claim is made.
-See `LICENSE_PENDING.md` and `docs/OPEN_SOURCE_STATUS.md`.
+License selection and ownership confirmation remain user decisions. No legal-clearance
+claim is made. See `LICENSE_PENDING.md` and `docs/OPEN_SOURCE_STATUS.md`.

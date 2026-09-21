@@ -22,6 +22,9 @@ nav button.active { color: #0d4546; border-bottom-color: #c26343; }
 .panel h2 { font: 500 31px/1.2 "Newsreader", serif; color: #103d40; }.panel h3 { margin-top: 32px; }
 .panel p,.panel li { line-height: 1.7; }.panel pre { white-space: pre-wrap; font: 14px/1.7 "DM Sans", sans-serif; }
 .panel .json { background: #102f32; color: #d8e9e2; border-radius: 10px; padding: 20px; overflow: auto; font-family: ui-monospace, monospace; font-size: 12px; max-height: 460px; }
+.trace-details { margin-top: 22px; }
+.trace-details summary { cursor: pointer; color: #0d4546; font-weight: 700; }
+.trace-details[open] summary { margin-bottom: 12px; }
 .notice { margin-top: 35px; padding: 14px 18px; color: #704b3f; background: #f6e9df; border-left: 3px solid #c26343; font-size: 13px; }
 .card { margin: 12px 0; padding: 16px; background: #f1f5f0; border-radius: 10px; }.card small { display: block; color: #69807a; margin-top: 6px; }.muted { color: #70837e; }
 @media (max-width: 800px) { main { padding: 18px; } header { align-items: start; gap: 18px; } .workspace { grid-template-columns: 1fr; } h1 { font-size: 38px; } .panel { padding: 24px; } }

@@ -17,13 +17,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "pytest-asyncio>=0.23,<1", "ruff>=0.6,<1"]
-milvus = ["pymilvus>=2.4,<3"]
+retrieval = ["pymilvus>=2.4,<3", "sentence-transformers>=3,<6"]
 
 [project.scripts]
 medagent = "medagent.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["medagent*", "api*"]
+
+[tool.setuptools.package-data]
+medagent = ["skills/specs/*.md"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

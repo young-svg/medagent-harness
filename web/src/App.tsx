@@ -142,8 +142,12 @@ export default function App() {
               <h2>Observable execution, not private reasoning</h2>
               <p className="muted">
                 Actual event IDs, parent event IDs, model/tool calls, retrieval, checker edits, usage and latency.
+                Credential-shaped values are redacted. Hidden chain-of-thought is never recorded.
               </p>
-              <pre className="json">{JSON.stringify(result.execution_summary, null, 2)}</pre>
+              <details className="trace-details">
+                <summary>Show structured execution trace and model payloads</summary>
+                <pre className="json">{JSON.stringify(result.execution_summary, null, 2)}</pre>
+              </details>
             </div>
           )}
         </article>

@@ -19,6 +19,8 @@ class LLMResponse:
     content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
     usage: dict[str, int] = field(default_factory=dict)
+    finish_reason: str | None = None
+    model: str | None = None
 
 
 class LLMClient(Protocol):
@@ -89,7 +91,14 @@ class OpenAICompatibleLLM:
                 arguments = {}
             calls.append(ToolCall(str(item.get("id") or "tool-call"), function["name"], arguments))
         usage = {key: int(value) for key, value in (body.get("usage") or {}).items()}
-        return LLMResponse(str(message.get("content") or ""), calls, usage)
+        choice = body["choices"][0]
+        return LLMResponse(
+            str(message.get("content") or ""),
+            calls,
+            usage,
+            finish_reason=choice.get("finish_reason"),
+            model=body.get("model"),
+        )
 
     async def close(self) -> None:
         await self._client.aclose()

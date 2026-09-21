@@ -1,8 +1,8 @@
 # Secret and Path Scan
 
-The final public source, tests, examples, configuration sample, and documents
-were scanned while excluding generated dependencies, build output, runtime
-traces, caches, and Git metadata.
+The final public source, tests, examples, configuration sample, documents, and
+sanitized integration trace fixture were scanned while excluding generated
+dependencies, build output, ordinary runtime output, caches, and Git metadata.
 
 Results:
 
@@ -13,5 +13,7 @@ Results:
 - Dynamic path injection or subprocess execution bridge: 0.
 
 Configuration names and empty/example values remain intentionally documented;
-they are not credentials. The required open-source status flag names are also
+they are not credentials. Runtime-claims tests intentionally use unmistakably
+fake credential strings to prove trace redaction; those values never appear in
+the persisted test trace. The required open-source status flag names are also
 documentation, not runtime paths.

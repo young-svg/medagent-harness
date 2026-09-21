@@ -16,18 +16,22 @@ from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
 from medagent.llm.client import LLMClient, OpenAICompatibleLLM
 from medagent.llm.fakes import DeterministicLLM
 from medagent.memory.session import SessionMemory
+from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.planner import Planner
 from medagent.planning.router import Router
 from medagent.presentation.adapter import PresentationAdapter
 from medagent.retrieval.admission import admit_evidence
-from medagent.retrieval.backend import FakeRetrievalBackend, RetrievalBackend
+from medagent.retrieval.backend import RetrievalBackend
 from medagent.retrieval.collection_router import CollectionRouter
+from medagent.retrieval.config import RetrievalConfig
 from medagent.retrieval.evidence import EvidenceBundle
+from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
 from medagent.runtime.engine import EngineExecutionError
+from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
 
 AGENTS: dict[str, AgentDefinition] = {
@@ -57,8 +61,12 @@ class NativeMedAgentEngine:
     ) -> None:
         self.config = config or RuntimeConfig.from_env()
         self.llm = llm or self._build_llm()
-        self.retrieval_backend = retrieval_backend or FakeRetrievalBackend()
+        self.retrieval_backend = retrieval_backend or build_retrieval_backend(self.config)
+        self.retrieval_mode = (
+            self.config.retrieval_mode if retrieval_backend is None else "injected"
+        )
         self.memory = memory or SessionMemory()
+        self.skills = load_public_skills()
         self._closed = False
 
     def _build_llm(self) -> LLMClient:
@@ -84,16 +92,31 @@ class NativeMedAgentEngine:
         try:
             trace.record(
                 "run_start",
-                {"session_id": session_id, "runtime_mode": self.mode},
+                {
+                    "session_id": session_id,
+                    "runtime_mode": self.mode,
+                    "retrieval_mode": self.retrieval_mode,
+                    "skills": {
+                        agent: {"skill_name": skill.name, "skill_sha256": skill.sha256}
+                        for agent, skill in self.skills.items()
+                    },
+                },
                 stage="lifecycle",
             )
             trace.record(
                 "context_built", {"description": description, "question": question}, stage="context"
             )
-            memory_context = self.memory.context(session_id, f"{description}\nQuestion: {question}")
+            current_context = {"description": description, "question": question}
+            current_input = f"{description}\nQuestion: {question}"
+            memory_context = self.memory.context(session_id, current_input)
+            injected_memory = memory_context[:-1]
             trace.record(
                 "memory_read",
-                {"messages": memory_context, "long_term_memory": "excluded"},
+                {
+                    "injected_messages": injected_memory,
+                    "current_input": memory_context[-1],
+                    "long_term_memory": "excluded",
+                },
                 stage="memory",
             )
             contract = build_answer_contract(question)
@@ -101,7 +124,14 @@ class NativeMedAgentEngine:
             ledger = build_evidence_ledger(description)
             trace.record("evidence_ledger_built", ledger.to_dict(), stage="context")
 
-            plan = await Planner(self.llm).plan(question, contract, ledger, trace)
+            plan = await Planner(self.llm).plan(
+                question,
+                contract,
+                ledger,
+                trace,
+                current_context=current_context,
+                memory_context=injected_memory,
+            )
             trace.record("plan_created", plan.to_dict(), stage="planning")
             route = Router().route(plan)
             trace.record("route_selected", route.to_dict(), stage="routing")
@@ -119,6 +149,9 @@ class NativeMedAgentEngine:
                         contract,
                         ledger,
                         evidence_bundle.compact(),
+                        current_context,
+                        injected_memory,
+                        self.skills[subtask.assigned_agent],
                         trace,
                     ),
                     timeout=self.config.worker_timeout_seconds,
@@ -198,6 +231,7 @@ class NativeMedAgentEngine:
                     ],
                 },
                 "guardrail": check.to_dict(),
+                "trace_events": [event.to_dict() for event in trace.events],
             }
             presentation = (
                 PresentationAdapter()
@@ -221,12 +255,20 @@ class NativeMedAgentEngine:
         self, question: str, deliverable: str, bundle: EvidenceBundle
     ) -> ToolRegistry:
         registry = ToolRegistry(self.config.max_tool_calls)
+        collection_router = CollectionRouter(
+            RetrievalConfig(
+                generic_collection=self.config.generic_collection,
+                special_collection=self.config.special_collection,
+                top_k=self.config.retrieval_top_k,
+                admission_threshold=self.config.retrieval_threshold,
+            )
+        )
 
         async def retrieve(**arguments: Any) -> dict[str, Any]:
             tool_name = str(arguments.pop("_tool_name", "search_knowledge"))
             tool_input = " ".join(str(value) for value in arguments.values())
             query = QueryBuilder().build(question, tool_input, deliverable, tool_input)
-            decision = CollectionRouter().route(tool_name)
+            decision = collection_router.route(tool_name)
             items = await self.retrieval_backend.search(
                 query, decision.collection, self.config.retrieval_top_k
             )
@@ -235,11 +277,28 @@ class NativeMedAgentEngine:
             bundle.collection = decision.collection
             known = {item.evidence_id for item in bundle.items}
             bundle.items.extend(item for item in items if item.evidence_id not in known)
+            compact = EvidenceBundle(query, decision.collection, items).compact()
             return {
                 "query": query,
                 "collection": decision.collection,
-                "admitted": EvidenceBundle(query, decision.collection, items).compact(),
-                "_trace_bundle": EvidenceBundle(query, decision.collection, items).to_dict(),
+                "admitted": compact,
+                "_trace_retrieval": {
+                    "query": query,
+                    "collection": decision.collection,
+                    "routing_reason": decision.reason,
+                    "top_k": self.config.retrieval_top_k,
+                    "raw_candidates": [item.to_dict() for item in items],
+                    "admission": [
+                        {
+                            "evidence_id": item.evidence_id,
+                            "admitted": item.admitted,
+                            "reason": item.admission_reason,
+                            "score": item.score,
+                        }
+                        for item in items
+                    ],
+                    "compact_evidence": compact,
+                },
             }
 
         for name in RETRIEVAL_TOOLS:
@@ -277,26 +336,28 @@ class NativeMedAgentEngine:
             "worker_drafts": [item.to_dict() for item in workers],
         }
         input_id = trace.record("synthesis_input", payload, stage="synthesis", agent="synthesizer")
-        prompt = (
-            "Synthesize the worker drafts into one answer. Preserve every requested deliverable, "
-            "remove repetition, do not expand beyond the task, and do not expose "
-            "private reasoning.\n"
-            + json.dumps(payload, ensure_ascii=False)
-        )
-        request_id = trace.record(
-            "llm_request",
-            {"purpose": "synthesis"},
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Combine completed worker drafts without adding patient facts or hidden "
+                    "reasoning.\n\nPublic procedural skill (synthesis):\n"
+                    f"{self.skills['synthesizer'].instructions}"
+                ),
+            },
+            {
+                "role": "user",
+                "content": "Synthesize this payload:\n" + json.dumps(payload, ensure_ascii=False),
+            },
+        ]
+        response, response_id = await complete_with_trace(
+            self.llm,
+            trace,
             stage="synthesis",
             agent="synthesizer",
+            messages=messages,
+            purpose="synthesis",
             parent_event_id=input_id,
-        )
-        response = await self.llm.complete([{"role": "user", "content": prompt}])
-        response_id = trace.record(
-            "llm_response",
-            {"purpose": "synthesis", "usage": response.usage},
-            stage="synthesis",
-            agent="synthesizer",
-            parent_event_id=request_id,
         )
         trace.record(
             "synthesis_output",
