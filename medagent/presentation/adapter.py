@@ -10,7 +10,7 @@ from medagent.retrieval.evidence import EvidenceBundle
 
 
 class PresentationAdapter:
-    """Deterministic view model; it never introduces new clinical facts."""
+    """Build three-view data without adding clinical claims."""
 
     def adapt(
         self,
@@ -19,31 +19,31 @@ class PresentationAdapter:
         ledger: EvidenceLedger,
         evidence: EvidenceBundle,
         trace_metadata: dict[str, Any],
+        developer: dict[str, Any] | None = None,
     ) -> PresentationResponse:
         paragraphs = [item.strip() for item in re.split(r"\n\s*\n", final_answer) if item.strip()]
-        headline = (
-            paragraphs[0].splitlines()[0].strip("【】# ") if paragraphs else "Analysis unavailable"
-        )
-        summary = paragraphs[0] if paragraphs else ""
         cards = [
             EvidenceCard(
-                evidence_id=item.evidence_id,
-                title=item.title,
-                source=item.source or "Source metadata unavailable",
-                section=item.section,
-                score=item.score,
-                text_preview=item.text[:300],
+                item.evidence_id,
+                item.title,
+                item.source or "Source metadata unavailable",
+                item.section,
+                item.score,
+                item.text[:300],
             )
             for item in evidence.admitted_items
         ]
+        execution = {
+            **trace_metadata,
+            "runtime_mode": "native",
+            "contract": contract.to_dict(),
+            "ledger": ledger.to_dict(),
+            **(developer or {}),
+        }
         return PresentationResponse(
-            headline=headline,
-            plain_language_summary=summary,
+            headline=paragraphs[0].splitlines()[0] if paragraphs else "Analysis unavailable",
+            plain_language_summary=paragraphs[0] if paragraphs else "",
             professional_answer=final_answer,
             evidence_cards=cards,
-            execution_summary={
-                **trace_metadata,
-                "answer_contract": contract.to_dict(),
-                "evidence_ledger": ledger.to_dict(),
-            },
+            execution_summary=execution,
         )

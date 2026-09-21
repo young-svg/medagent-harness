@@ -13,6 +13,7 @@ aside { background: #0d3538; color: white; border-radius: 18px; padding: 25px; b
 label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
 textarea { display: block; width: 100%; height: 170px; resize: vertical; margin-top: 9px; padding: 13px; color: #eaf2ee; background: #ffffff0d; border: 1px solid #ffffff26; border-radius: 9px; font: inherit; line-height: 1.45; }
 textarea.short { height: 100px; } aside button { width: 100%; padding: 14px; border: 0; border-radius: 9px; color: #fff; background: #c26343; font-weight: 700; cursor: pointer; } aside button b { float: right; }
+aside button.new-case { margin-top: 9px; color: #dce9e4; background: transparent; border: 1px solid #ffffff42; }
 .privacy { color: #9db5ae; font-size: 11px; line-height: 1.5; margin-top: 18px; }
 article { min-width: 0; } nav { display: flex; gap: 4px; margin-bottom: 16px; }
 nav button { text-transform: capitalize; border: 0; background: transparent; padding: 10px 16px; color: #69807a; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; }
@@ -24,4 +25,3 @@ nav button.active { color: #0d4546; border-bottom-color: #c26343; }
 .notice { margin-top: 35px; padding: 14px 18px; color: #704b3f; background: #f6e9df; border-left: 3px solid #c26343; font-size: 13px; }
 .card { margin: 12px 0; padding: 16px; background: #f1f5f0; border-radius: 10px; }.card small { display: block; color: #69807a; margin-top: 6px; }.muted { color: #70837e; }
 @media (max-width: 800px) { main { padding: 18px; } header { align-items: start; gap: 18px; } .workspace { grid-template-columns: 1fr; } h1 { font-size: 38px; } .panel { padding: 24px; } }
-

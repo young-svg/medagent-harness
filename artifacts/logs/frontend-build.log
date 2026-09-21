@@ -1,15 +1,15 @@
-MedAgent Harness v1 frontend validation
-Date: 2026-09-20
-Node.js: v24.19.0
-npm: 11.17.0
+﻿
+> medagent-harness-web@1.0.0 build
+> tsc -b && vite build
 
-npm install: PASS (package-lock.json generated, 0 vulnerabilities)
-npm ci: PASS (24 packages, 0 vulnerabilities)
-npm run build: PASS
+vite v8.3.0 building client environment for production...
+transforming...
+✓ 16 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.44 kB │ gzip:  0.29 kB
+dist/assets/index-WiBQG-nT.css    2.85 kB │ gzip:  1.21 kB
+dist/assets/index-BQ3RI7oC.js   224.14 kB │ gzip: 70.58 kB
 
-Vite 8.3.0 production output:
-- dist/index.html: 0.44 kB (gzip 0.29 kB)
-- dist/assets/index-Cj2bSs7j.css: 2.76 kB (gzip 1.18 kB)
-- dist/assets/index-CmlGGbQ8.js: 223.96 kB (gzip 70.45 kB)
-- 16 modules transformed
+✓ built in 198ms
 

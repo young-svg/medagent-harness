@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 from medagent.observability.replay import replay, trace_summary
 from medagent.runtime.coordinator import analyze_case
@@ -11,8 +13,10 @@ from medagent.runtime.coordinator import analyze_case
 
 def _run(args: argparse.Namespace) -> int:
     case = json.loads(Path(args.case).read_text(encoding="utf-8"))
-    result = analyze_case(
-        case["description"], case["question"], case.get("session_id", "cli"), args.trace_root
+    result = asyncio.run(
+        analyze_case(
+            case["description"], case["question"], case.get("session_id", "cli"), args.trace_root
+        )
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
@@ -25,20 +29,15 @@ def _serve(args: argparse.Namespace) -> int:
     return 0
 
 
-def _trace(args: argparse.Namespace) -> int:
-    print(json.dumps(trace_summary(args.run_dir), ensure_ascii=False, indent=2))
-    return 0
-
-
-def _replay(args: argparse.Namespace) -> int:
-    print(json.dumps(replay(args.run_dir), ensure_ascii=False, indent=2))
+def _show(function: Callable[[str], dict[str, Any]], path: str) -> int:
+    print(json.dumps(function(path), ensure_ascii=False, indent=2))
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="medagent", description="MedAgent Harness CLI")
+    parser = argparse.ArgumentParser(prog="medagent", description="Native MedAgent Harness CLI")
     sub = parser.add_subparsers(dest="command", required=True)
-    run = sub.add_parser("run", help="run a JSON case")
+    run = sub.add_parser("run", help="run a JSON case with the native engine")
     run.add_argument("case")
     run.add_argument("--trace-root", default="runs")
     run.set_defaults(handler=_run)
@@ -48,10 +47,10 @@ def build_parser() -> argparse.ArgumentParser:
     serve.set_defaults(handler=_serve)
     trace = sub.add_parser("trace", help="print a structured trace summary")
     trace.add_argument("run_dir")
-    trace.set_defaults(handler=_trace)
-    replay_parser = sub.add_parser("replay", help="replay saved final output without execution")
+    trace.set_defaults(handler=lambda args: _show(trace_summary, args.run_dir))
+    replay_parser = sub.add_parser("replay", help="read saved final output without execution")
     replay_parser.add_argument("run_dir")
-    replay_parser.set_defaults(handler=_replay)
+    replay_parser.set_defaults(handler=lambda args: _show(replay, args.run_dir))
     return parser
 
 

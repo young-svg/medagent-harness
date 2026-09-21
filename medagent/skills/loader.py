@@ -12,8 +12,12 @@ class ProceduralSkill:
 
 
 def load_skill(path: str | Path) -> ProceduralSkill:
-    """Explicitly load one procedural skill; directories are never auto-injected."""
+    """Explicitly load one public role specification; directories are not injected."""
     target = Path(path)
-    if target.name != "SKILL.md" or not target.is_file():
-        raise ValueError("a concrete SKILL.md file is required")
-    return ProceduralSkill(target.parent.name, target.read_text(encoding="utf-8"), target)
+    if (
+        target.suffix != ".md"
+        or target.name not in {"diagnosis.md", "consultation.md", "research.md", "synthesis.md"}
+        or not target.is_file()
+    ):
+        raise ValueError("a concrete public role specification is required")
+    return ProceduralSkill(target.stem, target.read_text(encoding="utf-8"), target)

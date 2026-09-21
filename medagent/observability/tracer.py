@@ -16,34 +16,55 @@ class TraceRecorder:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.path = self.run_dir / "trace.jsonl"
         self.started = perf_counter()
-        self._events: list[TraceEvent] = []
+        self.events: list[TraceEvent] = []
 
     def record(
-        self, event: str, payload: dict[str, Any] | None = None, parent_id: str | None = None
-    ) -> None:
-        resolved_parent = None if event == "run_start" else (parent_id or self.run_id)
-        item = TraceEvent(event, self.run_id, payload or {}, parent_id=resolved_parent)
-        self._events.append(item)
+        self,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        stage: str | None = None,
+        agent: str | None = None,
+        parent_event_id: str | None = None,
+    ) -> str:
+        if parent_event_id is None and self.events:
+            parent_event_id = self.events[-1].event_id
+        event = TraceEvent(
+            run_id=self.run_id,
+            stage=stage or event_type,
+            event_type=event_type,
+            agent=agent,
+            parent_event_id=parent_event_id,
+            payload=payload or {},
+        )
+        self.events.append(event)
         with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(item.to_dict(), ensure_ascii=False) + "\n")
+            handle.write(json.dumps(event.to_dict(), ensure_ascii=False) + "\n")
+        return event.event_id
 
-    def finish(self, status: str = "completed") -> None:
-        self.record(
+    def finish(self, status: str = "completed") -> str:
+        return self.record(
             "run_end",
             {"status": status, "latency_ms": round((perf_counter() - self.started) * 1000, 2)},
+            stage="lifecycle",
         )
 
     def summary(self) -> dict[str, Any]:
-        metrics = (
-            self._events[-1].payload if self._events and self._events[-1].event == "run_end" else {}
+        end = next(
+            (event for event in reversed(self.events) if event.event_type == "run_end"), None
         )
+        usage = [
+            event.payload.get("usage", {})
+            for event in self.events
+            if event.event_type == "llm_response"
+        ]
         return {
             "run_id": self.run_id,
-            "event_count": len(self._events),
-            "events": [item.event for item in self._events],
-            "status": metrics.get("status", "running"),
-            "latency_ms": metrics.get("latency_ms"),
-            "llm_calls": sum(item.event == "llm_request" for item in self._events),
-            "tool_calls": sum(item.event == "tool_call" for item in self._events),
-            "tokens": 0,
+            "event_count": len(self.events),
+            "events": [event.event_type for event in self.events],
+            "status": (end.payload if end else {}).get("status", "running"),
+            "latency_ms": (end.payload if end else {}).get("latency_ms"),
+            "llm_calls": sum(event.event_type == "llm_request" for event in self.events),
+            "tool_calls": sum(event.event_type == "tool_call" for event in self.events),
+            "tokens": sum(int(item.get("total_tokens", 0)) for item in usage) or None,
         }

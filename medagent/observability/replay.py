@@ -7,10 +7,7 @@ from typing import Any
 
 def read_trace(run_dir: str | Path) -> list[dict[str, Any]]:
     path = Path(run_dir)
-    if path.is_file():
-        trace_file = path
-    else:
-        trace_file = path / "trace.jsonl"
+    trace_file = path if path.is_file() else path / "trace.jsonl"
     if not trace_file.is_file():
         raise FileNotFoundError(f"trace not found: {trace_file}")
     return [
@@ -22,20 +19,22 @@ def read_trace(run_dir: str | Path) -> list[dict[str, Any]]:
 
 def trace_summary(run_dir: str | Path) -> dict[str, Any]:
     events = read_trace(run_dir)
-    final = next((item for item in reversed(events) if item["event"] == "run_end"), None)
+    final = next((item for item in reversed(events) if item["event_type"] == "run_end"), None)
+    payload = (final or {}).get("payload") or {}
     return {
-        "run_id": events[0]["run_id"] if events else None,
-        "status": (final or {}).get("payload", {}).get("status", "incomplete"),
+        "run_id": events[0].get("run_id") if events else None,
+        "status": payload.get("status", "incomplete"),
         "event_count": len(events),
-        "events": [item["event"] for item in events],
-        "latency_ms": (final or {}).get("payload", {}).get("latency_ms"),
+        "events": [item["event_type"] for item in events],
+        "latency_ms": payload.get("latency_ms"),
     }
 
 
 def replay(run_dir: str | Path) -> dict[str, Any]:
     events = read_trace(run_dir)
-    final = next((item for item in reversed(events) if item["event"] == "final_answer"), None)
+    final = next((item for item in reversed(events) if item["event_type"] == "final_answer"), None)
     return {
+        "mode": "replay",
         "summary": trace_summary(run_dir),
-        "final_answer": (final or {}).get("payload", {}).get("answer", ""),
+        "final_answer": ((final or {}).get("payload") or {}).get("answer", ""),
     }

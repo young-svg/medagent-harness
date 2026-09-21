@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from medagent.context.models import CoverageItem
+
+_DIAGNOSTIC_OUTPUTS = "MOST_LIKELY_DIAGNOSIS DIAGNOSIS_WITH_BASIS DIAGNOSTIC_BASIS"
+_DIAGNOSTIC_OUTPUTS += " DIFFERENTIAL_DIAGNOSIS DIAGNOSIS_LIST HISTORY_CLUES FURTHER_TESTS"
+_CARE_OUTPUTS = "TREATMENT_PRINCIPLES TREATMENT_PLAN BEST_TREATMENT_PLAN SURGERY_INDICATION"
+_CARE_OUTPUTS += " POSTOPERATIVE_MANAGEMENT POSTOPERATIVE_COMPLICATIONS PREOPERATIVE_EVALUATION"
+_GENERAL_OUTPUTS = "PREVENTION COMPREHENSIVE_CASE_ANALYSIS CASE_ANALYSIS MULTI_DELIVERABLE"
+DELIVERABLES = set(f"{_DIAGNOSTIC_OUTPUTS} {_CARE_OUTPUTS} {_GENERAL_OUTPUTS}".split())
 
 
 @dataclass(slots=True)
@@ -20,15 +28,15 @@ class AnswerContract:
     def validate(self) -> None:
         if not self.intent or not self.requested_deliverables:
             raise ValueError("intent and at least one requested deliverable are required")
+        if any(item not in DELIVERABLES for item in self.requested_deliverables):
+            raise ValueError("unknown requested deliverable")
         if self.breadth not in {"focused", "balanced", "broad"}:
             raise ValueError("invalid breadth")
         for item in self.coverage_checklist:
             item.validate()
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data["requested_deliverable"] = self.requested_deliverables[0]
-        return data
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> AnswerContract:
@@ -43,57 +51,32 @@ class AnswerContract:
         return contract
 
 
+_DELIVERABLE_HINTS = (
+    (r"post.?operative complications?|术后并发", "POSTOPERATIVE_COMPLICATIONS"),
+    (r"post.?operative|术后管理", "POSTOPERATIVE_MANAGEMENT"),
+    (r"pre.?operative|术前", "PREOPERATIVE_EVALUATION"),
+    (r"surgery indication|手术指征", "SURGERY_INDICATION"),
+    (r"prevent|预防", "PREVENTION"),
+    (r"treatment|management|治疗|处理", "TREATMENT_PLAN"),
+    (r"test|workup|检查|确诊", "FURTHER_TESTS"),
+    (r"differential|鉴别", "DIFFERENTIAL_DIAGNOSIS"),
+    (r"diagnos|诊断", "DIAGNOSIS_WITH_BASIS"),
+)
+
+
 def build_answer_contract(question: str) -> AnswerContract:
-    text = question.lower()
-    checks: list[str]
-    if any(term in text for term in ("检查", "test", "workup", "确诊")):
-        intent, deliverable, mode, breadth = (
-            "diagnostic_workup",
-            "FURTHER_TESTS",
-            "grouped_workup",
-            "broad",
-        )
-        checks = [
-            "tests confirming the leading diagnosis",
-            "tests excluding major alternatives",
-            "severity or complication assessment when relevant",
-            "decision-changing tests",
-        ]
-    elif any(term in text for term in ("治疗", "management", "treatment")):
-        intent, deliverable, mode, breadth = (
-            "management",
-            "TREATMENT_PLAN",
-            "prioritized_management",
-            "focused",
-        )
-        checks = ["immediate priority", "standard treatment", "decision prerequisites"]
-    elif any(term in text for term in ("诊断", "diagnos", "鉴别")):
-        intent, deliverable, mode, breadth = (
-            "diagnosis",
-            "MOST_LIKELY_DIAGNOSIS",
-            "diagnostic_assessment",
-            "balanced",
-        )
-        checks = ["most likely diagnosis", "decisive supporting findings", "major differentials"]
-    else:
-        intent, deliverable, mode, breadth = (
-            "comprehensive_case_analysis",
-            "COMPREHENSIVE_CASE_ANALYSIS",
-            "case_analysis",
-            "balanced",
-        )
-        checks = [
-            "problem representation",
-            "leading diagnosis and decisive evidence",
-            "important differential diagnoses",
-            "next decision-changing step",
-        ]
-    return AnswerContract(
+    matches = [value for pattern, value in _DELIVERABLE_HINTS if re.search(pattern, question, re.I)]
+    deliverables = list(dict.fromkeys(matches)) or ["COMPREHENSIVE_CASE_ANALYSIS"]
+    intent = "multi_deliverable" if len(deliverables) > 1 else deliverables[0].lower()
+    must_cover = [item.replace("_", " ").lower() for item in deliverables]
+    contract = AnswerContract(
         intent=intent,
-        requested_deliverables=[deliverable],
-        response_mode=mode,
-        must_cover=checks,
-        avoid=["unsupported patient facts", "unrequested encyclopedic detail"],
-        breadth=breadth,
-        coverage_checklist=[CoverageItem(item=item) for item in checks],
+        requested_deliverables=deliverables,
+        response_mode="structured_clinical_answer",
+        must_cover=must_cover,
+        avoid=["unsupported patient facts", "claims that recommended care was completed"],
+        breadth="broad" if len(deliverables) > 1 else "balanced",
+        coverage_checklist=[CoverageItem(item=item) for item in must_cover],
     )
+    contract.validate()
+    return contract

@@ -25,6 +25,6 @@ class CollectionRouter:
             )
         return CollectionDecision(
             self.config.generic_collection,
-            "generic_medical_ab_selected_v1",
+            "general_clinical_corpus",
             self.config.special_collection,
         )

@@ -13,7 +13,9 @@ class Subtask:
     assigned_agent: str
 
     def validate(self) -> None:
-        if not self.description.strip() or self.assigned_agent not in VALID_WORKERS:
+        if not self.subtask_id.strip() or not self.description.strip():
+            raise ValueError("subtask id and description are required")
+        if self.assigned_agent not in VALID_WORKERS:
             raise ValueError("subtask is not dispatchable")
 
     def to_dict(self) -> dict[str, Any]:

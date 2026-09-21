@@ -1,74 +1,31 @@
 # MedAgent Harness
 
-A traceable clinical-domain agent harness for context engineering, centralized
-planning and routing, multi-agent execution, clinical retrieval, session
-memory, conservative runtime guardrails, and replayable observability.
+MedAgent Harness is a self-contained, traceable clinical-domain agent runtime.
+Its public execution path is the **Centralized Planner–Worker Multi-Agent**
+architecture implemented by `NativeMedAgentEngine`.
 
-> Demo screenshot/GIF placeholder — run `medagent serve`, then build or serve
-> `web/` to capture the Patient, Clinical, and Developer views.
+This project is an engineering demonstration, not a medical device. It must not
+be used as a substitute for qualified clinical judgment.
 
-## Why this project
+## Runtime flow
 
-Many agent demos hide the hard engineering between a case and an answer. This
-repository makes that control plane explicit. An **Answer Contract** records
-what the user asked for. An **Evidence Ledger** records what the case actually
-establishes; it is not a medical knowledge graph. A centralized planner assigns
-dispatchable work to Diagnostic, Consultation, and Research workers. Every
-public execution decision is written to a replayable trace.
-
-This is an engineering demonstration, not a medical device or an autonomous
-doctor. It is not intended for production clinical deployment.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  C[Case] --> X[Context + session memory]
-  X --> P[Answer Contract + Evidence Ledger]
-  P --> L[Central Planner]
-  L --> A[Diagnostic / Consultation / Research workers]
-  A --> T[Allowlisted tools + clinical RAG]
-  T --> S[Synthesis]
-  S --> G[Checker + conservative patch + sanitizer]
-  G --> O[Professional answer]
-  O --> V[Presentation adapter]
-  V --> R[Trace + replay]
+```text
+Case → Context → Contract + Ledger → Planner → Agent Runtime
+     → Tools / RAG → Synthesis → Guardrail → Answer → Trace + Presentation
 ```
 
-The stable route is the **Centralized Planner–Worker Multi-Agent Architecture**
-frozen in `experiment_freeze_v2`. It selects a single worker when one specialty
-is sufficient and multiple workers only for dispatchable multi-domain work.
-Parsing failures fall back to a deterministic, valid plan.
+- The Answer Contract records requested deliverables.
+- The Evidence Ledger records patient facts without turning them into medical knowledge.
+- A centralized planner assigns work to Diagnostic, Consultation, and Research agents.
+- Tool schemas are filtered before each model call and revalidated at execution time.
+- Retrieval passes only admitted compact evidence to workers; the full bundle remains in trace data.
+- Multi-agent results are synthesized, checked, and conservatively edited as stable units.
+- Patient, Clinical, and Developer views share the exact native final answer.
 
-## Key features
-
-- Contract-driven context and an explicit Evidence Ledger
-- Centralized planner–worker single/multi-agent routing
-- Deterministic retrieval query builder, configurable CollectionRouter, unified
-  `EvidenceItem`, admission threshold, and compact worker evidence
-- Explicit procedural-skill loading, separate from tool schemas
-- Session memory with trimming, exact adjacent deduplication and current-input
-  priority
-- Conservative checker/Stable-ID patch boundary and output sanitizer
-- Full trace summaries and offline replay without exposing private reasoning
-- FastAPI, CLI, synthetic examples, and a three-view React demonstration
-
-Long-term memory is intentionally not enabled in the stable release.
-`search_similar_cases` is neither visible nor executable. No Mem0 client is
-initialized.
-
-## Demo
-
-- **Patient View:** short deterministic summary, admitted evidence and safety
-  notice; necessary risks remain visible.
-- **Clinical View:** complete professional answer and source-faithful Evidence
-  Cards. Missing source fields display `Source metadata unavailable`.
-- **Developer View:** context, contract, ledger, plan, route, tool/retrieval
-  events, worker status, checker edits, tokens and latency. It does not display
-  chain-of-thought.
-
-The bundled sample trace works without an API key. The default retrieval
-backend is offline-safe and returns no evidence rather than fabricating it.
+Long-term memory is intentionally excluded from the stable public runtime. The
+runtime keeps only bounded, process-local session context. No model weights,
+clinical corpus, vector database, credentials, or third-party benchmark answers
+are distributed in this repository.
 
 ## Quick start
 
@@ -79,87 +36,77 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate
 # POSIX: source .venv/bin/activate
 pip install -e ".[dev]"
+
+medagent --help
 medagent run examples/synthetic_case_1.json
-medagent trace examples/sample_trace/sample-run
-medagent replay examples/sample_trace/sample-run
 medagent serve
 ```
 
-API examples:
+The default is `MEDAGENT_RUNTIME_MODE=native`. Without endpoint configuration,
+the engine uses a deterministic offline client suitable for installation and
+workflow smoke tests. To use an OpenAI-compatible endpoint, set:
+
+```text
+MEDAGENT_LLM_BASE_URL=https://your-endpoint.example/v1
+MEDAGENT_LLM_API_KEY=replace-me
+MEDAGENT_LLM_MODEL=your-model
+```
+
+No real commercial API is called by the test suite.
+
+### API
 
 ```bash
 curl http://127.0.0.1:8000/health
 curl -X POST http://127.0.0.1:8000/api/analyze \
   -H "Content-Type: application/json" \
-  -d '{"description":"SYNTHETIC EXAMPLE — fatigue","question":"What should be assessed?","session_id":"demo"}'
+  -d '{"description":"Synthetic example: intermittent fatigue","question":"What should be assessed?","session_id":"demo"}'
 ```
 
-Frontend:
+The response contains `final_answer`, `run_id`, `trace`, and `presentation`.
+`presentation.professional_answer` is always identical to `final_answer`.
+
+### Optional retrieval
+
+`FakeRetrievalBackend` supports deterministic tests. `MilvusRetrievalBackend`
+is an optional connection adapter and requires an application-supplied embedding
+step plus `pip install -e ".[milvus]"`. Users must provide their own lawfully
+obtained corpus and database.
+
+### Frontend
 
 ```bash
 cd web
-npm install
+npm ci
 npm run build
 ```
 
-During local development, proxy `/api` to port 8000 or host the built frontend
-behind the same origin as FastAPI.
+The frontend exposes Patient, Clinical, and Developer views. Evidence Cards are
+labeled **检索到的参考资料** and include only admitted items. They are references,
+not a claim that a document proves a patient-specific conclusion. Developer View
+shows Contract, Ledger, Plan, Route, Workers, Tool, Retrieval, Guardrail, latency,
+and token metadata—not chain-of-thought.
 
-## Example trace
-
-Trace JSONL contains lifecycle events such as `run_start`, `context`, `memory`,
-`contract`, `ledger`, `plan`, `route`, retrieval, worker drafts, synthesis,
-checker, patch, `final_answer`, and `run_end/error`. It records observable
-inputs, outputs and execution decisions—not hidden chain-of-thought. See
-[`examples/sample_trace/sample-run`](examples/sample_trace/sample-run).
-
-## Evaluation
-
-The historical **CMB-Clin COMPOSITE-20 development benchmark** reported 20/20
-execution success, 90% RouteExactAccuracy, 97.22% worker micro-F1, a 100%
-dispatchable-plan rate, and zero timeout/generation failures. These are fixed
-development-benchmark engineering results, not unseen-holdout or medical-quality
-claims. Methods, scope and comparison caveats are in [`docs/evaluation.md`](docs/evaluation.md).
-
-Default local validation is offline:
+## Validation
 
 ```bash
 ruff check .
 pytest -m "not integration"
 ```
 
-## Project structure
+CI uses Python 3.11, has no network requirement, and needs no LLM service,
+retrieval service, or long-term-memory service.
 
-```text
-medagent/        runtime, context, planning, agents, retrieval, tools,
-                 memory, guardrails, observability, presentation, skills
-api/             FastAPI routes and request/response schemas
-web/             React + TypeScript + Vite three-view demo
-eval/            public evaluation schemas and scoring code (no benchmark data)
-examples/        synthetic cases and an offline sample trace
-tests/           offline unit/API tests
-docs/            architecture, baseline, decisions, evaluation and audits
-```
+## Evaluation status
 
-## Design decisions
+Historical design-baseline metrics in `docs/evaluation.md` came from a separately
+validated predecessor system. They are not measurements of this native engine.
+The native implementation is ready for a fresh benchmark run only when the
+criteria in `docs/NATIVE_BENCHMARK_READINESS.md` remain satisfied. This release
+does not rerun or alter that benchmark.
 
-The harness preserves the freeze-v2 behavior boundary instead of introducing a
-new graph runtime, reflection loop, long-term vector memory, agent role, or
-prompt policy. Detection does not imply permission to rewrite an answer;
-ambiguous units are preserved. See [`docs/design-decisions.md`](docs/design-decisions.md).
+## License status
 
-## Limitations
-
-- Offline mode demonstrates orchestration and produces no new clinical facts.
-- External LLM and Milvus adapters are deployment-specific extension points.
-- Retrieval quality depends on a separately licensed, validated corpus.
-- Guardrails do not eliminate hallucination or guarantee medical correctness.
-- Sample cases are synthetic and are not evidence of clinical performance.
-
-## License / attribution
-
-`REDISTRIBUTION_LICENSE_UNVERIFIED`. The source repository has a README license
-statement but no root license instrument was found. Publication is blocked
-until authorization is confirmed. See [`LICENSE_PENDING.md`](LICENSE_PENDING.md)
-and [`docs/OPEN_SOURCE_STATUS.md`](docs/OPEN_SOURCE_STATUS.md).
-
+The technical public-runtime boundary is complete, but license selection and
+ownership confirmation remain user decisions. No legal-clearance claim is made.
+See `LICENSE_PENDING.md` and `docs/OPEN_SOURCE_STATUS.md`.

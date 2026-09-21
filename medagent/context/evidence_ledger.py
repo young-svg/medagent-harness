@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -12,8 +13,8 @@ class EvidenceLedger:
     source_conflicts: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
-        ids = [item.finding_id for item in self.findings]
-        if len(ids) != len(set(ids)):
+        identifiers = [item.finding_id for item in self.findings]
+        if len(identifiers) != len(set(identifiers)):
             raise ValueError("finding IDs must be unique")
         for item in self.findings:
             item.validate()
@@ -32,12 +33,15 @@ class EvidenceLedger:
 
 
 def build_evidence_ledger(description: str) -> EvidenceLedger:
-    chunks = [part.strip() for part in description.replace("；", ";").split(";") if part.strip()]
-    if not chunks and description.strip():
-        chunks = [description.strip()]
-    return EvidenceLedger(
-        findings=[
-            Finding(finding_id=f"E{index}", source_text=text)
-            for index, text in enumerate(chunks, 1)
-        ]
-    )
+    chunks = [part.strip() for part in re.split(r"[;；\n]+", description) if part.strip()]
+    findings = []
+    for index, text in enumerate(chunks, 1):
+        lower = text.casefold()
+        attribute = "question" if text.endswith(("?", "？")) else "statement"
+        certainty = (
+            "conditional" if any(x in lower for x in (" if ", "may ", "可能", "若")) else "explicit"
+        )
+        findings.append(Finding(f"E{index}", text, attribute=attribute, certainty=certainty))
+    ledger = EvidenceLedger(findings=findings)
+    ledger.validate()
+    return ledger

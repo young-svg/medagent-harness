@@ -25,9 +25,8 @@ class Router:
             )
         )
         if not workers:
-            return Route("single", ["diagnostic_agent"], "no_dispatchable_worker_fallback")
-        return Route(
-            "single" if len(workers) == 1 else "multi",
-            workers,
-            "single_subtask" if len(workers) == 1 else "multiple_specialties",
-        )
+            workers = ["diagnostic_agent"]
+            reason = "dispatchability_fallback"
+        else:
+            reason = "single_subtask" if len(plan.subtasks) == 1 else "multiple_subtasks"
+        return Route("single" if len(plan.subtasks) == 1 else "multi", workers, reason)

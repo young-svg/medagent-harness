@@ -10,7 +10,7 @@ class EvidenceCard:
     title: str | None
     source: str
     section: str | None
-    score: float
+    score: float | None
     text_preview: str
 
 
@@ -21,7 +21,10 @@ class PresentationResponse:
     professional_answer: str
     evidence_cards: list[EvidenceCard] = field(default_factory=list)
     execution_summary: dict[str, Any] = field(default_factory=dict)
-    disclaimer: str = "仅供医学信息与病例分析演示，不能替代专业医生诊疗。"
+    disclaimer: str = (
+        "For clinical information and case-analysis demonstration only; "
+        "it does not replace qualified medical care."
+    )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

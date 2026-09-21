@@ -1,18 +1,6 @@
-MedAgent Harness v1 Python validation
-Date: 2026-09-20
-Interpreter: Python 3.12.7 (isolated project virtual environment)
+﻿All checks passed!
 
-pip install -e ".[dev]": PASS
-ruff check .: PASS (All checks passed)
-pytest -m "not integration": PASS
-Result: 16 passed, 0 failed, 2 upstream deprecation warnings in 0.84s
+..............                                                           [100%]
+- generated xml file: E:\agent\medagent-harness\artifacts\logs\pytest-junit.xml -
+14 passed in 0.77s
 
-FastAPI import smoke: PASS (MedAgent Harness 1.0.0)
-CLI --help: PASS
-CLI synthetic mock run: PASS (15 lifecycle events, completed)
-CLI trace reader: PASS
-CLI replay: PASS
-
-Notes:
-- Default tests made no real LLM, Mem0, remote Milvus, or internet calls.
-- Warnings came from the FastAPI/Starlette TestClient dependency boundary.
