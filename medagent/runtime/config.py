@@ -15,6 +15,8 @@ class RuntimeConfig:
     llm_model: str = "deterministic-local"
     llm_temperature: float = 0.0
     llm_max_tokens: int = 1200
+    planner_max_tokens: int = 8192
+    planner_max_length_recoveries: int = 1
     llm_timeout_seconds: float = 60.0
     max_tool_calls: int = 2
     worker_timeout_seconds: float = 180.0
@@ -43,6 +45,10 @@ class RuntimeConfig:
             llm_model=os.getenv("MEDAGENT_LLM_MODEL", "deterministic-local"),
             llm_temperature=float(os.getenv("MEDAGENT_LLM_TEMPERATURE", "0")),
             llm_max_tokens=int(os.getenv("MEDAGENT_LLM_MAX_TOKENS", "1200")),
+            planner_max_tokens=int(os.getenv("MEDAGENT_PLANNER_MAX_TOKENS", "8192")),
+            planner_max_length_recoveries=int(
+                os.getenv("MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES", "1")
+            ),
             llm_timeout_seconds=float(os.getenv("MEDAGENT_LLM_TIMEOUT_SECONDS", "60")),
             max_tool_calls=int(os.getenv("MEDAGENT_MAX_TOOL_CALLS", "2")),
             worker_timeout_seconds=float(os.getenv("MEDAGENT_WORKER_TIMEOUT_SECONDS", "180")),

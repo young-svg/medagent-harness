@@ -26,9 +26,15 @@ class ScriptedLLM:
         *,
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
+        max_tokens: int | None = None,
     ) -> LLMResponse:
         self.requests.append(
-            {"messages": messages, "tools": tools or [], "response_format": response_format}
+            {
+                "messages": messages,
+                "tools": tools or [],
+                "response_format": response_format,
+                "max_tokens": self.max_tokens if max_tokens is None else max_tokens,
+            }
         )
         if not self.responses:
             return LLMResponse("No scripted response remains.", finish_reason="stop",
@@ -65,6 +71,7 @@ class DeterministicLLM:
         *,
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
+        max_tokens: int | None = None,
     ) -> LLMResponse:
         prompt = str(messages[-1].get("content", "")) if messages else ""
         lower = prompt.casefold()

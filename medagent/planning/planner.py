@@ -20,8 +20,20 @@ def _fallback_worker(contract: AnswerContract) -> str:
 class Planner:
     """Centralized planner with strict structured parsing and deterministic fallback."""
 
-    def __init__(self, llm: LLMClient | None = None) -> None:
+    def __init__(
+        self,
+        llm: LLMClient | None = None,
+        *,
+        max_tokens: int = 8192,
+        max_length_recoveries: int = 1,
+    ) -> None:
+        if max_tokens <= 0:
+            raise ValueError("planner max_tokens must be positive")
+        if max_length_recoveries not in {0, 1}:
+            raise ValueError("planner max_length_recoveries must be 0 or 1")
         self.llm = llm
+        self.max_tokens = max_tokens
+        self.max_length_recoveries = max_length_recoveries
 
     @staticmethod
     def parse(raw: Any, fallback_worker: str) -> Plan:
@@ -46,6 +58,7 @@ class Planner:
             return Plan(
                 [Subtask("task-1", "Address the requested deliverables.", fallback_worker)],
                 f"structured_parse_fallback:{type(error).__name__}",
+                planner_parse_status="fallback",
             )
 
     async def plan(
@@ -84,7 +97,7 @@ class Planner:
                 ),
             },
         ]
-        try:
+        async def request(attempt_index: int, recovery_type: str | None):
             if trace:
                 response, _ = await complete_with_trace(
                     self.llm,
@@ -94,15 +107,39 @@ class Planner:
                     messages=messages,
                     response_format={"type": "json_object"},
                     purpose="planner",
+                    max_tokens=self.max_tokens,
+                    planner_max_tokens=self.max_tokens,
+                    attempt_index=attempt_index,
+                    recovery_type=recovery_type,
                 )
+                return response
+            return await self.llm.complete(
+                messages,
+                response_format={"type": "json_object"},
+                max_tokens=self.max_tokens,
+            )
+
+        try:
+            response = await request(1, None)
+            plan = self.parse(response.content, fallback_worker)
+            if plan.fallback_reason is None or response.finish_reason != "length":
+                return plan
+            if self.max_length_recoveries == 0:
+                plan.planner_generation_status = "length_exhausted"
+                return plan
+
+            response = await request(2, "structured_output_completion_recovery")
+            plan = self.parse(response.content, fallback_worker)
+            plan.planner_length_recovery_count = 1
+            if plan.fallback_reason is None:
+                plan.planner_generation_status = "completed_after_length_recovery"
             else:
-                response = await self.llm.complete(
-                    messages,
-                    response_format={"type": "json_object"},
-                )
-            return self.parse(response.content, fallback_worker)
+                plan.planner_generation_status = "length_exhausted"
+            return plan
         except Exception as error:
             return Plan(
                 [Subtask("task-1", question, fallback_worker)],
                 f"planner_request_fallback:{type(error).__name__}",
+                planner_parse_status="fallback",
+                planner_generation_status=None,
             )

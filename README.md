@@ -67,7 +67,11 @@ MEDAGENT_LLM_MODEL=your-model
 ```
 
 Temperature and maximum output tokens retain their documented defaults unless set through
-`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`.
+`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`. Planner generation has an
+independent ceiling, `MEDAGENT_PLANNER_MAX_TOKENS` (default `8192`), so reasoning-model
+structured output does not alter the worker or synthesis budget. A response ending with
+`finish_reason=length` may use at most one structured-output completion recovery, configured
+with `MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES` (default `1`).
 
 ## Clinical RAG configuration
 

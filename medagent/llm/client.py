@@ -30,6 +30,7 @@ class LLMClient(Protocol):
         *,
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
+        max_tokens: int | None = None,
     ) -> LLMResponse: ...
 
     async def close(self) -> None: ...
@@ -63,12 +64,14 @@ class OpenAICompatibleLLM:
         *,
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
+        max_tokens: int | None = None,
     ) -> LLMResponse:
+        effective_max_tokens = self.max_tokens if max_tokens is None else max_tokens
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
+            "max_tokens": effective_max_tokens,
         }
         if tools:
             payload.update({"tools": tools, "tool_choice": "auto"})
@@ -91,6 +94,9 @@ class OpenAICompatibleLLM:
                 arguments = {}
             calls.append(ToolCall(str(item.get("id") or "tool-call"), function["name"], arguments))
         usage = dict(body.get("usage") or {})
+        completion_details = usage.get("completion_tokens_details") or {}
+        if "reasoning_tokens" in completion_details:
+            usage.setdefault("reasoning_tokens", completion_details["reasoning_tokens"])
         choice = body["choices"][0]
         return LLMResponse(
             str(message.get("content") or ""),

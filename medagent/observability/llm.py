@@ -27,11 +27,23 @@ async def complete_with_trace(
     response_format: dict[str, Any] | None = None,
     purpose: str,
     parent_event_id: str | None = None,
+    max_tokens: int | None = None,
+    planner_max_tokens: int | None = None,
+    attempt_index: int | None = None,
+    recovery_type: str | None = None,
 ) -> tuple[LLMResponse, str]:
     """Execute one model call and persist its observable request/response boundary."""
 
     tool_choice = "auto" if tools else None
     requested_model = _client_value(client, "model", "model_name")
+    effective_max_tokens = max_tokens if max_tokens is not None else _client_value(
+        client, "max_tokens"
+    )
+    planner_metadata = {
+        "planner_max_tokens": planner_max_tokens,
+        "attempt_index": attempt_index,
+        "recovery_type": recovery_type,
+    }
     request_id = trace.record(
         "llm_request",
         {
@@ -39,12 +51,13 @@ async def complete_with_trace(
             "requested_model": requested_model,
             "resolved_model": requested_model,
             "temperature": _client_value(client, "temperature"),
-            "max_tokens": _client_value(client, "max_tokens"),
+            "max_tokens": effective_max_tokens,
             "messages": messages,
             "tools": tools or [],
             "tool_choice": tool_choice,
             "response_format": response_format,
             "request_timestamp": datetime.now(UTC).isoformat(),
+            **planner_metadata,
         },
         stage=stage,
         agent=agent,
@@ -52,23 +65,24 @@ async def complete_with_trace(
     )
     started = perf_counter()
     try:
-        response = await client.complete(
-            messages,
-            tools=tools,
-            response_format=response_format,
-        )
+        completion_kwargs = {"tools": tools, "response_format": response_format}
+        if max_tokens is not None:
+            completion_kwargs["max_tokens"] = max_tokens
+        response = await client.complete(messages, **completion_kwargs)
     except Exception as error:
         response_id = trace.record(
             "llm_response",
             {
                 "purpose": purpose,
                 "content": None,
+                "content_length": 0,
                 "tool_calls": [],
                 "usage": {},
                 "finish_reason": None,
                 "resolved_model": None,
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
                 "error": {"type": type(error).__name__, "message": str(error)},
+                **planner_metadata,
             },
             stage=stage,
             agent=agent,
@@ -76,20 +90,26 @@ async def complete_with_trace(
         )
         del response_id
         raise
+    usage = dict(response.usage)
+    completion_details = usage.get("completion_tokens_details") or {}
+    if "reasoning_tokens" in completion_details:
+        usage.setdefault("reasoning_tokens", completion_details["reasoning_tokens"])
     response_id = trace.record(
         "llm_response",
         {
             "purpose": purpose,
             "content": response.content,
+            "content_length": len(response.content),
             "tool_calls": [
                 {"id": call.id, "name": call.name, "arguments": call.arguments}
                 for call in response.tool_calls
             ],
-            "usage": response.usage,
+            "usage": usage,
             "finish_reason": response.finish_reason,
             "resolved_model": response.model,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "error": None,
+            **planner_metadata,
         },
         stage=stage,
         agent=agent,

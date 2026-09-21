@@ -125,7 +125,11 @@ class NativeMedAgentEngine:
             ledger = build_evidence_ledger(description)
             trace.record("evidence_ledger_built", ledger.to_dict(), stage="context")
 
-            plan = await Planner(self.llm).plan(
+            plan = await Planner(
+                self.llm,
+                max_tokens=self.config.planner_max_tokens,
+                max_length_recoveries=self.config.planner_max_length_recoveries,
+            ).plan(
                 question,
                 contract,
                 ledger,

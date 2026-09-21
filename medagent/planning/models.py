@@ -26,6 +26,13 @@ class Subtask:
 class Plan:
     subtasks: list[Subtask]
     fallback_reason: str | None = None
+    planner_parse_status: str = "direct_json"
+    planner_generation_status: str | None = "completed_first_attempt"
+    planner_length_recovery_count: int = 0
+
+    @property
+    def planner_parse_failure(self) -> bool:
+        return self.planner_parse_status == "fallback"
 
     def validate(self) -> None:
         if not self.subtasks:
@@ -37,4 +44,8 @@ class Plan:
         return {
             "subtasks": [item.to_dict() for item in self.subtasks],
             "fallback_reason": self.fallback_reason,
+            "planner_parse_status": self.planner_parse_status,
+            "planner_parse_failure": self.planner_parse_failure,
+            "planner_generation_status": self.planner_generation_status,
+            "planner_length_recovery_count": self.planner_length_recovery_count,
         }
