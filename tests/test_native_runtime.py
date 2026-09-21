@@ -208,3 +208,177 @@ def test_trace_schema_is_public_and_complete(tmp_path) -> None:
     from medagent.observability.schema import TraceEvent
 
     assert required == set(TraceEvent("r", "stage", "run_start").to_dict())
+
+
+@async_test
+async def test_single_route_bypasses_synthesis(tmp_path) -> None:
+    llm = ScriptedLLM(
+        [
+            {
+                "subtasks": [
+                    {
+                        "subtask_id": "single-1",
+                        "description": "Assess the synthetic case.",
+                        "assigned_agent": "diagnostic_agent",
+                    }
+                ]
+            },
+            "VALID_WORKER_ANSWER",
+            "",
+        ]
+    )
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+
+    result = await engine.analyze("Synthetic case", "Assess safely", "single-bypass")
+    events = read_trace(tmp_path / result["run_id"])
+
+    assert len(llm.requests) == 2
+    assert result["final_answer"] == "VALID_WORKER_ANSWER"
+    assert not any(event["event_type"].startswith("synthesis_") for event in events)
+    assert events[-1]["event_type"] == "run_end"
+    assert events[-1]["payload"]["status"] == "completed"
+    await engine.close()
+
+
+@async_test
+async def test_single_successful_worker_bypasses_synthesis(tmp_path) -> None:
+    llm = ScriptedLLM(
+        [
+            {
+                "subtasks": [
+                    {
+                        "subtask_id": "worker-1",
+                        "description": "Produce the valid draft.",
+                        "assigned_agent": "diagnostic_agent",
+                    },
+                    {
+                        "subtask_id": "worker-2",
+                        "description": "This worker returns no usable draft.",
+                        "assigned_agent": "research_agent",
+                    },
+                ]
+            },
+            "VALID_WORKER_ANSWER",
+            "",
+            "",
+        ]
+    )
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+
+    result = await engine.analyze(
+        "Synthetic case", "Assess with optional research", "one-successful-worker"
+    )
+    events = read_trace(tmp_path / result["run_id"])
+
+    assert len(llm.requests) == 3
+    assert result["final_answer"] == "VALID_WORKER_ANSWER"
+    assert not any(event["event_type"].startswith("synthesis_") for event in events)
+    assert events[-1]["payload"]["status"] == "completed"
+    await engine.close()
+
+
+@async_test
+async def test_multi_route_still_uses_synthesis(tmp_path) -> None:
+    llm = ScriptedLLM(
+        [
+            {
+                "subtasks": [
+                    {
+                        "subtask_id": "multi-1",
+                        "description": "Assess.",
+                        "assigned_agent": "diagnostic_agent",
+                    },
+                    {
+                        "subtask_id": "multi-2",
+                        "description": "Research.",
+                        "assigned_agent": "research_agent",
+                    },
+                ]
+            },
+            "Diagnostic draft",
+            "Research draft",
+            "VALID_SYNTHESIS_ANSWER",
+        ]
+    )
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+
+    result = await engine.analyze("Synthetic case", "Assess and research", "multi-synthesis")
+    events = read_trace(tmp_path / result["run_id"])
+
+    assert len(llm.requests) == 4
+    assert result["final_answer"] == "VALID_SYNTHESIS_ANSWER"
+    assert any(event["event_type"] == "synthesis_input" for event in events)
+    assert any(event["event_type"] == "synthesis_output" for event in events)
+    await engine.close()
+
+
+@async_test
+async def test_admitted_evidence_appears_once_in_next_worker_request(tmp_path) -> None:
+    llm = ScriptedLLM(
+        [
+            {
+                "subtasks": [
+                    {
+                        "subtask_id": "rag-1",
+                        "description": "Retrieve the synthetic evidence.",
+                        "assigned_agent": "research_agent",
+                    }
+                ]
+            },
+            LLMResponse(
+                tool_calls=[
+                    ToolCall("call-1", "clinical_guideline", {"query": "guideline"}),
+                    ToolCall("call-2", "clinical_guideline", {"query": "guideline"}),
+                ]
+            ),
+            "Evidence-aware worker answer",
+        ]
+    )
+    items = [
+        EvidenceItem(
+            f"evidence-{index}",
+            f"document-{index}",
+            f"source-{index}",
+            f"Title {index}",
+            "Guideline",
+            "Synthetic source",
+            None,
+            f"UNIQUE_EVIDENCE_TEXT_{index}",
+            0.9 - index / 100,
+            index,
+        )
+        for index in range(1, 6)
+    ]
+    engine = NativeMedAgentEngine(
+        RuntimeConfig(trace_dir=str(tmp_path), retrieval_threshold=0.63),
+        llm=llm,
+        retrieval_backend=FakeRetrievalBackend(items),
+    )
+
+    result = await engine.analyze(
+        "Synthetic retrieval case", "Retrieve a clinical guideline", "evidence-once"
+    )
+    worker_messages = llm.requests[2]["messages"]
+    next_worker_request = json.dumps(worker_messages, ensure_ascii=False)
+    events = read_trace(tmp_path / result["run_id"])
+
+    for item in items:
+        assert next_worker_request.count(item.evidence_id) == 1
+        assert next_worker_request.count(item.text) == 1
+    tool_payloads = [
+        json.loads(str(message["content"]))
+        for message in worker_messages
+        if message["role"] == "tool"
+    ]
+    assert all(
+        set(payload) == {"query", "evidence_status", "admitted"}
+        for payload in tool_payloads
+    )
+    assert len(tool_payloads[0]["admitted"]) == 5
+    assert tool_payloads[0]["evidence_status"] == "relevant_evidence_admitted"
+    assert tool_payloads[1]["admitted"] == []
+    assert tool_payloads[1]["evidence_status"] == "no_new_relevant_evidence"
+    retrievals = [event for event in events if event["event_type"] == "retrieval_result"]
+    assert len(retrievals) == 2
+    assert all(len(event["payload"]["raw_candidates"]) == 5 for event in retrievals)
+    await engine.close()

@@ -149,7 +149,6 @@ class NativeMedAgentEngine:
                         subtask,
                         contract,
                         ledger,
-                        evidence_bundle.compact(),
                         current_context,
                         injected_memory,
                         self.skills[subtask.assigned_agent],
@@ -183,7 +182,7 @@ class NativeMedAgentEngine:
             if not successful:
                 raise EngineExecutionError("all workers failed")
 
-            if route.mode == "multi":
+            if len(successful) >= 2:
                 final_draft = await self._synthesize(
                     question, contract.to_dict(), successful, trace
                 )
@@ -281,7 +280,9 @@ class NativeMedAgentEngine:
             compact = EvidenceBundle(query, decision.collection, items).compact()
             return {
                 "query": query,
-                "collection": decision.collection,
+                "evidence_status": (
+                    "relevant_evidence_admitted" if compact else "no_relevant_evidence"
+                ),
                 "admitted": compact,
                 "_trace_retrieval": {
                     "query": query,

@@ -25,7 +25,6 @@ class AgentLoop:
         subtask: Subtask,
         contract: AnswerContract,
         ledger: EvidenceLedger,
-        compact_evidence: list[dict[str, object]],
         current_context: dict[str, str],
         memory_context: list[dict[str, str]],
         skill: ProceduralSkill,
@@ -49,13 +48,13 @@ class AgentLoop:
                         "subtask": subtask.to_dict(),
                         "contract": contract.to_dict(),
                         "patient_facts": ledger.to_dict(),
-                        "admitted_evidence": compact_evidence,
                     },
                     ensure_ascii=False,
                 ),
             },
         ]
         calls = 0
+        sent_evidence_ids: set[str] = set()
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
             response, response_id = await complete_with_trace(
@@ -146,6 +145,26 @@ class AgentLoop:
                             agent=agent.agent_id,
                             parent_event_id=query_id,
                         )
+                    if isinstance(output, dict) and isinstance(output.get("admitted"), list):
+                        deduplicated = []
+                        for evidence in output["admitted"]:
+                            if not isinstance(evidence, dict):
+                                continue
+                            evidence_id = str(evidence.get("evidence_id") or "")
+                            if evidence_id and evidence_id in sent_evidence_ids:
+                                continue
+                            if evidence_id:
+                                sent_evidence_ids.add(evidence_id)
+                            deduplicated.append(evidence)
+                        output = {
+                            **output,
+                            "evidence_status": (
+                                "relevant_evidence_admitted"
+                                if deduplicated
+                                else "no_new_relevant_evidence"
+                            ),
+                            "admitted": deduplicated,
+                        }
                     trace.record(
                         "tool_result",
                         {"name": call.name, "result": output},
