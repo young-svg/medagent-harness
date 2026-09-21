@@ -1040,7 +1040,14 @@ async def main_async(args: argparse.Namespace) -> int:
     config["resolved_models"] = stage_a["resolved_models"]
     write_json(output_root / "REAL_E2E_CONFIG.json", config)
     if not stage_a_pass:
-        write_reports(output_root, config, stage_a, None, None, "b8e4b06")
+        write_reports(
+            output_root,
+            config,
+            stage_a,
+            None,
+            None,
+            "Milvus integration and provider usage serialization fixes",
+        )
         append_log(log_path, "stage_b_blocked", reason="stage_a_gate_failure")
         return 2
 
@@ -1055,7 +1062,14 @@ async def main_async(args: argparse.Namespace) -> int:
     output_sha = sha256_file(output_root / "NATIVE_COMPOSITE20_OUTPUTS.jsonl")
     metrics["native_outputs_sha256"] = output_sha
     write_json(output_root / "NATIVE_COMPOSITE20_ENGINEERING_METRICS.json", metrics)
-    write_reports(output_root, config, stage_a, metrics, pairing, "b8e4b06")
+    write_reports(
+        output_root,
+        config,
+        stage_a,
+        metrics,
+        pairing,
+        "Milvus integration and provider usage serialization fixes",
+    )
 
     if a2_trace:
         sample_root = repo / "examples" / "sample_native_real_trace"

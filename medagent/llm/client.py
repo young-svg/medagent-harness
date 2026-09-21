@@ -18,7 +18,7 @@ class ToolCall:
 class LLMResponse:
     content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
-    usage: dict[str, int] = field(default_factory=dict)
+    usage: dict[str, Any] = field(default_factory=dict)
     finish_reason: str | None = None
     model: str | None = None
 
@@ -90,7 +90,7 @@ class OpenAICompatibleLLM:
             except json.JSONDecodeError:
                 arguments = {}
             calls.append(ToolCall(str(item.get("id") or "tool-call"), function["name"], arguments))
-        usage = {key: int(value) for key, value in (body.get("usage") or {}).items()}
+        usage = dict(body.get("usage") or {})
         choice = body["choices"][0]
         return LLMResponse(
             str(message.get("content") or ""),

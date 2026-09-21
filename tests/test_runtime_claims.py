@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
+from httpx import AsyncClient, MockTransport, Request, Response
 
-from medagent.llm import LLMResponse, ScriptedLLM, ToolCall
+from medagent.llm import LLMResponse, OpenAICompatibleLLM, ScriptedLLM, ToolCall
 from medagent.memory.session import SessionMemory
 from medagent.observability.replay import read_trace
 from medagent.observability.tracer import TraceRecorder
@@ -409,3 +410,37 @@ async def test_milvus_backend_loads_collection_and_resolves_unique_vector_field(
     assert items[0].source == "Synthetic source"
     await backend.close()
     assert backend._client.closed is True
+
+
+@pytest.mark.asyncio
+async def test_openai_client_preserves_nested_provider_usage() -> None:
+    def handler(request: Request) -> Response:
+        assert request.url.path.endswith("/chat/completions")
+        return Response(
+            200,
+            json={
+                "model": "resolved-provider-model",
+                "choices": [
+                    {"message": {"content": "answer"}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": 4,
+                    "completion_tokens": 2,
+                    "total_tokens": 6,
+                    "prompt_tokens_details": {"cached_tokens": 1},
+                },
+            },
+        )
+
+    client = OpenAICompatibleLLM(
+        base_url="https://provider.invalid/v1",
+        api_key="fake-test-key",
+        model="requested-model",
+    )
+    await client._client.aclose()
+    client._client = AsyncClient(transport=MockTransport(handler))
+    response = await client.complete([{"role": "user", "content": "hello"}])
+    assert response.usage["total_tokens"] == 6
+    assert response.usage["prompt_tokens_details"] == {"cached_tokens": 1}
+    assert response.model == "resolved-provider-model"
+    await client.close()
