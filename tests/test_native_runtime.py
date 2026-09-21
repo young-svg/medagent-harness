@@ -43,6 +43,22 @@ def test_contract_and_ledger_round_trip() -> None:
     assert EvidenceLedger.from_dict(ledger.to_dict()).findings[1].source_text == "no rash"
 
 
+@pytest.mark.parametrize(
+    ("question", "expects_further_tests"),
+    [
+        ("请分析上述辅助检查结果", False),
+        ("下一步还需要完善哪些检查？", True),
+        ("分析现有检查，并说明还需要进一步做哪些检查", True),
+    ],
+)
+def test_contract_detects_only_prospective_further_tests(
+    question: str, expects_further_tests: bool
+) -> None:
+    contract = build_answer_contract(question)
+
+    assert ("FURTHER_TESTS" in contract.requested_deliverables) is expects_further_tests
+
+
 @async_test
 async def test_planner_parse_missing_agent_and_fallback() -> None:
     contract = build_answer_contract("diagnosis")

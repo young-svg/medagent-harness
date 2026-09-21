@@ -13,6 +13,23 @@ _CARE_OUTPUTS += " POSTOPERATIVE_MANAGEMENT POSTOPERATIVE_COMPLICATIONS PREOPERA
 _GENERAL_OUTPUTS = "PREVENTION COMPREHENSIVE_CASE_ANALYSIS CASE_ANALYSIS MULTI_DELIVERABLE"
 DELIVERABLES = set(f"{_DIAGNOSTIC_OUTPUTS} {_CARE_OUTPUTS} {_GENERAL_OUTPUTS}".split())
 
+_FURTHER_TESTS_HINT = (
+    r"\b(?:further|additional|next(?:-|\s+)step)\s+(?:diagnostic\s+)?(?:tests?|testing|workup)\b"
+    r"|\b(?:what|which)\s+(?:further\s+|additional\s+|other\s+)?(?:tests?|workup)\b"
+    r"|\b(?:tests?|testing|workup)\s+(?:are\s+)?(?:needed|required|recommended)\b"
+    r"|\b(?:diagnosis|differential)\s*,\s*(?:further\s+|additional\s+)?tests?\b"
+    r"|\b(?:provide|list|recommend|suggest|identify|outline)\s+"
+    r"(?:(?:the|any|necessary|recommended|appropriate|further|additional|diagnostic)\s+){0,3}"
+    r"(?:tests?|testing|workup)\b"
+    r"|(?:还|仍)需(?:要)?(?:进一步)?(?:做|进行|完善|补充|安排)?"
+    r"(?:哪些|什么)?(?:辅助)?检查"
+    r"|下一步(?:还)?(?:需(?:要)?|应该|应当|建议)?(?:进一步)?"
+    r"(?:做|进行|完善|补充|安排)?(?:哪些|什么)?(?:辅助)?检查"
+    r"|进一步(?:做|进行|完善|补充|安排)?(?:哪些|什么)?(?:辅助)?检查"
+    r"|(?:需要|应该|应当)[^，。；;,.？！?\n]{0,12}(?:哪些|什么)(?:辅助)?检查"
+    r"|建议[^，。；;,.？！?\n]{0,12}(?:进一步|补充|完善|做|进行)[^，。；;,.？！?\n]{0,8}检查"
+)
+
 
 @dataclass(slots=True)
 class AnswerContract:
@@ -58,7 +75,7 @@ _DELIVERABLE_HINTS = (
     (r"surgery indication|手术指征", "SURGERY_INDICATION"),
     (r"prevent|预防", "PREVENTION"),
     (r"treatment|management|治疗|处理", "TREATMENT_PLAN"),
-    (r"test|workup|检查|确诊", "FURTHER_TESTS"),
+    (_FURTHER_TESTS_HINT, "FURTHER_TESTS"),
     (r"differential|鉴别", "DIFFERENTIAL_DIAGNOSIS"),
     (r"diagnos|诊断", "DIAGNOSIS_WITH_BASIS"),
 )
