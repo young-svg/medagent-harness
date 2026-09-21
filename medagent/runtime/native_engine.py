@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from typing import Any
 
@@ -371,4 +372,9 @@ class NativeMedAgentEngine:
     async def close(self) -> None:
         if not self._closed:
             await self.llm.close()
+            retrieval_close = getattr(self.retrieval_backend, "close", None)
+            if retrieval_close is not None:
+                result = retrieval_close()
+                if inspect.isawaitable(result):
+                    await result
             self._closed = True

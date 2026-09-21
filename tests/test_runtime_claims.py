@@ -9,7 +9,11 @@ from medagent.llm import LLMResponse, ScriptedLLM, ToolCall
 from medagent.memory.session import SessionMemory
 from medagent.observability.replay import read_trace
 from medagent.observability.tracer import TraceRecorder
-from medagent.retrieval.backend import FakeRetrievalBackend, OffRetrievalBackend
+from medagent.retrieval.backend import (
+    FakeRetrievalBackend,
+    MilvusRetrievalBackend,
+    OffRetrievalBackend,
+)
 from medagent.retrieval.collection_router import CollectionRouter
 from medagent.retrieval.config import RetrievalConfig
 from medagent.retrieval.evidence import EvidenceItem
@@ -340,3 +344,68 @@ def test_redaction_applies_at_single_trace_write_boundary(tmp_path: Path) -> Non
     assert "session-cookie-value" not in persisted
     assert "password-value" not in persisted
     assert "secretory process" in persisted
+
+
+@pytest.mark.asyncio
+async def test_milvus_backend_loads_collection_and_resolves_unique_vector_field() -> None:
+    class StubClient:
+        def __init__(self) -> None:
+            self.loaded: list[str] = []
+            self.anns_field = ""
+            self.closed = False
+
+        def describe_collection(self, *, collection_name: str) -> dict[str, object]:
+            assert collection_name == "configured_collection"
+            return {
+                "fields": [
+                    {"name": "id", "type": "INT64"},
+                    {"name": "vector", "type": "FLOAT_VECTOR"},
+                ]
+            }
+
+        def load_collection(self, *, collection_name: str) -> None:
+            self.loaded.append(collection_name)
+
+        def search(self, **kwargs: object) -> list[list[dict[str, object]]]:
+            self.anns_field = str(kwargs["anns_field"])
+            return [
+                [
+                    {
+                        "id": 7,
+                        "distance": 0.91,
+                        "entity": {
+                            "content": "evidence",
+                            "metadata": json.dumps(
+                                {
+                                    "doc_id": "doc-7",
+                                    "disease": "Synthetic title",
+                                    "type": "overview",
+                                    "source": "Synthetic source",
+                                }
+                            ),
+                        },
+                    }
+                ]
+            ]
+
+        def close(self) -> None:
+            self.closed = True
+
+    backend = object.__new__(MilvusRetrievalBackend)
+    backend._client = StubClient()
+    backend.embed_query = lambda text: [0.1, 0.2]
+    backend.vector_field = "embedding"
+    backend.output_fields = ["text"]
+    backend.resolved_vector_fields = {}
+
+    items = await backend.search("query", "configured_collection", 1)
+    assert backend._client.loaded == ["configured_collection"]
+    assert backend._client.anns_field == "vector"
+    assert backend.resolved_vector_fields == {"configured_collection": "vector"}
+    assert items[0].text == "evidence"
+    assert items[0].document_id == "doc-7"
+    assert items[0].title == "Synthetic title"
+    assert items[0].section == "overview"
+    assert items[0].source == "Synthetic source"
+    await backend.close()
+    assert backend._client.closed is True
