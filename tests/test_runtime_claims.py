@@ -311,7 +311,7 @@ async def test_full_llm_trace_and_central_redaction(tmp_path: Path) -> None:
     assert requests[1]["payload"]["requested_model"] == "scripted-test-model"
     assert requests[1]["payload"]["resolved_model"] == "scripted-test-model"
     assert requests[1]["payload"]["temperature"] == 0.0
-    assert requests[1]["payload"]["max_tokens"] == 1200
+    assert requests[1]["payload"]["max_tokens"] == 8192
     assert requests[1]["payload"]["request_timestamp"]
 
     tool_response = next(

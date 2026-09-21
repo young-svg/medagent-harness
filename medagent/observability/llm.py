@@ -77,9 +77,11 @@ async def complete_with_trace(
                 "content": None,
                 "content_length": 0,
                 "tool_calls": [],
+                "tool_call_count": 0,
                 "usage": {},
                 "finish_reason": None,
                 "resolved_model": None,
+                "max_tokens": effective_max_tokens,
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
                 "error": {"type": type(error).__name__, "message": str(error)},
                 **planner_metadata,
@@ -104,9 +106,11 @@ async def complete_with_trace(
                 {"id": call.id, "name": call.name, "arguments": call.arguments}
                 for call in response.tool_calls
             ],
+            "tool_call_count": len(response.tool_calls),
             "usage": usage,
             "finish_reason": response.finish_reason,
             "resolved_model": response.model,
+            "max_tokens": effective_max_tokens,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "error": None,
             **planner_metadata,

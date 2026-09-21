@@ -16,8 +16,8 @@ from medagent.guardrails.sanitizer import sanitize_answer
 from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
 from medagent.llm.client import LLMClient, OpenAICompatibleLLM
 from medagent.llm.fakes import DeterministicLLM
+from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.memory.session import SessionMemory
-from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.planner import Planner
 from medagent.planning.router import Router
@@ -31,7 +31,7 @@ from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
-from medagent.runtime.engine import EngineExecutionError
+from medagent.runtime.engine import EngineExecutionError, StageGenerationError
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
 
@@ -145,7 +145,13 @@ class NativeMedAgentEngine:
             tools = self._tool_registry(
                 question, contract.requested_deliverables[0], evidence_bundle
             )
-            loop = AgentLoop(self.llm, tools, self.config.max_tool_calls)
+            loop = AgentLoop(
+                self.llm,
+                tools,
+                self.config.max_tool_calls,
+                max_tokens=self.config.worker_max_tokens,
+                max_length_recoveries=self.config.worker_max_length_recoveries,
+            )
             tasks = [
                 asyncio.wait_for(
                     loop.execute(
@@ -172,10 +178,19 @@ class NativeMedAgentEngine:
                         "",
                         False,
                         tools.calls_for(subtask.assigned_agent),
+                        "provider_error",
+                        0,
+                        "provider_error",
                     )
                     trace.record(
                         "error",
                         {"where": "worker", "error": type(outcome).__name__},
+                        stage="worker",
+                        agent=subtask.assigned_agent,
+                    )
+                    trace.record(
+                        "worker_draft",
+                        result.to_dict(),
                         stage="worker",
                         agent=subtask.assigned_agent,
                     )
@@ -249,9 +264,15 @@ class NativeMedAgentEngine:
                 "presentation": presentation,
             }
         except Exception as error:
-            trace.record(
-                "error", {"error": type(error).__name__, "message": str(error)}, stage="lifecycle"
-            )
+            error_payload = {"error": type(error).__name__, "message": str(error)}
+            if isinstance(error, StageGenerationError):
+                error_payload.update(
+                    {
+                        "failure_stage": error.failure_stage,
+                        "failure_reason": error.failure_reason,
+                    }
+                )
+            trace.record("error", error_payload, stage="lifecycle")
             trace.finish("failed")
             raise
 
@@ -356,22 +377,36 @@ class NativeMedAgentEngine:
                 "content": "Synthesize this payload:\n" + json.dumps(payload, ensure_ascii=False),
             },
         ]
-        response, response_id = await complete_with_trace(
+        generation = await run_with_length_recovery(
             self.llm,
-            trace,
+            policy=GenerationPolicy(
+                self.config.synthesis_max_tokens,
+                self.config.synthesis_max_length_recoveries,
+            ),
             stage="synthesis",
             agent="synthesizer",
             messages=messages,
             purpose="synthesis",
+            is_complete=lambda response: bool(response.content.strip()),
+            trace=trace,
             parent_event_id=input_id,
         )
+        response = generation.response
         trace.record(
             "synthesis_output",
-            {"draft": response.content},
+            {
+                "draft": response.content,
+                "generation_status": generation.generation_status,
+                "length_recovery_count": generation.length_recovery_count,
+            },
             stage="synthesis",
             agent="synthesizer",
-            parent_event_id=response_id,
+            parent_event_id=generation.response_id,
         )
+        if generation.generation_status == "length_exhausted":
+            raise StageGenerationError("synthesis", "generation_length_exhausted")
+        if not response.content.strip():
+            raise StageGenerationError("synthesis", "empty_generation_output")
         return response.content
 
     async def close(self) -> None:

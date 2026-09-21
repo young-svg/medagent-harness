@@ -108,10 +108,12 @@ async def test_planner_completes_on_first_attempt() -> None:
 
 
 @async_test
-async def test_planner_budget_is_independent_from_worker_and_synthesis_budget(tmp_path) -> None:
+async def test_stage_budgets_are_independent_from_generic_client_default(tmp_path) -> None:
     config = RuntimeConfig()
     assert config.planner_max_tokens == 8192
     assert config.planner_max_length_recoveries == 1
+    assert config.worker_max_tokens == 8192
+    assert config.synthesis_max_tokens == 8192
     assert config.llm_max_tokens == 1200
 
     llm = ScriptedLLM(
@@ -143,7 +145,7 @@ async def test_planner_budget_is_independent_from_worker_and_synthesis_budget(tm
     await engine.close()
 
     assert llm.requests[0]["max_tokens"] == 8192
-    assert all(request["max_tokens"] == 1200 for request in llm.requests[1:])
+    assert all(request["max_tokens"] == 8192 for request in llm.requests[1:])
 
 
 @async_test

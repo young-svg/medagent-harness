@@ -17,6 +17,10 @@ class RuntimeConfig:
     llm_max_tokens: int = 1200
     planner_max_tokens: int = 8192
     planner_max_length_recoveries: int = 1
+    worker_max_tokens: int = 8192
+    worker_max_length_recoveries: int = 1
+    synthesis_max_tokens: int = 8192
+    synthesis_max_length_recoveries: int = 1
     llm_timeout_seconds: float = 60.0
     max_tool_calls: int = 2
     worker_timeout_seconds: float = 180.0
@@ -48,6 +52,16 @@ class RuntimeConfig:
             planner_max_tokens=int(os.getenv("MEDAGENT_PLANNER_MAX_TOKENS", "8192")),
             planner_max_length_recoveries=int(
                 os.getenv("MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES", "1")
+            ),
+            worker_max_tokens=int(os.getenv("MEDAGENT_WORKER_MAX_TOKENS", "8192")),
+            worker_max_length_recoveries=int(
+                os.getenv("MEDAGENT_WORKER_MAX_LENGTH_RECOVERIES", "1")
+            ),
+            synthesis_max_tokens=int(
+                os.getenv("MEDAGENT_SYNTHESIS_MAX_TOKENS", "8192")
+            ),
+            synthesis_max_length_recoveries=int(
+                os.getenv("MEDAGENT_SYNTHESIS_MAX_LENGTH_RECOVERIES", "1")
             ),
             llm_timeout_seconds=float(os.getenv("MEDAGENT_LLM_TIMEOUT_SECONDS", "60")),
             max_tool_calls=int(os.getenv("MEDAGENT_MAX_TOOL_CALLS", "2")),

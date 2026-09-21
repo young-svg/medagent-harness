@@ -15,6 +15,7 @@ EVENT_TYPES = {
     "route_selected",
     "llm_request",
     "llm_response",
+    "generation_summary",
     "tool_call",
     "tool_result",
     "retrieval_query",

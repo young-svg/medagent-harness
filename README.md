@@ -66,12 +66,15 @@ MEDAGENT_LLM_API_KEY=replace-me
 MEDAGENT_LLM_MODEL=your-model
 ```
 
-Temperature and maximum output tokens retain their documented defaults unless set through
-`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`. Planner generation has an
-independent ceiling, `MEDAGENT_PLANNER_MAX_TOKENS` (default `8192`), so reasoning-model
-structured output does not alter the worker or synthesis budget. A response ending with
-`finish_reason=length` may use at most one structured-output completion recovery, configured
-with `MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES` (default `1`).
+Temperature and the generic client fallback retain their documented defaults through
+`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`. Planner, Worker, and Synthesis
+generation use independent ceilings through `MEDAGENT_PLANNER_MAX_TOKENS`,
+`MEDAGENT_WORKER_MAX_TOKENS`, and `MEDAGENT_SYNTHESIS_MAX_TOKENS` (each defaults to `8192`).
+Each stage allows at most one same-input completion recovery after an unusable
+`finish_reason=length` response. The corresponding settings are
+`MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES`, `MEDAGENT_WORKER_MAX_LENGTH_RECOVERIES`, and
+`MEDAGENT_SYNTHESIS_MAX_LENGTH_RECOVERIES` (each defaults to `1`). These are output ceilings,
+not fixed consumption targets; normal `stop` responses use only their actual tokens.
 
 ## Clinical RAG configuration
 

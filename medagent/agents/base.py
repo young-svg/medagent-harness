@@ -21,6 +21,9 @@ class WorkerResult:
     answer: str
     success: bool = True
     tool_calls: int = 0
+    generation_status: str = "completed_first_attempt"
+    length_recovery_count: int = 0
+    failure_reason: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)

@@ -6,7 +6,7 @@ from medagent.agents.base import AgentDefinition, WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.llm.client import LLMClient
-from medagent.observability.llm import complete_with_trace
+from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.models import Subtask
 from medagent.skills.loader import ProceduralSkill
@@ -14,10 +14,19 @@ from medagent.tools.registry import ToolRegistry
 
 
 class AgentLoop:
-    def __init__(self, llm: LLMClient, tools: ToolRegistry, max_tool_calls: int = 2) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        tools: ToolRegistry,
+        max_tool_calls: int = 2,
+        *,
+        max_tokens: int = 8192,
+        max_length_recoveries: int = 1,
+    ) -> None:
         self.llm = llm
         self.tools = tools
         self.max_tool_calls = max_tool_calls
+        self.generation_policy = GenerationPolicy(max_tokens, max_length_recoveries)
 
     async def execute(
         self,
@@ -54,25 +63,45 @@ class AgentLoop:
             },
         ]
         calls = 0
+        length_recovery_count = 0
         sent_evidence_ids: set[str] = set()
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
-            response, response_id = await complete_with_trace(
+            generation = await run_with_length_recovery(
                 self.llm,
-                trace,
+                policy=self.generation_policy,
                 stage="worker",
                 agent=agent.agent_id,
                 messages=messages,
                 tools=schemas,
                 purpose=f"worker:{subtask.subtask_id}",
+                is_complete=lambda response: bool(
+                    response.tool_calls or response.content.strip()
+                ),
+                trace=trace,
             )
+            response = generation.response
+            response_id = generation.response_id
+            length_recovery_count += generation.length_recovery_count
             if not response.tool_calls:
+                generation_status = generation.generation_status
+                if length_recovery_count and generation_status != "length_exhausted":
+                    generation_status = "completed_after_length_recovery"
+                success = bool(response.content.strip()) and generation_status != "length_exhausted"
+                failure_reason = None
+                if generation_status == "length_exhausted":
+                    failure_reason = "generation_length_exhausted"
+                elif not success:
+                    failure_reason = "empty_generation_output"
                 result = WorkerResult(
                     agent.agent_id,
                     subtask.subtask_id,
                     response.content,
-                    bool(response.content.strip()),
+                    success,
                     calls,
+                    generation_status,
+                    length_recovery_count,
+                    failure_reason,
                 )
                 trace.record(
                     "worker_draft",
