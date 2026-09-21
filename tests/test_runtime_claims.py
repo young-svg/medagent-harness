@@ -404,6 +404,7 @@ async def test_milvus_backend_loads_collection_and_resolves_unique_vector_field(
     assert backend._client.anns_field == "vector"
     assert backend.resolved_vector_fields == {"configured_collection": "vector"}
     assert items[0].text == "evidence"
+    assert items[0].evidence_id == "milvus-7"
     assert items[0].document_id == "doc-7"
     assert items[0].title == "Synthetic title"
     assert items[0].section == "overview"

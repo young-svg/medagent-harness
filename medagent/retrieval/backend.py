@@ -118,6 +118,13 @@ class MilvusRetrievalBackend:
                 or metadata.get("doc_id")
                 or hit.get("id", f"row-{rank}")
             )
+            stable_evidence_id = (
+                entity.get("evidence_id")
+                or metadata.get("evidence_id")
+                or hit.get("id")
+                or metadata.get("id")
+                or f"{raw_id}:{metadata.get('chunk_id', 'document')}"
+            )
             metadata.update(
                 {
                     key: value
@@ -139,7 +146,7 @@ class MilvusRetrievalBackend:
             )
             items.append(
                 EvidenceItem(
-                    evidence_id=f"milvus-{raw_id}-{rank}",
+                    evidence_id=f"milvus-{stable_evidence_id}",
                     document_id=raw_id,
                     source_id=entity.get("source_id") or metadata.get("source_record_id"),
                     title=entity.get("title") or metadata.get("disease") or metadata.get("topic"),
