@@ -19,6 +19,7 @@ class RuntimeConfig:
     planner_max_length_recoveries: int = 1
     worker_max_tokens: int = 8192
     worker_max_length_recoveries: int = 1
+    worker_max_infrastructure_retries: int = 1
     synthesis_max_tokens: int = 8192
     synthesis_max_length_recoveries: int = 1
     llm_timeout_seconds: float = 60.0
@@ -32,6 +33,10 @@ class RuntimeConfig:
     special_collection: str = "clinical_guidelines"
     retrieval_top_k: int = 5
     retrieval_threshold: float = 0.63
+
+    def __post_init__(self) -> None:
+        if self.worker_max_infrastructure_retries not in {0, 1}:
+            raise ValueError("worker_max_infrastructure_retries must be 0 or 1")
 
     @classmethod
     def from_env(cls) -> RuntimeConfig:
@@ -56,6 +61,9 @@ class RuntimeConfig:
             worker_max_tokens=int(os.getenv("MEDAGENT_WORKER_MAX_TOKENS", "8192")),
             worker_max_length_recoveries=int(
                 os.getenv("MEDAGENT_WORKER_MAX_LENGTH_RECOVERIES", "1")
+            ),
+            worker_max_infrastructure_retries=int(
+                os.getenv("MEDAGENT_WORKER_MAX_INFRA_RETRIES", "1")
             ),
             synthesis_max_tokens=int(
                 os.getenv("MEDAGENT_SYNTHESIS_MAX_TOKENS", "8192")

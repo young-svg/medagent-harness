@@ -23,11 +23,13 @@ class AgentLoop:
         *,
         max_tokens: int = 8192,
         max_length_recoveries: int = 1,
+        max_infrastructure_retries: int = 1,
     ) -> None:
         self.llm = llm
         self.tools = tools
         self.max_tool_calls = max_tool_calls
         self.generation_policy = GenerationPolicy(max_tokens, max_length_recoveries)
+        self.max_infrastructure_retries = max_infrastructure_retries
 
     async def execute(
         self,
@@ -72,22 +74,56 @@ class AgentLoop:
         ]
         calls = 0
         length_recovery_count = 0
+        infrastructure_retry_count = 0
+        provider_attempt_count = 0
         sent_evidence_ids: set[str] = set()
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
-            generation = await run_with_length_recovery(
-                self.llm,
-                policy=self.generation_policy,
-                stage="worker",
-                agent=agent.agent_id,
-                messages=messages,
-                tools=schemas,
-                purpose=f"worker:{subtask.subtask_id}",
-                is_complete=lambda response: bool(
-                    response.tool_calls or response.content.strip()
-                ),
-                trace=trace,
-            )
+            try:
+                generation = await run_with_length_recovery(
+                    self.llm,
+                    policy=self.generation_policy,
+                    stage="worker",
+                    agent=agent.agent_id,
+                    messages=messages,
+                    tools=schemas,
+                    purpose=f"worker:{subtask.subtask_id}",
+                    is_complete=lambda response: bool(
+                        response.tool_calls or response.content.strip()
+                    ),
+                    trace=trace,
+                    max_infrastructure_retries=self.max_infrastructure_retries,
+                    worker_id=agent.agent_id,
+                    subtask_id=subtask.subtask_id,
+                    provider_attempt_index_offset=provider_attempt_count,
+                )
+            except Exception as error:
+                infrastructure_retry_count += int(
+                    getattr(error, "infrastructure_retry_count", 0)
+                )
+                provider_attempt_count += int(getattr(error, "provider_attempt_count", 1))
+                result = WorkerResult(
+                    worker=agent.agent_id,
+                    subtask_id=subtask.subtask_id,
+                    answer="",
+                    success=False,
+                    tool_calls=calls,
+                    generation_status="provider_error",
+                    length_recovery_count=length_recovery_count,
+                    failure_reason="provider_error",
+                    infrastructure_retry_count=infrastructure_retry_count,
+                    provider_attempt_count=provider_attempt_count,
+                    worker_status="provider_error",
+                )
+                trace.record(
+                    "worker_draft",
+                    result.to_dict(),
+                    stage="worker",
+                    agent=agent.agent_id,
+                )
+                return result
+            infrastructure_retry_count += generation.infrastructure_retry_count
+            provider_attempt_count += generation.provider_attempt_count
             response = generation.response
             response_id = generation.response_id
             length_recovery_count += generation.length_recovery_count
@@ -102,14 +138,17 @@ class AgentLoop:
                 elif not success:
                     failure_reason = "empty_generation_output"
                 result = WorkerResult(
-                    agent.agent_id,
-                    subtask.subtask_id,
-                    response.content,
-                    success,
-                    calls,
-                    generation_status,
-                    length_recovery_count,
-                    failure_reason,
+                    worker=agent.agent_id,
+                    subtask_id=subtask.subtask_id,
+                    answer=response.content,
+                    success=success,
+                    tool_calls=calls,
+                    generation_status=generation_status,
+                    length_recovery_count=length_recovery_count,
+                    failure_reason=failure_reason,
+                    infrastructure_retry_count=infrastructure_retry_count,
+                    provider_attempt_count=provider_attempt_count,
+                    worker_status="success" if success else "generation_error",
                 )
                 trace.record(
                     "worker_draft",

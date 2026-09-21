@@ -38,6 +38,7 @@ from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
+from medagent.runtime.coverage import evaluate_contract_coverage
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
@@ -182,6 +183,7 @@ class NativeMedAgentEngine:
                 self.config.max_tool_calls,
                 max_tokens=self.config.worker_max_tokens,
                 max_length_recoveries=self.config.worker_max_length_recoveries,
+                max_infrastructure_retries=self.config.worker_max_infrastructure_retries,
             )
             tasks = [
                 asyncio.wait_for(
@@ -206,14 +208,14 @@ class NativeMedAgentEngine:
             for subtask, outcome in zip(plan.subtasks, outcomes, strict=True):
                 if isinstance(outcome, BaseException):
                     result = WorkerResult(
-                        subtask.assigned_agent,
-                        subtask.subtask_id,
-                        "",
-                        False,
-                        tools.calls_for(subtask.assigned_agent),
-                        "provider_error",
-                        0,
-                        "provider_error",
+                        worker=subtask.assigned_agent,
+                        subtask_id=subtask.subtask_id,
+                        answer="",
+                        success=False,
+                        tool_calls=tools.calls_for(subtask.assigned_agent),
+                        generation_status="provider_error",
+                        failure_reason="provider_error",
+                        worker_status="provider_error",
                     )
                     trace.record(
                         "error",
@@ -231,8 +233,61 @@ class NativeMedAgentEngine:
                 else:
                     workers.append(outcome)
             successful = [item for item in workers if item.success and item.answer.strip()]
+            coverage = evaluate_contract_coverage(contract, plan.subtasks, workers)
+            trace.record("contract_coverage", coverage.to_dict(), stage="contract_completion")
             if not successful:
                 raise EngineExecutionError("all workers failed")
+            if not coverage.complete:
+                trace.record(
+                    "error",
+                    {
+                        "failure_stage": "contract_completion",
+                        "failure_reason": "missing_required_deliverables",
+                        "missing_required_deliverables": (
+                            coverage.missing_required_deliverables
+                        ),
+                    },
+                    stage="contract_completion",
+                )
+                trace.finish("incomplete")
+                summary = trace.summary()
+                developer = {
+                    "plan": plan.to_dict(),
+                    "route": route.to_dict(),
+                    "complexity_profile": complexity.to_dict(),
+                    "response_profile": response_profile.to_dict(),
+                    "workers": [item.to_dict() for item in workers],
+                    "contract_coverage": coverage.to_dict(),
+                    "failure_stage": "contract_completion",
+                    "failure_reason": "missing_required_deliverables",
+                    "tool": {"max_calls_per_worker": self.config.max_tool_calls},
+                    "retrieval": {
+                        "query": evidence_bundle.query,
+                        "collection": evidence_bundle.collection,
+                        "retrieved_count": len(evidence_bundle.items),
+                        "admitted_evidence_ids": [
+                            item.evidence_id for item in evidence_bundle.admitted_items
+                        ],
+                    },
+                    "trace_events": [event.to_dict() for event in trace.events],
+                }
+                presentation = (
+                    PresentationAdapter()
+                    .adapt("", contract, ledger, evidence_bundle, summary, developer)
+                    .to_dict()
+                )
+                return {
+                    "final_answer": "",
+                    "status": "incomplete",
+                    "missing_required_deliverables": (
+                        coverage.missing_required_deliverables
+                    ),
+                    "successful_workers": coverage.successful_workers,
+                    "failed_workers": coverage.failed_workers,
+                    "run_id": trace.run_id,
+                    "trace": summary,
+                    "presentation": presentation,
+                }
 
             if len(successful) >= 2:
                 final_draft = await self._synthesize(
@@ -280,6 +335,7 @@ class NativeMedAgentEngine:
                 "complexity_profile": complexity.to_dict(),
                 "response_profile": response_profile.to_dict(),
                 "workers": [item.to_dict() for item in workers],
+                "contract_coverage": coverage.to_dict(),
                 "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                 "retrieval": {
                     "query": evidence_bundle.query,
@@ -299,6 +355,10 @@ class NativeMedAgentEngine:
             )
             return {
                 "final_answer": final_answer,
+                "status": "completed",
+                "missing_required_deliverables": [],
+                "successful_workers": coverage.successful_workers,
+                "failed_workers": coverage.failed_workers,
                 "run_id": trace.run_id,
                 "trace": summary,
                 "presentation": presentation,

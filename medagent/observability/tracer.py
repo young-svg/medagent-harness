@@ -101,6 +101,17 @@ class TraceRecorder:
             for event in self.events
             if event.event_type == "llm_response"
         ]
+        worker_summaries = [
+            event.payload for event in self.events if event.event_type == "worker_draft"
+        ]
+        coverage = next(
+            (
+                event.payload
+                for event in reversed(self.events)
+                if event.event_type == "contract_coverage"
+            ),
+            {},
+        )
         return {
             "run_id": self.run_id,
             "event_count": len(self.events),
@@ -110,4 +121,23 @@ class TraceRecorder:
             "llm_calls": sum(event.event_type == "llm_request" for event in self.events),
             "tool_calls": sum(event.event_type == "tool_call" for event in self.events),
             "tokens": sum(int(item.get("total_tokens", 0)) for item in usage) or None,
+            "worker_infrastructure_retry_count": sum(
+                int(item.get("infrastructure_retry_count", 0))
+                for item in worker_summaries
+            ),
+            "workers_recovered_after_infra_retry": sum(
+                int(item.get("infrastructure_retry_count", 0)) > 0
+                and item.get("worker_status") == "success"
+                for item in worker_summaries
+            ),
+            "workers_failed_after_infra_retry": sum(
+                int(item.get("infrastructure_retry_count", 0)) > 0
+                and item.get("worker_status") == "provider_error"
+                for item in worker_summaries
+            ),
+            "required_deliverable_ids": coverage.get("required_deliverable_ids", []),
+            "covered_deliverable_ids": coverage.get("covered_deliverable_ids", []),
+            "missing_required_deliverables": coverage.get(
+                "missing_required_deliverables", []
+            ),
         }

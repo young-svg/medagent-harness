@@ -21,12 +21,23 @@ def trace_summary(run_dir: str | Path) -> dict[str, Any]:
     events = read_trace(run_dir)
     final = next((item for item in reversed(events) if item["event_type"] == "run_end"), None)
     payload = (final or {}).get("payload") or {}
+    coverage = next(
+        (
+            item.get("payload") or {}
+            for item in reversed(events)
+            if item["event_type"] == "contract_coverage"
+        ),
+        {},
+    )
     return {
         "run_id": events[0].get("run_id") if events else None,
         "status": payload.get("status", "incomplete"),
         "event_count": len(events),
         "events": [item["event_type"] for item in events],
         "latency_ms": payload.get("latency_ms"),
+        "missing_required_deliverables": coverage.get(
+            "missing_required_deliverables", []
+        ),
     }
 
 

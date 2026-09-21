@@ -24,6 +24,9 @@ class WorkerResult:
     generation_status: str = "completed_first_attempt"
     length_recovery_count: int = 0
     failure_reason: str | None = None
+    infrastructure_retry_count: int = 0
+    provider_attempt_count: int = 0
+    worker_status: str = "success"
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)

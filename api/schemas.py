@@ -15,6 +15,10 @@ class AnalyzeRequest(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     final_answer: str
+    status: str
+    missing_required_deliverables: list[str]
+    successful_workers: int
+    failed_workers: int
     run_id: str
     trace: dict[str, Any]
     presentation: dict[str, Any]

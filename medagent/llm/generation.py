@@ -5,9 +5,11 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
 
+import httpx
+
 from medagent.llm.client import LLMClient, LLMResponse
 from medagent.observability.llm import complete_with_trace
-from medagent.observability.tracer import TraceRecorder
+from medagent.observability.tracer import TraceRecorder, redact_trace_value
 
 CompletionCheck = Callable[[LLMResponse], bool]
 
@@ -38,6 +40,47 @@ class GenerationResult:
     attempt_count: int
     usage: dict[str, int]
     latency_ms: float
+    infrastructure_retry_count: int
+    provider_attempt_count: int
+
+
+def is_retryable_infrastructure_error(error: BaseException) -> bool:
+    """Classify only transient transport and provider-capacity failures as retryable."""
+
+    current: BaseException | None = error
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, (httpx.TransportError, ConnectionError, TimeoutError)):
+            return True
+        if type(current).__module__.split(".", 1)[0] == "httpcore":
+            return True
+        if type(current).__module__.split(".", 1)[0] == "anyio" and type(
+            current
+        ).__name__ in {"EndOfStream", "BrokenResourceError", "ClosedResourceError"}:
+            return True
+        if isinstance(current, httpx.HTTPStatusError):
+            status_code = current.response.status_code
+            return status_code == 429 or 500 <= status_code <= 599
+        status_code = getattr(current, "status_code", None)
+        if status_code is None:
+            response = getattr(current, "response", None)
+            status_code = getattr(response, "status_code", None)
+        if isinstance(status_code, int):
+            return status_code == 429 or 500 <= status_code <= 599
+        message = str(current).casefold()
+        if any(
+            marker in message
+            for marker in ("connection reset", "connection aborted", "end of stream")
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
+def _sanitized_error_message(error: BaseException) -> str:
+    message = str(redact_trace_value(str(error))).replace("\r", " ").replace("\n", " ")
+    return message[:500]
 
 
 def _empty_usage() -> dict[str, int]:
@@ -73,15 +116,21 @@ async def run_with_length_recovery(
     tools: list[dict[str, Any]] | None = None,
     response_format: dict[str, Any] | None = None,
     parent_event_id: str | None = None,
+    max_infrastructure_retries: int = 0,
+    worker_id: str | None = None,
+    subtask_id: str | None = None,
+    provider_attempt_index_offset: int = 0,
 ) -> GenerationResult:
     """Run one generation plus at most one same-input recovery after truncation."""
 
     started = perf_counter()
     usage = _empty_usage()
     recovery_count = 0
+    infrastructure_retry_count = 0
     attempt_count = 0
     last_response = LLMResponse()
     last_response_id: str | None = None
+    pending_infrastructure_retry = False
 
     def finish(status: str) -> GenerationResult:
         latency_ms = round((perf_counter() - started) * 1000, 2)
@@ -108,11 +157,18 @@ async def run_with_length_recovery(
             attempt_count,
             usage,
             latency_ms,
+            infrastructure_retry_count,
+            attempt_count,
         )
 
     while True:
         attempt_count += 1
-        recovery_type = policy.recovery_type if recovery_count else None
+        recovery_type = (
+            "infrastructure_retry"
+            if pending_infrastructure_retry
+            else policy.recovery_type if recovery_count else None
+        )
+        attempt_started = perf_counter()
         try:
             if trace is not None:
                 response, response_id = await complete_with_trace(
@@ -138,10 +194,64 @@ async def run_with_length_recovery(
                     max_tokens=policy.max_tokens,
                 )
                 response_id = None
-        except Exception:
+        except Exception as error:
+            attempt_latency_ms = round((perf_counter() - attempt_started) * 1000, 2)
+            retryable = is_retryable_infrastructure_error(error)
+            if trace is not None and worker_id is not None and subtask_id is not None:
+                trace.record(
+                    "worker_provider_attempt",
+                    {
+                        "worker_id": worker_id,
+                        "subtask_id": subtask_id,
+                        "attempt_index": provider_attempt_index_offset + attempt_count,
+                        "retry_type": recovery_type,
+                        "error_type": type(error).__name__,
+                        "error_message_sanitized": _sanitized_error_message(error),
+                        "provider": type(client).__name__,
+                        "model": getattr(client, "model", None),
+                        "latency_ms": attempt_latency_ms,
+                        "outcome": "error",
+                    },
+                    stage=stage,
+                    agent=agent,
+                    parent_event_id=parent_event_id,
+                )
+            if retryable and infrastructure_retry_count < max_infrastructure_retries:
+                infrastructure_retry_count += 1
+                pending_infrastructure_retry = True
+                continue
+            for name, value in (
+                ("infrastructure_retry_count", infrastructure_retry_count),
+                ("provider_attempt_count", attempt_count),
+            ):
+                try:
+                    setattr(error, name, value)
+                except (AttributeError, TypeError):
+                    pass
             finish("provider_error")
             raise
 
+        attempt_latency_ms = round((perf_counter() - attempt_started) * 1000, 2)
+        if trace is not None and worker_id is not None and subtask_id is not None:
+            trace.record(
+                "worker_provider_attempt",
+                {
+                    "worker_id": worker_id,
+                    "subtask_id": subtask_id,
+                    "attempt_index": provider_attempt_index_offset + attempt_count,
+                    "retry_type": recovery_type,
+                    "error_type": None,
+                    "error_message_sanitized": None,
+                    "provider": type(client).__name__,
+                    "model": response.model or getattr(client, "model", None),
+                    "latency_ms": attempt_latency_ms,
+                    "outcome": "success",
+                },
+                stage=stage,
+                agent=agent,
+                parent_event_id=response_id,
+            )
+        pending_infrastructure_retry = False
         last_response = response
         last_response_id = response_id
         _add_usage(usage, response.usage)
