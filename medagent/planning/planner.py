@@ -5,6 +5,7 @@ from typing import Any
 
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
+from medagent.context.request_spec import RequestItem, RequestSpec
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
@@ -47,11 +48,16 @@ class Planner:
                     agent = fallback_worker
                 subtasks.append(
                     Subtask(
-                        str(item.get("subtask_id") or f"task-{index}"),
-                        str(item["description"]),
-                        agent,
-                        [str(value) for value in item.get("deliverable_ids", [])],
-                        str(item.get("justification") or ""),
+                        subtask_id=str(item.get("subtask_id") or f"task-{index}"),
+                        description=str(item["description"]),
+                        assigned_agent=agent,
+                        deliverable_ids=[
+                            str(value) for value in item.get("deliverable_ids", [])
+                        ],
+                        justification=str(item.get("justification") or ""),
+                        request_item_ids=[
+                            str(value) for value in item.get("request_item_ids", [])
+                        ],
                     )
                 )
             plan = Plan(subtasks)
@@ -73,12 +79,16 @@ class Planner:
         current_context: dict[str, str] | None = None,
         memory_context: list[dict[str, str]] | None = None,
         complexity: TaskComplexityProfile | None = None,
+        request_spec: RequestSpec | None = None,
     ) -> Plan:
         fallback_worker = _fallback_worker(contract)
         if self.llm is None:
             return self.parse({}, fallback_worker)
         complexity_payload = json.dumps(
             complexity.to_dict() if complexity else {}, ensure_ascii=False
+        )
+        request_spec_payload = json.dumps(
+            request_spec.to_dict() if request_spec else {}, ensure_ascii=False
         )
         messages: list[dict[str, Any]] = [
             {
@@ -89,7 +99,10 @@ class Planner:
                     "assigned_agent chosen only "
                     "from diagnostic_agent, consultation_agent, research_agent. "
                     "Each item must also include deliverable_ids chosen only from the "
-                    "contract requested_deliverables and a short justification. Do not create "
+                    "contract requested_deliverables, request_item_ids chosen only from the "
+                    "RequestSpec, and a short justification. Every subtask must map at least one "
+                    "request item, and every required request item must be mapped. Multiple "
+                    "request items may be handled by one worker. Do not create "
                     "diagnosis, differential, testing, management, prognosis, or follow-up "
                     "work unless it is a requested deliverable or a necessary safety dependency. "
                     "Do not include reasoning. Current request data overrides session history."
@@ -103,6 +116,7 @@ class Planner:
                     "Current request (authoritative): "
                     f"{json.dumps(current_context or {'question': question}, ensure_ascii=False)}\n"
                     f"Question: {question}\n"
+                    f"RequestSpec: {request_spec_payload}\n"
                     f"Contract: {json.dumps(contract.to_dict(), ensure_ascii=False)}\n"
                     f"Complexity profile: {complexity_payload}\n"
                     f"Ledger: {json.dumps(ledger.to_dict(), ensure_ascii=False)}"
@@ -162,6 +176,7 @@ def apply_contract_policy(
     plan: Plan,
     contract: AnswerContract,
     complexity: TaskComplexityProfile,
+    request_spec: RequestSpec | None = None,
 ) -> Plan:
     """Remove planner expansion and attach every retained subtask to contract scope."""
 
@@ -181,11 +196,14 @@ def apply_contract_policy(
             continue
         retained.append(
             Subtask(
-                subtask.subtask_id,
-                subtask.description,
-                subtask.assigned_agent,
-                mapped,
-                subtask.justification or "Serves requested contract deliverable(s).",
+                subtask_id=subtask.subtask_id,
+                description=subtask.description,
+                assigned_agent=subtask.assigned_agent,
+                deliverable_ids=mapped,
+                justification=(
+                    subtask.justification or "Serves requested contract deliverable(s)."
+                ),
+                request_item_ids=list(subtask.request_item_ids),
             )
         )
 
@@ -201,11 +219,16 @@ def apply_contract_policy(
             )
         retained = [
             Subtask(
-                selected.subtask_id,
-                selected.description,
-                selected_worker,
-                list(contract.requested_deliverables),
-                "Focused request handled by the best-matching worker.",
+                subtask_id=selected.subtask_id,
+                description=selected.description,
+                assigned_agent=selected_worker,
+                deliverable_ids=list(contract.requested_deliverables),
+                justification="Focused request handled by the best-matching worker.",
+                request_item_ids=(
+                    [item.id for item in request_spec.items]
+                    if request_spec
+                    else list(selected.request_item_ids)
+                ),
             )
         ]
         if len(plan.subtasks) > 1:
@@ -215,13 +238,16 @@ def apply_contract_policy(
         primary = contract.requested_deliverables[0]
         retained = [
             Subtask(
-                "task-1",
-                "Address only the requested contract deliverable(s).",
-                preferred_worker(
+                subtask_id="task-1",
+                description="Address only the requested contract deliverable(s).",
+                assigned_agent=preferred_worker(
                     primary, external_evidence=complexity.requires_external_evidence
                 ),
-                list(contract.requested_deliverables),
-                "Deterministic contract-coverage fallback.",
+                deliverable_ids=list(contract.requested_deliverables),
+                justification="Deterministic contract-coverage fallback.",
+                request_item_ids=(
+                    [item.id for item in request_spec.items] if request_spec else []
+                ),
             )
         ]
         actions.append("contract_coverage_fallback")
@@ -239,16 +265,26 @@ def apply_contract_policy(
             dict.fromkeys([existing.description.strip(), item.description.strip()])
         )
         by_worker[item.assigned_agent] = Subtask(
-            existing.subtask_id,
-            " ".join(description for description in descriptions if description),
-            item.assigned_agent,
-            deliverable_ids,
-            "Merged same-role work serving requested contract deliverables.",
+            subtask_id=existing.subtask_id,
+            description=" ".join(description for description in descriptions if description),
+            assigned_agent=item.assigned_agent,
+            deliverable_ids=deliverable_ids,
+            justification="Merged same-role work serving requested contract deliverables.",
+            request_item_ids=list(
+                dict.fromkeys(existing.request_item_ids + item.request_item_ids)
+            ),
         )
         actions.append(f"merged_same_worker:{item.subtask_id}")
 
+    constrained_subtasks = list(by_worker.values())
+    if request_spec:
+        constrained_subtasks, request_actions = _apply_request_spec_policy(
+            constrained_subtasks, request_spec
+        )
+        actions.extend(request_actions)
+
     constrained = Plan(
-        list(by_worker.values()),
+        constrained_subtasks,
         plan.fallback_reason,
         plan.planner_parse_status,
         plan.planner_generation_status,
@@ -257,3 +293,47 @@ def apply_contract_policy(
     )
     constrained.validate()
     return constrained
+
+
+def _request_matches_subtask(item: RequestItem, subtask: Subtask) -> bool:
+    semantic_type = item.semantic_type or "UNKNOWN"
+    if semantic_type in subtask.deliverable_ids:
+        return True
+    if semantic_type == "UNKNOWN":
+        return False
+    return preferred_worker(semantic_type) == subtask.assigned_agent
+
+
+def _apply_request_spec_policy(
+    subtasks: list[Subtask], request_spec: RequestSpec
+) -> tuple[list[Subtask], list[str]]:
+    """Validate planner mappings and deterministically attach any missing request items."""
+
+    valid_ids = {item.id for item in request_spec.items}
+    actions: list[str] = []
+    for index, subtask in enumerate(subtasks):
+        mapped = list(dict.fromkeys(item for item in subtask.request_item_ids if item in valid_ids))
+        if not mapped:
+            compatible = [
+                item.id
+                for item in request_spec.items
+                if _request_matches_subtask(item, subtask)
+            ]
+            mapped = compatible or [request_spec.items[index % len(request_spec.items)].id]
+            actions.append(f"request_mapping_filled:{subtask.subtask_id}")
+        subtask.request_item_ids = mapped
+
+    covered = {item for subtask in subtasks for item in subtask.request_item_ids}
+    for request_item in request_spec.items:
+        if not request_item.required or request_item.id in covered:
+            continue
+        compatible = [
+            subtask
+            for subtask in subtasks
+            if _request_matches_subtask(request_item, subtask)
+        ]
+        target = compatible[0] if compatible else subtasks[0]
+        target.request_item_ids.append(request_item.id)
+        covered.add(request_item.id)
+        actions.append(f"required_request_mapping_filled:{request_item.id}")
+    return subtasks, actions

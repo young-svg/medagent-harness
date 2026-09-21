@@ -86,6 +86,8 @@ def _remove_explicitly_excluded_scope(question: str) -> str:
         r"\b(?:do not|don't|without)\s+(?:provide|make|perform|include)?\s*"
         r"(?:a\s+)?(?:patient[- ]specific\s+)?diagnos\w*",
         r"不(?:作|做|进行|需|需要|要求|要)?[^，。；;,.]{0,12}诊断",
+        r"[^\n?？;；.。]*(?:benefits?|advantages?|益处|好处|获益)"
+        r"[^\n?？;；.。]*[?？]?",
     )
     scoped = question
     for pattern in patterns:
@@ -93,14 +95,20 @@ def _remove_explicitly_excluded_scope(question: str) -> str:
     return scoped
 
 
-def build_answer_contract(question: str) -> AnswerContract:
+def infer_deliverable_ids(question: str) -> list[str]:
+    """Map text to the existing clinical taxonomy without inventing a fallback label."""
+
     requested_scope = _remove_explicitly_excluded_scope(question)
     matches = [
         value
         for pattern, value in _DELIVERABLE_HINTS
         if re.search(pattern, requested_scope, re.I)
     ]
-    deliverables = list(dict.fromkeys(matches)) or ["COMPREHENSIVE_CASE_ANALYSIS"]
+    return list(dict.fromkeys(matches))
+
+
+def build_answer_contract(question: str) -> AnswerContract:
+    deliverables = infer_deliverable_ids(question) or ["COMPREHENSIVE_CASE_ANALYSIS"]
     intent = "multi_deliverable" if len(deliverables) > 1 else deliverables[0].lower()
     must_cover = [item.replace("_", " ").lower() for item in deliverables]
     contract = AnswerContract(

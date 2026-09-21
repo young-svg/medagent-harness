@@ -13,6 +13,7 @@ class Subtask:
     assigned_agent: str
     deliverable_ids: list[str] = field(default_factory=list)
     justification: str = ""
+    request_item_ids: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.subtask_id.strip() or not self.description.strip():

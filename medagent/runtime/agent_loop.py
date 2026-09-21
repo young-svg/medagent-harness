@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
-from medagent.agents.base import AgentDefinition, WorkerResult
+from medagent.agents.base import AgentDefinition, RequestItemAnswer, WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
+from medagent.context.request_spec import RequestSpec
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
@@ -12,6 +14,39 @@ from medagent.planning.complexity import ResponseProfile, TaskComplexityProfile
 from medagent.planning.models import Subtask
 from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolRegistry
+
+
+def parse_worker_response(
+    content: str, assigned_request_item_ids: list[str]
+) -> list[RequestItemAnswer]:
+    """Parse validated per-item answers, with single-item legacy text normalization."""
+
+    clean = content.strip()
+    if not clean:
+        return []
+    try:
+        parsed: Any = json.loads(clean)
+    except json.JSONDecodeError:
+        if len(assigned_request_item_ids) == 1:
+            return [RequestItemAnswer(assigned_request_item_ids[0], clean)]
+        return []
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("answers"), list):
+        return []
+    assigned = set(assigned_request_item_ids)
+    answers: list[RequestItemAnswer] = []
+    seen: set[str] = set()
+    for value in parsed["answers"]:
+        if not isinstance(value, dict):
+            continue
+        request_item_id = str(value.get("request_item_id") or "").strip()
+        answer = str(value.get("answer") or "").strip()
+        if request_item_id not in assigned or request_item_id in seen or not answer:
+            continue
+        item = RequestItemAnswer(request_item_id, answer)
+        item.validate()
+        answers.append(item)
+        seen.add(request_item_id)
+    return answers
 
 
 class AgentLoop:
@@ -35,6 +70,7 @@ class AgentLoop:
         self,
         agent: AgentDefinition,
         subtask: Subtask,
+        request_spec: RequestSpec,
         contract: AnswerContract,
         ledger: EvidenceLedger,
         current_context: dict[str, str],
@@ -50,6 +86,9 @@ class AgentLoop:
                 "content": (
                     f"Role: {agent.role}. Scope: {agent.scope} Safety: {agent.safety_boundary} "
                     "Return a concise worker draft; do not reveal hidden reasoning.\n\n"
+                    "For the final response, return one JSON object with an answers array. "
+                    "Each entry must have request_item_id and a non-empty answer. Include only "
+                    "assigned request_item_ids, and answer each assigned item separately. "
                     "Use tools only when they materially help satisfy the requested "
                     "deliverables. Do not expand into unrequested clinical sections. "
                     f"Response objective: {response_profile.objective}\n\n"
@@ -63,6 +102,7 @@ class AgentLoop:
                         "bounded_session_context": memory_context,
                         "current_context": current_context,
                         "subtask": subtask.to_dict(),
+                        "request_spec": request_spec.to_dict(),
                         "contract": contract.to_dict(),
                         "complexity_profile": complexity.to_dict(),
                         "response_profile": response_profile.to_dict(),
@@ -89,7 +129,10 @@ class AgentLoop:
                     tools=schemas,
                     purpose=f"worker:{subtask.subtask_id}",
                     is_complete=lambda response: bool(
-                        response.tool_calls or response.content.strip()
+                        response.tool_calls
+                        or parse_worker_response(
+                            response.content, subtask.request_item_ids
+                        )
                     ),
                     trace=trace,
                     max_infrastructure_retries=self.max_infrastructure_retries,
@@ -131,16 +174,22 @@ class AgentLoop:
                 generation_status = generation.generation_status
                 if length_recovery_count and generation_status != "length_exhausted":
                     generation_status = "completed_after_length_recovery"
-                success = bool(response.content.strip()) and generation_status != "length_exhausted"
+                request_item_answers = parse_worker_response(
+                    response.content, subtask.request_item_ids
+                )
+                success = bool(request_item_answers) and generation_status != "length_exhausted"
                 failure_reason = None
                 if generation_status == "length_exhausted":
                     failure_reason = "generation_length_exhausted"
                 elif not success:
-                    failure_reason = "empty_generation_output"
+                    failure_reason = "invalid_or_empty_worker_response"
+                normalized_answer = "\n\n".join(
+                    item.answer for item in request_item_answers
+                )
                 result = WorkerResult(
                     worker=agent.agent_id,
                     subtask_id=subtask.subtask_id,
-                    answer=response.content,
+                    answer=normalized_answer,
                     success=success,
                     tool_calls=calls,
                     generation_status=generation_status,
@@ -149,6 +198,7 @@ class AgentLoop:
                     infrastructure_retry_count=infrastructure_retry_count,
                     provider_attempt_count=provider_attempt_count,
                     worker_status="success" if success else "generation_error",
+                    request_item_answers=request_item_answers,
                 )
                 trace.record(
                     "worker_draft",

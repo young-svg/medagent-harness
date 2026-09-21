@@ -112,6 +112,14 @@ class TraceRecorder:
             ),
             {},
         )
+        request_coverage = next(
+            (
+                event.payload
+                for event in reversed(self.events)
+                if event.event_type == "request_coverage"
+            ),
+            {},
+        )
         return {
             "run_id": self.run_id,
             "event_count": len(self.events),
@@ -139,5 +147,18 @@ class TraceRecorder:
             "covered_deliverable_ids": coverage.get("covered_deliverable_ids", []),
             "missing_required_deliverables": coverage.get(
                 "missing_required_deliverables", []
+            ),
+            "contract_complete": not bool(
+                coverage.get("missing_required_deliverables", [])
+            ),
+            "required_request_items": request_coverage.get(
+                "required_request_items", []
+            ),
+            "covered_request_items": request_coverage.get(
+                "covered_request_items", []
+            ),
+            "missing_request_items": request_coverage.get("missing_request_items", []),
+            "user_request_complete": bool(
+                request_coverage.get("user_request_complete", False)
             ),
         }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass(frozen=True, slots=True)
@@ -9,6 +9,19 @@ class AgentDefinition:
     role: str
     scope: str
     safety_boundary: str
+
+    def to_dict(self) -> dict[str, str]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class RequestItemAnswer:
+    request_item_id: str
+    answer: str
+
+    def validate(self) -> None:
+        if not self.request_item_id.strip() or not self.answer.strip():
+            raise ValueError("request item id and answer are required")
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
@@ -27,6 +40,11 @@ class WorkerResult:
     infrastructure_retry_count: int = 0
     provider_attempt_count: int = 0
     worker_status: str = "success"
+    request_item_answers: list[RequestItemAnswer] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
-        return asdict(self)
+        value = asdict(self)
+        value["answered_request_item_ids"] = [
+            item.request_item_id for item in self.request_item_answers if item.answer.strip()
+        ]
+        return value

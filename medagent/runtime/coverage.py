@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 
 from medagent.agents.base import WorkerResult
 from medagent.context.contract import AnswerContract
+from medagent.context.request_spec import RequestSpec
 from medagent.planning.models import Subtask
 
 
@@ -41,6 +42,42 @@ class ContractCoverage:
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class RequestCoverage:
+    required_request_items: list[str]
+    covered_request_items: list[str]
+    missing_request_items: list[str]
+    request_item_answers: dict[str, str]
+
+    @property
+    def complete(self) -> bool:
+        return not self.missing_request_items
+
+    def to_dict(self) -> dict[str, object]:
+        value = asdict(self)
+        value["user_request_complete"] = self.complete
+        return value
+
+
+def evaluate_request_coverage(
+    request_spec: RequestSpec, workers: list[WorkerResult]
+) -> RequestCoverage:
+    """Count only schema-valid, non-empty answers actually returned by workers."""
+
+    answers: dict[str, str] = {}
+    valid_ids = {item.id for item in request_spec.items}
+    for worker in workers:
+        if not worker.success:
+            continue
+        for item in worker.request_item_answers:
+            if item.request_item_id in valid_ids and item.answer.strip():
+                answers.setdefault(item.request_item_id, item.answer.strip())
+    required = request_spec.required_item_ids
+    covered = [item.id for item in request_spec.items if item.id in answers]
+    missing = [item for item in required if item not in answers]
+    return RequestCoverage(required, covered, missing, answers)
 
 
 def evaluate_contract_coverage(

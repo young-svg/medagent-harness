@@ -11,6 +11,7 @@ from medagent.agents.diagnostic import DIAGNOSTIC_AGENT
 from medagent.agents.research import RESEARCH_AGENT
 from medagent.context.contract import build_answer_contract
 from medagent.context.evidence_ledger import build_evidence_ledger
+from medagent.context.request_spec import RequestSpec, build_request_spec
 from medagent.guardrails.contract_checker import Guardrail
 from medagent.guardrails.sanitizer import sanitize_answer
 from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
@@ -38,7 +39,7 @@ from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
-from medagent.runtime.coverage import evaluate_contract_coverage
+from medagent.runtime.coverage import evaluate_contract_coverage, evaluate_request_coverage
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
@@ -128,6 +129,8 @@ class NativeMedAgentEngine:
                 },
                 stage="memory",
             )
+            request_spec = build_request_spec(question)
+            trace.record("request_spec_built", request_spec.to_dict(), stage="context")
             contract = build_answer_contract(question)
             trace.record("contract_built", contract.to_dict(), stage="context")
             complexity = build_complexity_profile(question, contract)
@@ -153,8 +156,9 @@ class NativeMedAgentEngine:
                 current_context=current_context,
                 memory_context=injected_memory,
                 complexity=complexity,
+                request_spec=request_spec,
             )
-            plan = apply_contract_policy(plan, contract, complexity)
+            plan = apply_contract_policy(plan, contract, complexity, request_spec)
             trace.record("plan_created", plan.to_dict(), stage="planning")
             route = Router().route(plan, complexity)
             trace.record("route_selected", route.to_dict(), stage="routing")
@@ -190,6 +194,7 @@ class NativeMedAgentEngine:
                     loop.execute(
                         AGENTS[subtask.assigned_agent],
                         subtask,
+                        request_spec,
                         contract,
                         ledger,
                         current_context,
@@ -235,14 +240,28 @@ class NativeMedAgentEngine:
             successful = [item for item in workers if item.success and item.answer.strip()]
             coverage = evaluate_contract_coverage(contract, plan.subtasks, workers)
             trace.record("contract_coverage", coverage.to_dict(), stage="contract_completion")
+            request_coverage = evaluate_request_coverage(request_spec, workers)
+            trace.record(
+                "request_coverage",
+                request_coverage.to_dict(),
+                stage="request_completion",
+            )
             if not successful:
                 raise EngineExecutionError("all workers failed")
-            if not coverage.complete:
+            if not request_coverage.complete or not coverage.complete:
+                failure_reason = (
+                    "missing_required_request_items"
+                    if not request_coverage.complete
+                    else "missing_required_deliverables"
+                )
                 trace.record(
                     "error",
                     {
-                        "failure_stage": "contract_completion",
-                        "failure_reason": "missing_required_deliverables",
+                        "failure_stage": "request_completion",
+                        "failure_reason": failure_reason,
+                        "missing_required_request_items": (
+                            request_coverage.missing_request_items
+                        ),
                         "missing_required_deliverables": (
                             coverage.missing_required_deliverables
                         ),
@@ -257,9 +276,11 @@ class NativeMedAgentEngine:
                     "complexity_profile": complexity.to_dict(),
                     "response_profile": response_profile.to_dict(),
                     "workers": [item.to_dict() for item in workers],
+                    "request_spec": request_spec.to_dict(),
+                    "request_coverage": request_coverage.to_dict(),
                     "contract_coverage": coverage.to_dict(),
-                    "failure_stage": "contract_completion",
-                    "failure_reason": "missing_required_deliverables",
+                    "failure_stage": "request_completion",
+                    "failure_reason": failure_reason,
                     "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                     "retrieval": {
                         "query": evidence_bundle.query,
@@ -279,9 +300,15 @@ class NativeMedAgentEngine:
                 return {
                     "final_answer": "",
                     "status": "incomplete",
+                    "user_request_complete": request_coverage.complete,
+                    "contract_complete": coverage.complete,
+                    "missing_required_request_items": (
+                        request_coverage.missing_request_items
+                    ),
                     "missing_required_deliverables": (
                         coverage.missing_required_deliverables
                     ),
+                    "request_item_answers": request_coverage.request_item_answers,
                     "successful_workers": coverage.successful_workers,
                     "failed_workers": coverage.failed_workers,
                     "run_id": trace.run_id,
@@ -292,6 +319,7 @@ class NativeMedAgentEngine:
             if len(successful) >= 2:
                 final_draft = await self._synthesize(
                     question,
+                    request_spec,
                     contract.to_dict(),
                     successful,
                     trace,
@@ -335,6 +363,8 @@ class NativeMedAgentEngine:
                 "complexity_profile": complexity.to_dict(),
                 "response_profile": response_profile.to_dict(),
                 "workers": [item.to_dict() for item in workers],
+                "request_spec": request_spec.to_dict(),
+                "request_coverage": request_coverage.to_dict(),
                 "contract_coverage": coverage.to_dict(),
                 "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                 "retrieval": {
@@ -356,7 +386,11 @@ class NativeMedAgentEngine:
             return {
                 "final_answer": final_answer,
                 "status": "completed",
+                "user_request_complete": True,
+                "contract_complete": True,
+                "missing_required_request_items": [],
                 "missing_required_deliverables": [],
+                "request_item_answers": request_coverage.request_item_answers,
                 "successful_workers": coverage.successful_workers,
                 "failed_workers": coverage.failed_workers,
                 "run_id": trace.run_id,
@@ -457,6 +491,7 @@ class NativeMedAgentEngine:
     async def _synthesize(
         self,
         question: str,
+        request_spec: RequestSpec,
         contract: dict[str, Any],
         workers: list[WorkerResult],
         trace: TraceRecorder,
@@ -465,6 +500,7 @@ class NativeMedAgentEngine:
     ) -> str:
         payload = {
             "question": question,
+            "request_spec": request_spec.to_dict(),
             "contract": contract,
             "complexity_profile": complexity.to_dict(),
             "response_profile": response_profile.to_dict(),
@@ -475,7 +511,9 @@ class NativeMedAgentEngine:
             {
                 "role": "system",
                 "content": (
-                    "Produce the smallest complete answer that satisfies the AnswerContract. "
+                    "Produce the smallest complete answer that satisfies every required item in "
+                    "the RequestSpec and the AnswerContract. Preserve an answer for every required "
+                    "request_item_id; do not omit one during synthesis. "
                     "Answer requested deliverables and must_cover items first. Remove repetition "
                     "and unrelated worker expansion; do not add new deliverables. Preserve only "
                     "the rationale needed for the medical conclusion and necessary safety "
