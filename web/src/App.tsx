@@ -190,11 +190,13 @@ export default function App() {
         <div className="input-grid">
           <label>
             <span>病例信息</span>
+            <small className="field-help">患者信息、病史、检查结果等</small>
             <textarea value={description} onChange={(event) => updateDescription(event.target.value)} placeholder="粘贴病史、体格检查和辅助检查结果…" />
           </label>
           <label>
-            <span>希望 MedAgent 回答什么？</span>
-            <textarea className="question-input" value={question} onChange={(event) => updateQuestion(event.target.value)} placeholder="例如：请分析诊断依据、鉴别诊断和治疗原则。" />
+            <span>重点分析的问题</span>
+            <small className="field-help">例如：诊断依据、鉴别诊断、治疗方案等</small>
+            <textarea className="question-input" value={question} onChange={(event) => updateQuestion(event.target.value)} placeholder="写下这次希望重点了解的临床问题…" />
           </label>
         </div>
 

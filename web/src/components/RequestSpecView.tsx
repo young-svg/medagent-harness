@@ -7,7 +7,7 @@ export function RequestSpecView({ items }: Props) {
     <section className="developer-card">
       <div className="developer-card-title">
         <span>01</span>
-        <div><h3>Request Understanding</h3><p>RequestSpec</p></div>
+        <div><h3>用户需求拆解</h3><p>Request Understanding · RequestSpec</p></div>
       </div>
       {items.length ? (
         <div className="request-list">

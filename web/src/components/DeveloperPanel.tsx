@@ -10,6 +10,12 @@ const agentNames: Record<string, string> = {
   research_agent: "Research Agent",
 };
 
+const agentResponsibilities: Record<string, string> = {
+  diagnostic_agent: "诊断推理",
+  consultation_agent: "治疗管理",
+  research_agent: "证据检索与归纳",
+};
+
 export function DeveloperPanel({ presentation }: Props) {
   const evidenceStatus = presentation.evidenceState.status;
   return (
@@ -19,7 +25,7 @@ export function DeveloperPanel({ presentation }: Props) {
       <section className="developer-card">
         <div className="developer-card-title">
           <span>02</span>
-          <div><h3>Agent Plan</h3><p>Route and ownership</p></div>
+          <div><h3>任务分配与执行角色</h3><p>Agent Plan</p></div>
         </div>
         <div className="route-line">
           <span>Route</span>
@@ -31,6 +37,7 @@ export function DeveloperPanel({ presentation }: Props) {
               <span className="agent-avatar">{(agentNames[worker.name] || worker.name).slice(0, 1)}</span>
               <div>
                 <strong>{agentNames[worker.name] || worker.name}</strong>
+                <p className="worker-responsibility"><span>负责：</span>{agentResponsibilities[worker.name] || "临床分析"}</p>
                 <p>{worker.description}</p>
                 <div className="chip-row">
                   {worker.requestItemIds.map((id) => <span className="chip" key={id}>{id}</span>)}
@@ -45,7 +52,7 @@ export function DeveloperPanel({ presentation }: Props) {
       <section className="developer-card">
         <div className="developer-card-title">
           <span>03</span>
-          <div><h3>Tool / Evidence</h3><p>External evidence</p></div>
+          <div><h3>能力调用状态</h3><p>Tool / Evidence</p></div>
         </div>
         {presentation.tools.length > 0 && (
           <div className="tool-list">
