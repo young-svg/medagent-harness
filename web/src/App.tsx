@@ -1,157 +1,156 @@
 import { useRef, useState } from "react";
 
-type View = "patient" | "clinical" | "developer";
+import { AnswerSummary } from "./components/AnswerSummary";
+import { ClinicalDetail } from "./components/ClinicalDetail";
+import { DeveloperPanel } from "./components/DeveloperPanel";
+import { PlainLanguageCard } from "./components/PlainLanguageCard";
+import { demoInput, demoResponse } from "./demoData";
+import { adaptAnalyzeResponse } from "./presentationAdapter";
+import type { AnalyzeResponse, PresentationView } from "./types";
 
-type EvidenceCard = {
-  evidence_id: string;
-  title?: string | null;
-  source: string;
-  section?: string | null;
-  score: number | null;
-  text_preview: string;
-};
-
-type Result = {
-  headline: string;
-  plain_language_summary: string;
-  professional_answer: string;
-  evidence_cards: EvidenceCard[];
-  execution_summary: Record<string, unknown>;
-  disclaimer: string;
-};
-
-const initial: Result = {
-  headline: "\u7b49\u5f85\u8fd0\u884c",
-  plain_language_summary: "\u63d0\u4ea4\u5408\u6210\u75c5\u4f8b\u540e\uff0c\u8fd9\u91cc\u663e\u793a\u539f\u56de\u7b54\u6458\u8981\u3002",
-  professional_answer: "\u5c1a\u672a\u6267\u884c\u3002",
-  evidence_cards: [],
-  execution_summary: { runtime_mode: "not_started", tokens: null },
-  disclaimer: "\u4ec5\u4f9b\u533b\u5b66\u4fe1\u606f\u4e0e\u75c5\u4f8b\u5206\u6790\u6f14\u793a\uff0c\u4e0d\u80fd\u66ff\u4ee3\u4e13\u4e1a\u533b\u751f\u8bca\u7597\u3002",
+const emptyPresentation: PresentationView = {
+  directAnswer: "提交病例后，这里会显示核心结论与下一步建议。",
+  plainLanguage: "该结果基于病例信息和医学分析生成，详细解释见下方。",
+  clinicalDetail: "",
+  disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
+  evidenceCards: [],
+  requestItems: [],
+  route: null,
+  workers: [],
+  retrieval: null,
+  traceEvents: [],
 };
 
 export default function App() {
-  const [view, setView] = useState<View>("patient");
-  const [description, setDescription] = useState(
-    "SYNTHETIC EXAMPLE - adult with intermittent fatigue; no emergency symptoms supplied.",
-  );
-  const [question, setQuestion] = useState(
-    "What information is needed for a safe initial assessment?",
-  );
-  const [result, setResult] = useState<Result>(initial);
-  const [status, setStatus] = useState("Ready");
+  const [description, setDescription] = useState("");
+  const [question, setQuestion] = useState("");
+  const [presentation, setPresentation] = useState<PresentationView>(emptyPresentation);
+  const [developerMode, setDeveloperMode] = useState(false);
+  const [status, setStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
+  const [statusMessage, setStatusMessage] = useState("Ready");
+  const [runId, setRunId] = useState<string | null>(null);
   const sessionId = useRef(crypto.randomUUID());
 
-  function startNewCase() {
+  const canAnalyze = description.trim().length > 0 && question.trim().length > 0 && status !== "running";
+
+  function loadDemo() {
+    setDescription(demoInput.description);
+    setQuestion(demoInput.question);
+    setPresentation(adaptAnalyzeResponse(demoResponse));
+    setRunId(demoResponse.run_id);
+    setStatus("complete");
+    setStatusMessage("Demo loaded");
+  }
+
+  function resetCase() {
     sessionId.current = crypto.randomUUID();
-    setResult(initial);
-    setStatus("Ready - new case session");
+    setDescription("");
+    setQuestion("");
+    setPresentation(emptyPresentation);
+    setDeveloperMode(false);
+    setRunId(null);
+    setStatus("idle");
+    setStatusMessage("Ready");
   }
 
   async function analyze() {
-    setStatus("Running harness...");
+    if (!canAnalyze) return;
+    setStatus("running");
+    setStatusMessage("Analyzing case…");
+
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description, question, session_id: sessionId.current }),
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.detail || `HTTP ${response.status}`);
-      }
-      setResult(payload.presentation);
-      const mode = payload.presentation.execution_summary?.runtime_mode || "unknown";
-      setStatus(`Run ${payload.run_id} - ${mode}`);
+      const payload = (await response.json()) as AnalyzeResponse & { detail?: string };
+      if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+
+      setPresentation(adaptAnalyzeResponse(payload));
+      setRunId(payload.run_id);
+      setStatus(payload.status === "completed" ? "complete" : "error");
+      setStatusMessage(payload.status === "completed" ? "Analysis complete" : `Run ${payload.status}`);
     } catch (error) {
-      setStatus(`Execution failed: ${error instanceof Error ? error.message : "unknown error"}`);
+      setStatus("error");
+      setStatusMessage(error instanceof Error ? error.message : "Analysis failed");
     }
   }
 
   return (
-    <main>
-      <header>
-        <div>
-          <p className="eyebrow">CLINICAL-DOMAIN AGENT ENGINEERING</p>
-          <h1>MedAgent <span>Harness</span></h1>
+    <main className="app-shell">
+      <header className="site-header">
+        <a className="brand" href="#top" aria-label="MedAgent home">
+          <span className="brand-mark" aria-hidden="true">M</span>
+          <span><strong>MedAgent</strong><small>AI Clinical Analysis</small></span>
+        </a>
+        <div className={`run-status status-${status}`} role="status">
+          <span className="status-dot" />{statusMessage}
         </div>
-        <div className="status"><i />{status}</div>
       </header>
-      <section className="workspace">
-        <aside>
-          <label>
-            Case description
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-          </label>
-          <label>
-            Question
-            <textarea className="short" value={question} onChange={(event) => setQuestion(event.target.value)} />
-          </label>
-          <button onClick={analyze}>Run analysis <b>{"\u2192"}</b></button>
-          <button className="new-case" onClick={startNewCase}>{"\u65b0\u75c5\u4f8b"}</button>
-          <p className="privacy">Synthetic examples only. Do not enter identifiable patient data.</p>
-        </aside>
-        <article>
-          <nav>
-            {(["patient", "clinical", "developer"] as View[]).map((item) => (
-              <button className={view === item ? "active" : ""} onClick={() => setView(item)} key={item}>
-                {item} view
-              </button>
-            ))}
-          </nav>
-          {view === "patient" && (
-            <div className="panel patient">
-              <p className="tag">{"\u539f\u56de\u7b54\u6458\u8981"}</p>
-              <h2>{result.headline}</h2>
-              <p>{result.plain_language_summary}</p>
-              {result.evidence_cards.length > 0 && (
-                <>
-                  <h3>{"\u68c0\u7d22\u5230\u7684\u53c2\u8003\u8d44\u6599"}</h3>
-                  <ul>
-                    {result.evidence_cards.slice(0, 3).map((card) => (
-                      <li key={card.evidence_id}>{card.text_preview}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              <div className="notice">{result.disclaimer}</div>
-            </div>
-          )}
-          {view === "clinical" && (
-            <div className="panel">
-              <p className="tag">PROFESSIONAL ANSWER</p>
-              <pre>{result.professional_answer}</pre>
-              <h3>{"\u68c0\u7d22\u5230\u7684\u53c2\u8003\u8d44\u6599"}</h3>
-              {result.evidence_cards.length ? (
-                result.evidence_cards.map((card) => (
-                  <div className="card" key={card.evidence_id}>
-                    <b>{card.evidence_id} - {card.title || "Untitled evidence"}</b>
-                    <small>
-                      {card.source || "Source metadata unavailable"} - {card.section || "Section unavailable"} - {card.score === null ? "Score unavailable" : card.score.toFixed(3)}
-                    </small>
-                    <p>{card.text_preview}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="muted">No admitted evidence. Source metadata unavailable.</p>
-              )}
-            </div>
-          )}
-          {view === "developer" && (
-            <div className="panel">
-              <p className="tag">TRACE V2 / REPLAY</p>
-              <h2>Observable execution, not private reasoning</h2>
-              <p className="muted">
-                Actual event IDs, parent event IDs, model/tool calls, retrieval, checker edits, usage and latency.
-                Credential-shaped values are redacted. Hidden chain-of-thought is never recorded.
-              </p>
-              <details className="trace-details">
-                <summary>Show structured execution trace and model payloads</summary>
-                <pre className="json">{JSON.stringify(result.execution_summary, null, 2)}</pre>
-              </details>
-            </div>
-          )}
-        </article>
+
+      <section className="hero" id="top">
+        <p className="overline">CLINICAL REASONING, MADE CLEAR</p>
+        <h1>从病例信息到清晰、可读的医学分析</h1>
+        <p>输入病例与问题。MedAgent 会组织临床 Agent 协作，并以不同深度呈现同一份专业答案。</p>
       </section>
+
+      <section className="input-card" aria-labelledby="case-input-title">
+        <div className="section-heading compact-heading">
+          <div>
+            <span className="step-number">01</span>
+            <div><h2 id="case-input-title">输入病例或医学问题</h2><p>请勿输入可识别个人身份的信息。</p></div>
+          </div>
+          <button className="text-button" type="button" onClick={loadDemo}>加载示例</button>
+        </div>
+
+        <div className="input-grid">
+          <label>
+            <span>病例信息</span>
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="粘贴病史、体格检查和辅助检查结果…" />
+          </label>
+          <label>
+            <span>希望 MedAgent 回答什么？</span>
+            <textarea className="question-input" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="例如：请分析诊断依据、鉴别诊断和治疗原则。" />
+          </label>
+        </div>
+
+        <div className="input-actions">
+          <button className="secondary-button" type="button" onClick={resetCase}>新病例</button>
+          <button className="primary-button" type="button" onClick={analyze} disabled={!canAnalyze}>
+            {status === "running" ? "分析中…" : "Analyze"}<span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
+      <section className="results" aria-labelledby="results-title">
+        <div className="section-heading">
+          <div>
+            <span className="step-number">02</span>
+            <div><h2 id="results-title">Analysis</h2><p>{runId ? `Run ${runId}` : "结果会按阅读深度分为三层。"}</p></div>
+          </div>
+        </div>
+        <AnswerSummary answer={presentation.directAnswer} />
+        <PlainLanguageCard explanation={presentation.plainLanguage} />
+        <ClinicalDetail content={presentation.clinicalDetail} />
+        <p className="disclaimer">{presentation.disclaimer}</p>
+      </section>
+
+      <section className="developer-area" aria-labelledby="developer-title">
+        <div className="developer-toggle-row">
+          <div>
+            <p className="overline">FOR BUILDERS</p>
+            <h2 id="developer-title">Developer Mode</h2>
+            <p>查看 RequestSpec、Agent 分工、证据使用与可观察执行过程。</p>
+          </div>
+          <button className={`toggle ${developerMode ? "toggle-on" : ""}`} type="button" role="switch" aria-checked={developerMode} onClick={() => setDeveloperMode((value) => !value)}>
+            <span />{developerMode ? "On" : "Off"}
+          </button>
+        </div>
+        {developerMode && <DeveloperPanel presentation={presentation} />}
+      </section>
+
+      <footer><span>MedAgent Harness</span><span>Professional answer remains the benchmark output.</span></footer>
     </main>
   );
 }
