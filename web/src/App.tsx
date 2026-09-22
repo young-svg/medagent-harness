@@ -8,6 +8,8 @@ import { demoCases } from "./demoData";
 import { adaptAnalyzeResponse } from "./presentationAdapter";
 import type { AnalyzeResponse, PresentationView } from "./types";
 
+type AppMode = "demo" | "live";
+
 const emptyPresentation: PresentationView = {
   directAnswer: "提交病例后，这里会显示核心结论与下一步建议。",
   plainLanguage: "该结果基于病例信息和医学分析生成，详细解释见下方。",
@@ -32,11 +34,12 @@ export default function App() {
   const [clinicalExpanded, setClinicalExpanded] = useState(false);
   const [status, setStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("Ready");
+  const [mode, setMode] = useState<AppMode>("live");
   const [runId, setRunId] = useState<string | null>(null);
   const [selectedDemo, setSelectedDemo] = useState("");
   const sessionId = useRef(crypto.randomUUID());
 
-  const canAnalyze = description.trim().length > 0 && question.trim().length > 0 && status !== "running";
+  const canAnalyze = mode === "live" && description.trim().length > 0 && question.trim().length > 0 && status !== "running";
 
   function resetExpandedState() {
     setClinicalExpanded(false);
@@ -44,26 +47,66 @@ export default function App() {
   }
 
   function updateDescription(value: string) {
+    if (mode === "demo") {
+      setMode("live");
+      setSelectedDemo("");
+    }
     setDescription(value);
     if (!value.trim() && !question.trim()) resetExpandedState();
   }
 
   function updateQuestion(value: string) {
+    if (mode === "demo") {
+      setMode("live");
+      setSelectedDemo("");
+    }
     setQuestion(value);
     if (!value.trim() && !description.trim()) resetExpandedState();
   }
 
   function loadDemo(demoId: string) {
+    if (!demoId) {
+      resetCase();
+      return;
+    }
     const demo = demoCases.find((item) => item.id === demoId);
-    if (!demo) return;
     resetExpandedState();
+    setMode("demo");
     setSelectedDemo(demoId);
-    setDescription(demo.description);
-    setQuestion(demo.question);
-    setPresentation(adaptAnalyzeResponse(demo.response));
-    setRunId(demo.response.run_id);
-    setStatus("complete");
-    setStatusMessage("Demo loaded");
+    const demoPresentation = demo?.response.presentation;
+    const fixtureReady = Boolean(
+      demo
+      && demo.description.trim()
+      && demo.question.trim()
+      && demoPresentation?.direct_answer?.trim()
+      && demoPresentation.plain_language?.trim()
+      && demoPresentation.clinical_detail?.trim(),
+    );
+    if (!demo || !fixtureReady) {
+      setDescription("");
+      setQuestion("");
+      setPresentation(emptyPresentation);
+      setRunId(null);
+      setStatus("error");
+      setStatusMessage("Demo data unavailable");
+      return;
+    }
+
+    try {
+      setDescription(demo.description);
+      setQuestion(demo.question);
+      setPresentation(adaptAnalyzeResponse(demo.response));
+      setRunId(demo.response.run_id);
+      setStatus("complete");
+      setStatusMessage("Demo loaded · local data");
+    } catch {
+      setDescription("");
+      setQuestion("");
+      setPresentation(emptyPresentation);
+      setRunId(null);
+      setStatus("error");
+      setStatusMessage("Demo data unavailable");
+    }
   }
 
   function resetCase() {
@@ -75,12 +118,15 @@ export default function App() {
     setRunId(null);
     setStatus("idle");
     setStatusMessage("Ready");
+    setMode("live");
     setSelectedDemo("");
   }
 
   async function analyze() {
     if (!canAnalyze) return;
     resetExpandedState();
+    setMode("live");
+    setSelectedDemo("");
     setStatus("running");
     setStatusMessage("Analyzing case…");
 
@@ -117,8 +163,9 @@ export default function App() {
 
       <section className="hero" id="top">
         <p className="overline">CLINICAL REASONING, MADE CLEAR</p>
-        <h1>从病例信息到清晰、可读的医学分析</h1>
-        <p>输入病例与问题。MedAgent 会组织临床 Agent 协作，并以不同深度呈现同一份专业答案。</p>
+        <h1>从病例到<wbr />清晰、可读的医学分析</h1>
+        <p className="hero-subtitle">多 Agent 协作，让答案先给结论，再解释依据。</p>
+        <p className="hero-description">输入病例与问题，MedAgent 会按阅读深度呈现同一份专业答案。</p>
       </section>
 
       <section className="input-card" aria-labelledby="case-input-title">
@@ -154,7 +201,7 @@ export default function App() {
         <div className="input-actions">
           <button className="secondary-button" type="button" onClick={resetCase}>新病例</button>
           <button className="primary-button" type="button" onClick={analyze} disabled={!canAnalyze}>
-            {status === "running" ? "分析中…" : "Analyze"}<span aria-hidden="true">→</span>
+            {mode === "demo" ? "Demo loaded" : status === "running" ? "分析中…" : "Analyze"}<span aria-hidden="true">→</span>
           </button>
         </div>
       </section>
@@ -163,7 +210,13 @@ export default function App() {
         <div className="section-heading">
           <div>
             <span className="step-number">02</span>
-            <div><h2 id="results-title">Analysis</h2><p>{runId ? `Run ${runId}` : "结果会按阅读深度分为三层。"}</p></div>
+            <div>
+              <h2 id="results-title">Analysis</h2>
+              <p className="result-context">
+                {runId && <span className={`mode-badge mode-${mode}`}>{mode === "demo" ? "Demo fixture" : "Live run"}</span>}
+                {runId ? `Run ${runId}` : "结果会按阅读深度分为三层。"}
+              </p>
+            </div>
           </div>
         </div>
         <AnswerSummary answer={presentation.directAnswer} />
@@ -179,12 +232,12 @@ export default function App() {
       <section className="developer-area" aria-labelledby="developer-title">
         <div className="developer-toggle-row">
           <div>
-            <p className="overline">FOR BUILDERS</p>
-            <h2 id="developer-title">Developer Mode</h2>
-            <p>查看 RequestSpec、Agent 分工、证据使用与可观察执行过程。</p>
+            <p className="overline">EXECUTION DETAILS</p>
+            <h2 id="developer-title">查看 Agent 工作过程</h2>
+            <p>按需展开 RequestSpec、Planner、Workers、Tools / Evidence 与 Trace。</p>
           </div>
           <button className={`toggle ${developerMode ? "toggle-on" : ""}`} type="button" role="switch" aria-checked={developerMode} onClick={() => setDeveloperMode((value) => !value)}>
-            <span />{developerMode ? "On" : "Off"}
+            <span />{developerMode ? "收起" : "展开"}
           </button>
         </div>
         {developerMode && <DeveloperPanel presentation={presentation} />}
