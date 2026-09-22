@@ -11,7 +11,7 @@ const agentNames: Record<string, string> = {
 };
 
 export function DeveloperPanel({ presentation }: Props) {
-  const hasExternalEvidence = presentation.evidenceCards.length > 0 || Boolean(presentation.retrieval?.retrievedCount);
+  const evidenceStatus = presentation.evidenceState.status;
   return (
     <div className="developer-panel">
       <RequestSpecView items={presentation.requestItems} />
@@ -47,10 +47,24 @@ export function DeveloperPanel({ presentation }: Props) {
           <span>03</span>
           <div><h3>Tool / Evidence</h3><p>External evidence</p></div>
         </div>
-        {!hasExternalEvidence ? (
+        {evidenceStatus === "NOT_REQUIRED" && (
           <div className="evidence-empty"><span>—</span><div><strong>External Evidence</strong><p>Not required</p></div></div>
-        ) : (
+        )}
+        {evidenceStatus === "REQUIRED_UNAVAILABLE" && (
+          <div className="evidence-empty evidence-unavailable">
+            <span>!</span>
+            <div>
+              <strong>External Evidence</strong>
+              <p>Required but unavailable</p>
+              <small>Reason: {presentation.evidenceState.reason || "retrieval backend unavailable"}</small>
+            </div>
+          </div>
+        )}
+        {evidenceStatus === "AVAILABLE" && (
           <div className="evidence-list">
+            <div className="evidence-status evidence-available">
+              <span>✓</span><div><strong>External Evidence</strong><p>Retrieved</p></div>
+            </div>
             {presentation.evidenceCards.map((card) => (
               <article key={card.evidence_id}>
                 <strong>{card.title || card.evidence_id}</strong>
@@ -58,13 +72,6 @@ export function DeveloperPanel({ presentation }: Props) {
                 <p>{card.text_preview}</p>
               </article>
             ))}
-            {!presentation.evidenceCards.length && presentation.retrieval && (
-              <article>
-                <strong>Retrieval completed</strong>
-                <small>{presentation.retrieval.collection || "Collection not specified"}</small>
-                <p>{presentation.retrieval.retrievedCount} item(s) retrieved; no evidence was admitted to the final answer.</p>
-              </article>
-            )}
           </div>
         )}
       </section>

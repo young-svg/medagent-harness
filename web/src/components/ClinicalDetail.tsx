@@ -1,8 +1,16 @@
-type Props = { content: string };
+type Props = {
+  content: string;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+};
 
-export function ClinicalDetail({ content }: Props) {
+export function ClinicalDetail({ content, expanded, onExpandedChange }: Props) {
   return (
-    <details className="answer-card clinical-card">
+    <details
+      className="answer-card clinical-card"
+      open={expanded}
+      onToggle={(event) => onExpandedChange(event.currentTarget.open)}
+    >
       <summary>
         <span>
           <span className="card-label"><span>03</span> Clinical Detail</span>

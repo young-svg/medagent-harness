@@ -103,7 +103,15 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .evidence-empty > span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #dfe2e6; border-radius: 50%; }
 .evidence-empty strong { font-size: 12px; }
 .evidence-empty p { margin: 4px 0 0; color: #9da1a8; font-size: 11px; }
+.evidence-empty small { display: block; margin-top: 6px; color: #9a6a35; font-size: 9px; }
+.evidence-empty.evidence-unavailable > span { border-color: #e6c99e; color: #9a621e; background: #fff8ed; }
 .evidence-list { display: grid; gap: 8px; }
+.evidence-status { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 9px; }
+.evidence-status > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; }
+.evidence-status strong, .evidence-status p { display: block; margin: 0; font-size: 11px; }
+.evidence-status p { margin-top: 2px; color: #777d86; }
+.evidence-available { color: #13724d; background: #edf8f3; }
+.evidence-available > span { background: #d9f1e5; }
 .evidence-list article { padding: 12px; border-radius: 9px; background: #fff; }
 .evidence-list strong, .evidence-list small { display: block; }
 .evidence-list strong { font-size: 12px; }

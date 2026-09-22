@@ -1,6 +1,8 @@
 import type {
   AnalyzeResponse,
   BackendPresentation,
+  EvidenceCard,
+  EvidenceState,
   PresentationView,
   RequestItem,
   RetrievalInfo,
@@ -11,6 +13,13 @@ import type {
 
 const plainLanguageFallback = "该结果基于病例信息和医学分析生成，详细解释见下方。";
 const disclaimerFallback = "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。";
+const retrievalTools = new Set([
+  "clinical_guideline",
+  "disease_code",
+  "recommend_lifestyle",
+  "deep_research",
+  "search_knowledge",
+]);
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -25,6 +34,47 @@ function stringArray(value: unknown): string[] {
 function directAnswerFrom(answer: string): string {
   const firstParagraph = answer.split(/\n\s*\n/).map((part) => part.trim()).find(Boolean);
   return firstParagraph || "暂未生成可展示的结论。";
+}
+
+function stripJsonFence(value: string): string {
+  const trimmed = value.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function textFromJson(value: unknown, depth = 0): string | null {
+  if (depth > 4) return null;
+  if (typeof value === "string") {
+    const candidate = stripJsonFence(value);
+    try {
+      return textFromJson(JSON.parse(candidate), depth + 1) || candidate;
+    } catch {
+      return candidate || null;
+    }
+  }
+  if (Array.isArray(value)) {
+    const parts = value.map((item) => textFromJson(item, depth + 1)).filter(Boolean);
+    return parts.length ? parts.join("\n\n") : null;
+  }
+  if (!value || typeof value !== "object") return null;
+
+  const item = value as Record<string, unknown>;
+  for (const key of ["answer", "content", "clinical_detail"]) {
+    const extracted = textFromJson(item[key], depth + 1);
+    if (extracted) return extracted;
+  }
+  const answers = textFromJson(item.answers, depth + 1);
+  return answers || null;
+}
+
+function displayText(value: string): string {
+  const candidate = stripJsonFence(value);
+  if (!candidate) return "";
+  try {
+    return textFromJson(JSON.parse(candidate)) || candidate;
+  } catch {
+    return value.trim();
+  }
 }
 
 function requestItemsFrom(execution: Record<string, unknown>): RequestItem[] {
@@ -82,21 +132,61 @@ function traceFrom(execution: Record<string, unknown>): TraceEvent[] {
     : [];
 }
 
+function evidenceStateFrom(
+  execution: Record<string, unknown>,
+  cards: EvidenceCard[],
+  traceEvents: TraceEvent[],
+): EvidenceState {
+  if (cards.length > 0) return { status: "AVAILABLE" };
+
+  const complexity = objectValue(execution.complexity_profile);
+  const retrieval = objectValue(execution.retrieval);
+  const retrievalAttempted = traceEvents.some((event) => {
+    if (event.event_type !== "tool_call") return false;
+    const payload = objectValue(event.payload);
+    return typeof payload.name === "string" && retrievalTools.has(payload.name);
+  });
+  const retrievalFailed = traceEvents.some((event) => {
+    if (event.event_type !== "tool_result" && event.event_type !== "tool_error") return false;
+    const payload = objectValue(event.payload);
+    if (typeof payload.name !== "string" || !retrievalTools.has(payload.name)) return false;
+    const result = objectValue(payload.result);
+    return Boolean(payload.error || result.error);
+  });
+  const evidenceRequired = complexity.requires_external_evidence === true
+    || retrievalAttempted
+    || typeof retrieval.query === "string" && retrieval.query.length > 0;
+
+  if (evidenceRequired) {
+    return {
+      status: "REQUIRED_UNAVAILABLE",
+      reason: retrievalFailed ? "retrieval backend unavailable" : "required evidence unavailable",
+    };
+  }
+  return { status: "NOT_REQUIRED" };
+}
+
 export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationView {
   const source: BackendPresentation = response.presentation || {};
-  const clinicalDetail = source.clinical_detail || source.professional_answer || response.final_answer || "";
+  const rawClinicalDetail = source.clinical_detail || source.professional_answer || response.final_answer || "";
+  const clinicalDetail = displayText(rawClinicalDetail);
   const execution = objectValue(source.execution_summary);
+  const evidenceCards = source.evidence_cards || [];
+  const traceEvents = traceFrom(execution);
+  const directSource = source.direct_answer ? displayText(source.direct_answer) : directAnswerFrom(clinicalDetail);
+  const plainSource = source.plain_language || source.plain_language_summary;
 
   return {
-    directAnswer: source.direct_answer || directAnswerFrom(clinicalDetail),
-    plainLanguage: source.plain_language || source.plain_language_summary || plainLanguageFallback,
+    directAnswer: directSource,
+    plainLanguage: plainSource ? displayText(plainSource) : plainLanguageFallback,
     clinicalDetail,
     disclaimer: source.disclaimer || disclaimerFallback,
-    evidenceCards: source.evidence_cards || [],
+    evidenceCards,
+    evidenceState: evidenceStateFrom(execution, evidenceCards, traceEvents),
     requestItems: requestItemsFrom(execution),
     route: routeFrom(execution),
     workers: workersFrom(execution),
     retrieval: retrievalFrom(execution),
-    traceEvents: traceFrom(execution),
+    traceEvents,
   };
 }

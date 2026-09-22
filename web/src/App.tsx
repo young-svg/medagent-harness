@@ -14,6 +14,7 @@ const emptyPresentation: PresentationView = {
   clinicalDetail: "",
   disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
   evidenceCards: [],
+  evidenceState: { status: "NOT_REQUIRED" },
   requestItems: [],
   route: null,
   workers: [],
@@ -26,6 +27,7 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [presentation, setPresentation] = useState<PresentationView>(emptyPresentation);
   const [developerMode, setDeveloperMode] = useState(false);
+  const [clinicalExpanded, setClinicalExpanded] = useState(false);
   const [status, setStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("Ready");
   const [runId, setRunId] = useState<string | null>(null);
@@ -33,7 +35,23 @@ export default function App() {
 
   const canAnalyze = description.trim().length > 0 && question.trim().length > 0 && status !== "running";
 
+  function resetExpandedState() {
+    setClinicalExpanded(false);
+    setDeveloperMode(false);
+  }
+
+  function updateDescription(value: string) {
+    setDescription(value);
+    if (!value.trim() && !question.trim()) resetExpandedState();
+  }
+
+  function updateQuestion(value: string) {
+    setQuestion(value);
+    if (!value.trim() && !description.trim()) resetExpandedState();
+  }
+
   function loadDemo() {
+    resetExpandedState();
     setDescription(demoInput.description);
     setQuestion(demoInput.question);
     setPresentation(adaptAnalyzeResponse(demoResponse));
@@ -47,7 +65,7 @@ export default function App() {
     setDescription("");
     setQuestion("");
     setPresentation(emptyPresentation);
-    setDeveloperMode(false);
+    resetExpandedState();
     setRunId(null);
     setStatus("idle");
     setStatusMessage("Ready");
@@ -55,6 +73,7 @@ export default function App() {
 
   async function analyze() {
     if (!canAnalyze) return;
+    resetExpandedState();
     setStatus("running");
     setStatusMessage("Analyzing case…");
 
@@ -107,11 +126,11 @@ export default function App() {
         <div className="input-grid">
           <label>
             <span>病例信息</span>
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="粘贴病史、体格检查和辅助检查结果…" />
+            <textarea value={description} onChange={(event) => updateDescription(event.target.value)} placeholder="粘贴病史、体格检查和辅助检查结果…" />
           </label>
           <label>
             <span>希望 MedAgent 回答什么？</span>
-            <textarea className="question-input" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="例如：请分析诊断依据、鉴别诊断和治疗原则。" />
+            <textarea className="question-input" value={question} onChange={(event) => updateQuestion(event.target.value)} placeholder="例如：请分析诊断依据、鉴别诊断和治疗原则。" />
           </label>
         </div>
 
@@ -132,7 +151,11 @@ export default function App() {
         </div>
         <AnswerSummary answer={presentation.directAnswer} />
         <PlainLanguageCard explanation={presentation.plainLanguage} />
-        <ClinicalDetail content={presentation.clinicalDetail} />
+        <ClinicalDetail
+          content={presentation.clinicalDetail}
+          expanded={clinicalExpanded}
+          onExpandedChange={setClinicalExpanded}
+        />
         <p className="disclaimer">{presentation.disclaimer}</p>
       </section>
 

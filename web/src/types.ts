@@ -34,6 +34,11 @@ export type RetrievalInfo = {
   admittedEvidenceIds: string[];
 };
 
+export type EvidenceState = {
+  status: "NOT_REQUIRED" | "REQUIRED_UNAVAILABLE" | "AVAILABLE";
+  reason?: string;
+};
+
 export type TraceEvent = {
   event_type?: string;
   stage?: string;
@@ -46,6 +51,7 @@ export type PresentationView = {
   clinicalDetail: string;
   disclaimer: string;
   evidenceCards: EvidenceCard[];
+  evidenceState: EvidenceState;
   requestItems: RequestItem[];
   route: RouteInfo | null;
   workers: WorkerPlan[];
