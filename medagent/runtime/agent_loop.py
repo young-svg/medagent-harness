@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import Any
 
 from medagent.agents.base import AgentDefinition, RequestItemAnswer, WorkerResult
@@ -16,37 +17,107 @@ from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolRegistry
 
 
-def parse_worker_response(
-    content: str, assigned_request_item_ids: list[str]
-) -> list[RequestItemAnswer]:
-    """Parse validated per-item answers, with single-item legacy text normalization."""
+@dataclass(frozen=True, slots=True)
+class WorkerResponseParseResult:
+    answers: list[RequestItemAnswer]
+    parse_status: str
+    recovery_method: str | None = None
 
-    clean = content.strip()
-    if not clean:
-        return []
-    try:
-        parsed: Any = json.loads(clean)
-    except json.JSONDecodeError:
-        if len(assigned_request_item_ids) == 1:
-            return [RequestItemAnswer(assigned_request_item_ids[0], clean)]
-        return []
+    def __bool__(self) -> bool:
+        return bool(self.answers)
+
+
+def _validated_answers(
+    parsed: Any,
+    assigned_request_item_ids: list[str],
+    *,
+    strict_schema: bool,
+) -> list[RequestItemAnswer]:
     if not isinstance(parsed, dict) or not isinstance(parsed.get("answers"), list):
+        return []
+    if strict_schema and set(parsed) != {"answers"}:
+        return []
+    raw_answers = parsed["answers"]
+    if not raw_answers:
         return []
     assigned = set(assigned_request_item_ids)
     answers: list[RequestItemAnswer] = []
     seen: set[str] = set()
-    for value in parsed["answers"]:
+    for value in raw_answers:
         if not isinstance(value, dict):
+            if strict_schema:
+                return []
             continue
-        request_item_id = str(value.get("request_item_id") or "").strip()
-        answer = str(value.get("answer") or "").strip()
+        if strict_schema and set(value) != {"request_item_id", "answer"}:
+            return []
+        raw_request_item_id = value.get("request_item_id")
+        raw_answer = value.get("answer")
+        if strict_schema and not isinstance(raw_request_item_id, str):
+            return []
+        if strict_schema and not isinstance(raw_answer, str):
+            return []
+        request_item_id = str(raw_request_item_id or "").strip()
+        answer = str(raw_answer or "").strip()
         if request_item_id not in assigned or request_item_id in seen or not answer:
+            if strict_schema:
+                return []
             continue
         item = RequestItemAnswer(request_item_id, answer)
         item.validate()
         answers.append(item)
         seen.add(request_item_id)
     return answers
+
+
+def _is_redundant_closing_tail(value: str) -> bool:
+    return bool(value) and any(character in "]}" for character in value) and all(
+        character.isspace() or character in "]}" for character in value
+    )
+
+
+def parse_worker_response(
+    content: str, assigned_request_item_ids: list[str]
+) -> WorkerResponseParseResult:
+    """Parse validated per-item answers, with single-item legacy text normalization."""
+
+    clean = content.strip()
+    if not clean:
+        return WorkerResponseParseResult([], "invalid")
+    try:
+        parsed: Any = json.loads(clean)
+    except json.JSONDecodeError:
+        try:
+            recovered, end = json.JSONDecoder().raw_decode(clean)
+        except json.JSONDecodeError:
+            recovered = None
+            end = 0
+        trailing = clean[end:]
+        recovered_answers = _validated_answers(
+            recovered,
+            assigned_request_item_ids,
+            strict_schema=True,
+        )
+        if recovered_answers and _is_redundant_closing_tail(trailing):
+            return WorkerResponseParseResult(
+                recovered_answers,
+                "recovered_json",
+                "trailing_closing_delimiters",
+            )
+        if len(assigned_request_item_ids) == 1 and not clean.startswith(("{", "[")):
+            return WorkerResponseParseResult(
+                [RequestItemAnswer(assigned_request_item_ids[0], clean)],
+                "legacy_text",
+            )
+        return WorkerResponseParseResult([], "invalid")
+    answers = _validated_answers(
+        parsed,
+        assigned_request_item_ids,
+        strict_schema=False,
+    )
+    return WorkerResponseParseResult(
+        answers,
+        "direct_json" if answers else "invalid",
+    )
 
 
 class AgentLoop:
@@ -174,9 +245,10 @@ class AgentLoop:
                 generation_status = generation.generation_status
                 if length_recovery_count and generation_status != "length_exhausted":
                     generation_status = "completed_after_length_recovery"
-                request_item_answers = parse_worker_response(
+                parsed_response = parse_worker_response(
                     response.content, subtask.request_item_ids
                 )
+                request_item_answers = parsed_response.answers
                 success = bool(request_item_answers) and generation_status != "length_exhausted"
                 failure_reason = None
                 if generation_status == "length_exhausted":
@@ -200,9 +272,12 @@ class AgentLoop:
                     worker_status="success" if success else "generation_error",
                     request_item_answers=request_item_answers,
                 )
+                worker_payload = result.to_dict()
+                worker_payload["parse_status"] = parsed_response.parse_status
+                worker_payload["recovery_method"] = parsed_response.recovery_method
                 trace.record(
                     "worker_draft",
-                    result.to_dict(),
+                    worker_payload,
                     stage="worker",
                     agent=agent.agent_id,
                     parent_event_id=response_id,
