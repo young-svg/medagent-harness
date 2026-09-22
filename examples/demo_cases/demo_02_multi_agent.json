@@ -1,0 +1,33 @@
+{
+  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "question": "请给出最可能诊断及鉴别诊断，说明需要完善的检查，并制定分阶段治疗与安全随访计划。",
+  "presentation": {
+    "direct_answer": "首要考虑胃食管反流病，但新出现的吞咽不适属于需要进一步评估的警示线索，应同时排除结构性病变及其他上消化道疾病。",
+    "plain_language": "症状很像胃酸反流，但吞咽不舒服意味着不能只按普通反流自行处理。下一步要由医生判断是否需要内镜等检查，再根据结果分阶段治疗。",
+    "clinical_detail": "诊断工作流同时覆盖胃食管反流病、结构性病变及其他上消化道疾病。存在吞咽不适时应完成危险分层并由专科评估检查路径；治疗与随访根据检查结果、疗效和警示症状动态调整。"
+  },
+  "developer": {
+    "request_spec": {
+      "items": [
+        { "id": "RQ1", "text": "给出最可能诊断与依据", "required": true },
+        { "id": "RQ2", "text": "列出关键鉴别诊断", "required": true },
+        { "id": "RQ3", "text": "提出检查路径", "required": true },
+        { "id": "RQ4", "text": "制定治疗与安全随访计划", "required": true }
+      ]
+    },
+    "planner": {
+      "route": { "mode": "multi", "reason": "diagnostic and management workstreams are independently assignable" },
+      "subtasks": [
+        { "subtask_id": "ST1", "assigned_agent": "diagnostic_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] },
+        { "subtask_id": "ST2", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ4"] }
+      ]
+    },
+    "workers": [
+      { "worker": "diagnostic_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] },
+      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ4"] }
+    ],
+    "tools": [],
+    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
+    "trace": ["Question", "RequestSpec", "Planner", "Workers", "Final"]
+  }
+}

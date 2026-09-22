@@ -39,10 +39,21 @@ export type EvidenceState = {
   reason?: string;
 };
 
+export type ToolInfo = {
+  name: string;
+  status?: string;
+};
+
 export type TraceEvent = {
   event_type?: string;
   stage?: string;
   payload?: Record<string, unknown>;
+};
+
+export type MemoryInfo = {
+  sessionId: string;
+  historyInjected: string[];
+  isolatedSessionHistoryCount: number;
 };
 
 export type PresentationView = {
@@ -52,11 +63,13 @@ export type PresentationView = {
   disclaimer: string;
   evidenceCards: EvidenceCard[];
   evidenceState: EvidenceState;
+  tools: ToolInfo[];
   requestItems: RequestItem[];
   route: RouteInfo | null;
   workers: WorkerPlan[];
   retrieval: RetrievalInfo | null;
   traceEvents: TraceEvent[];
+  memory: MemoryInfo | null;
 };
 
 export type BackendPresentation = {

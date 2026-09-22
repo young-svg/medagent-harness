@@ -4,7 +4,7 @@ import { AnswerSummary } from "./components/AnswerSummary";
 import { ClinicalDetail } from "./components/ClinicalDetail";
 import { DeveloperPanel } from "./components/DeveloperPanel";
 import { PlainLanguageCard } from "./components/PlainLanguageCard";
-import { demoInput, demoResponse } from "./demoData";
+import { demoCases } from "./demoData";
 import { adaptAnalyzeResponse } from "./presentationAdapter";
 import type { AnalyzeResponse, PresentationView } from "./types";
 
@@ -15,11 +15,13 @@ const emptyPresentation: PresentationView = {
   disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
   evidenceCards: [],
   evidenceState: { status: "NOT_REQUIRED" },
+  tools: [],
   requestItems: [],
   route: null,
   workers: [],
   retrieval: null,
   traceEvents: [],
+  memory: null,
 };
 
 export default function App() {
@@ -31,6 +33,7 @@ export default function App() {
   const [status, setStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("Ready");
   const [runId, setRunId] = useState<string | null>(null);
+  const [selectedDemo, setSelectedDemo] = useState("");
   const sessionId = useRef(crypto.randomUUID());
 
   const canAnalyze = description.trim().length > 0 && question.trim().length > 0 && status !== "running";
@@ -50,12 +53,15 @@ export default function App() {
     if (!value.trim() && !description.trim()) resetExpandedState();
   }
 
-  function loadDemo() {
+  function loadDemo(demoId: string) {
+    const demo = demoCases.find((item) => item.id === demoId);
+    if (!demo) return;
     resetExpandedState();
-    setDescription(demoInput.description);
-    setQuestion(demoInput.question);
-    setPresentation(adaptAnalyzeResponse(demoResponse));
-    setRunId(demoResponse.run_id);
+    setSelectedDemo(demoId);
+    setDescription(demo.description);
+    setQuestion(demo.question);
+    setPresentation(adaptAnalyzeResponse(demo.response));
+    setRunId(demo.response.run_id);
     setStatus("complete");
     setStatusMessage("Demo loaded");
   }
@@ -69,6 +75,7 @@ export default function App() {
     setRunId(null);
     setStatus("idle");
     setStatusMessage("Ready");
+    setSelectedDemo("");
   }
 
   async function analyze() {
@@ -120,7 +127,17 @@ export default function App() {
             <span className="step-number">01</span>
             <div><h2 id="case-input-title">输入病例或医学问题</h2><p>请勿输入可识别个人身份的信息。</p></div>
           </div>
-          <button className="text-button" type="button" onClick={loadDemo}>加载示例</button>
+          <label className="demo-picker">
+            <span>Demo Cases</span>
+            <select
+              aria-label="Demo Cases"
+              value={selectedDemo}
+              onChange={(event) => loadDemo(event.target.value)}
+            >
+              <option value="">Select a showcase…</option>
+              {demoCases.map((demo) => <option value={demo.id} key={demo.id}>{demo.label}</option>)}
+            </select>
+          </label>
         </div>
 
         <div className="input-grid">

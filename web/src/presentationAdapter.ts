@@ -3,11 +3,13 @@ import type {
   BackendPresentation,
   EvidenceCard,
   EvidenceState,
+  MemoryInfo,
   PresentationView,
   RequestItem,
   RetrievalInfo,
   RouteInfo,
   TraceEvent,
+  ToolInfo,
   WorkerPlan,
 } from "./types";
 
@@ -132,6 +134,30 @@ function traceFrom(execution: Record<string, unknown>): TraceEvent[] {
     : [];
 }
 
+function toolsFrom(execution: Record<string, unknown>): ToolInfo[] {
+  const tools = Array.isArray(execution.tools) ? execution.tools : [];
+  return tools.map((raw) => {
+    const tool = objectValue(raw);
+    return {
+      name: typeof tool.name === "string" ? tool.name : "tool",
+      status: typeof tool.status === "string" ? tool.status : undefined,
+    };
+  });
+}
+
+function memoryFrom(execution: Record<string, unknown>): MemoryInfo | null {
+  const memory = objectValue(execution.memory);
+  if (!Object.keys(memory).length) return null;
+  return {
+    sessionId: typeof memory.session_id === "string" ? memory.session_id : "demo-session",
+    historyInjected: stringArray(memory.history_injected),
+    isolatedSessionHistoryCount:
+      typeof memory.isolated_session_history_count === "number"
+        ? memory.isolated_session_history_count
+        : 0,
+  };
+}
+
 function evidenceStateFrom(
   execution: Record<string, unknown>,
   cards: EvidenceCard[],
@@ -183,10 +209,12 @@ export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationVie
     disclaimer: source.disclaimer || disclaimerFallback,
     evidenceCards,
     evidenceState: evidenceStateFrom(execution, evidenceCards, traceEvents),
+    tools: toolsFrom(execution),
     requestItems: requestItemsFrom(execution),
     route: routeFrom(execution),
     workers: workersFrom(execution),
     retrieval: retrievalFrom(execution),
     traceEvents,
+    memory: memoryFrom(execution),
   };
 }

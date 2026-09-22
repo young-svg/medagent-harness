@@ -1,0 +1,42 @@
+{
+  "fixture_notice": "Synthetic showcase fixture. Evidence below is intentionally fake and must never be represented as a real medical source.",
+  "question": "请结合临床指南，说明如何确认高血压诊断、进行初始风险评估并安排随访。",
+  "presentation": {
+    "direct_answer": "应先用规范诊室测量并结合家庭或动态血压监测确认持续升高，再完成总体风险、靶器官影响和继发因素评估。",
+    "plain_language": "一次读数高并不等于已经确诊。通常需要正确地重复测量，必要时做家庭或24小时监测，同时检查心、脑、肾等风险。",
+    "clinical_detail": "本例只演示 Research Agent、clinical_guideline 工具和 Evidence Card 的界面链路。证据卡为合成 demo fixture，不是真实指南来源，不得用于临床决策。"
+  },
+  "developer": {
+    "request_spec": {
+      "items": [
+        { "id": "RQ1", "text": "基于指南说明诊断确认路径", "required": true },
+        { "id": "RQ2", "text": "说明初始风险与靶器官评估", "required": true },
+        { "id": "RQ3", "text": "提出随访安排", "required": true }
+      ]
+    },
+    "planner": {
+      "route": { "mode": "single", "reason": "guideline-focused evidence synthesis" },
+      "subtasks": [
+        { "subtask_id": "ST1", "assigned_agent": "research_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      ]
+    },
+    "workers": [
+      { "worker": "research_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+    ],
+    "tools": [
+      { "name": "clinical_guideline", "status": "success", "query": "demo hypertension diagnosis risk assessment follow-up" }
+    ],
+    "evidence": {
+      "status": "AVAILABLE",
+      "cards": [
+        {
+          "evidence_id": "DEMO-EV-001",
+          "source": "DEMO FIXTURE — not a real medical source",
+          "section": "Synthetic section: diagnostic confirmation",
+          "preview": "演示数据：用于验证 source、section 与 preview 的前端展示。不得作为真实医学指南或临床依据。"
+        }
+      ]
+    },
+    "trace": ["Question", "RequestSpec", "Planner", "Workers", "clinical_guideline", "Final"]
+  }
+}

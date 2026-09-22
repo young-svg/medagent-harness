@@ -4,7 +4,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #fff; }
-button, textarea { font: inherit; }
+button, textarea, select { font: inherit; }
 button { cursor: pointer; }
 .app-shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
 
@@ -34,6 +34,9 @@ button { cursor: pointer; }
 .step-number { padding-top: 4px; color: #2563eb; font-size: 11px; font-weight: 700; }
 .text-button { padding: 8px 0; border: 0; color: #2563eb; background: transparent; font-size: 13px; font-weight: 600; }
 .text-button:hover { color: #1749b2; }
+.demo-picker { display: grid; gap: 5px; color: #7a808a; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.demo-picker select { min-width: 245px; padding: 9px 34px 9px 11px; border: 1px solid #d8dce2; border-radius: 9px; outline: none; color: #3f4650; background: #fff; font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.demo-picker select:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, .09); }
 .input-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 16px; }
 .input-grid label { color: #555b65; font-size: 12px; font-weight: 600; }
 .input-grid label > span { display: block; margin-bottom: 8px; }
@@ -106,6 +109,9 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .evidence-empty small { display: block; margin-top: 6px; color: #9a6a35; font-size: 9px; }
 .evidence-empty.evidence-unavailable > span { border-color: #e6c99e; color: #9a621e; background: #fff8ed; }
 .evidence-list { display: grid; gap: 8px; }
+.tool-list { display: grid; gap: 7px; margin-bottom: 10px; }
+.tool-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid #dce6fb; border-radius: 9px; background: #f7faff; }
+.tool-row code { color: #315da9; font-size: 11px; }
 .evidence-status { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 9px; }
 .evidence-status > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; }
 .evidence-status strong, .evidence-status p { display: block; margin: 0; font-size: 11px; }
@@ -127,6 +133,12 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .vertical-trace .observed { color: #3b4656; }
 .vertical-trace .observed .trace-node { border-color: #bcd0fb; color: #2563eb; background: #edf3ff; }
 .empty-state { color: #999ea6; font-size: 11px; text-align: center; }
+.memory-card { grid-column: 1 / -1; }
+.memory-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 0 0 12px; }
+.memory-facts div { padding: 12px; border: 1px solid #e8eaed; border-radius: 9px; background: #fff; }
+.memory-facts dt { color: #9297a0; font-size: 9px; text-transform: uppercase; }
+.memory-facts dd { margin: 4px 0 0; color: #354052; font-size: 11px; font-weight: 600; }
+.memory-history { margin: 0; padding: 13px 13px 13px 32px; border-radius: 9px; color: #666d78; background: #eef3ff; font-size: 10px; line-height: 1.65; }
 
 footer { display: flex; justify-content: space-between; padding: 25px 0 35px; border-top: 1px solid #eceef0; color: #9a9fa7; font-size: 10px; }
 
@@ -138,6 +150,8 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .hero h1 { font-size: 38px; }
   .input-card { padding: 21px; }
   .compact-heading { align-items: flex-start; }
+  .compact-heading { gap: 16px; }
+  .demo-picker select { min-width: 170px; max-width: 48vw; }
   .input-grid, .developer-panel { grid-template-columns: 1fr; }
   textarea, textarea.question-input { min-height: 155px; }
   .answer-card { padding: 22px; }
@@ -145,6 +159,7 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .clinical-card summary, .clinical-content { padding: 22px; }
   .developer-toggle-row { align-items: flex-start; }
   footer { flex-direction: column; gap: 7px; }
+  .memory-facts { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

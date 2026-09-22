@@ -1,0 +1,46 @@
+{
+  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "question": "结合刚才信息进一步分析：应该如何记录诱因、评估预防治疗需要，并安排复诊？",
+  "rounds": [
+    {
+      "round": 1,
+      "user": "我每月约有6次偏头痛，伴畏光、恶心。",
+      "assistant_memory": "记录发作频率与伴随症状。"
+    },
+    {
+      "round": 2,
+      "user": "结合刚才信息进一步分析：应该如何记录诱因、评估预防治疗需要，并安排复诊？"
+    }
+  ],
+  "presentation": {
+    "direct_answer": "结合上一轮每月约6次发作的信息，应建立头痛日记并由医生评估预防治疗适应证，同时设定疗效与安全性复诊节点。",
+    "plain_language": "系统把同一会话中刚才提到的发作频率带入本轮；一个全新会话则不会看到这些历史。",
+    "clinical_detail": "记录频率、持续时间、伴随症状、诱因、急性用药和缓解情况；结合功能影响评估是否讨论预防治疗，并在复诊时比较基线与干预后指标。"
+  },
+  "developer": {
+    "request_spec": {
+      "items": [
+        { "id": "RQ1", "text": "利用上一轮信息制定头痛记录方案", "required": true },
+        { "id": "RQ2", "text": "评估预防治疗讨论条件", "required": true },
+        { "id": "RQ3", "text": "安排复诊与安全提示", "required": true }
+      ]
+    },
+    "planner": {
+      "route": { "mode": "single", "reason": "follow-up request uses session-scoped clinical context" },
+      "subtasks": [
+        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      ]
+    },
+    "workers": [
+      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+    ],
+    "tools": [],
+    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
+    "memory": {
+      "session_id": "demo-memory-session",
+      "history_injected": ["Round 1 user message", "Round 1 assistant memory"],
+      "new_session_history": []
+    },
+    "trace": ["Question", "MemoryRead", "RequestSpec", "Planner", "Workers", "Final"]
+  }
+}

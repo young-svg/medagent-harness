@@ -1,0 +1,30 @@
+{
+  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "question": "心肌保护通常使用哪类停搏液？请说明常见选择、选择依据和使用前需要核实的事项。",
+  "presentation": {
+    "direct_answer": "心肌保护液需按术式、灌注策略、患者情况和本中心方案选择；常见为晶体型、含血型及不同配方的复合停搏液。",
+    "plain_language": "没有一种停搏液适合所有手术。医生会根据手术时间、给药方式、患者心脏和电解质情况，以及医院成熟流程来决定。",
+    "clinical_detail": "常见选择包括晶体型与含血型方案。选择时需综合预计阻断时间、灌注方式、再次给药间隔、温度策略及团队经验；使用前核实适应证、配方浓度、电解质与肾功能、过敏史、灌注路径及监测计划。"
+  },
+  "developer": {
+    "request_spec": {
+      "items": [
+        { "id": "RQ1", "text": "说明常见心肌保护液类别", "required": true },
+        { "id": "RQ2", "text": "说明方案选择依据", "required": true },
+        { "id": "RQ3", "text": "列出使用前核实事项", "required": true }
+      ]
+    },
+    "planner": {
+      "route": { "mode": "single", "reason": "one consultation worker can cover the related items" },
+      "subtasks": [
+        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      ]
+    },
+    "workers": [
+      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+    ],
+    "tools": [],
+    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
+    "trace": ["Question", "RequestSpec", "Planner", "Workers", "Final"]
+  }
+}
