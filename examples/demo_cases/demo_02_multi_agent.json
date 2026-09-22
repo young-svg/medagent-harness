@@ -1,22 +1,24 @@
 {
+  "name": "复杂病例协作分析（Multi Agent）",
   "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
-  "question": "请给出最可能诊断及鉴别诊断，说明需要完善的检查，并制定分阶段治疗与安全随访计划。",
+  "question": "请分析最可能诊断和鉴别诊断，制定进一步检查方案，并给出治疗与随访计划。",
+  "case_context": "58岁男性，反酸和胸骨后灼热约1年，近3个月出现进行性固体食物吞咽困难，近2个月非主动减重5 kg。血红蛋白105 g/L，粪便隐血阳性。无呕血，生命体征稳定。尚未接受胃镜检查。",
   "presentation": {
-    "direct_answer": "首要考虑胃食管反流病，但新出现的吞咽不适属于需要进一步评估的警示线索，应同时排除结构性病变及其他上消化道疾病。",
-    "plain_language": "症状很像胃酸反流，但吞咽不舒服意味着不能只按普通反流自行处理。下一步要由医生判断是否需要内镜等检查，再根据结果分阶段治疗。",
-    "clinical_detail": "诊断工作流同时覆盖胃食管反流病、结构性病变及其他上消化道疾病。存在吞咽不适时应完成危险分层并由专科评估检查路径；治疗与随访根据检查结果、疗效和警示症状动态调整。"
+    "direct_answer": "最需要优先排除：食管或胃食管结合部占位性病变。\n关注：进行性吞咽困难、非主动体重下降、贫血和粪便隐血阳性均为警示信号，应尽快完成专科评估，而不能只按普通反流处理。",
+    "plain_language": "虽然患者长期有反流症状，但现在出现了吞咽越来越困难、体重下降和贫血。这些变化要求尽快检查食管和胃，先排除结构性病变，再决定具体治疗。",
+    "clinical_detail": "占位性病变需要优先排除，同时考虑重度反流性食管炎、消化性狭窄和动力障碍。建议尽快转诊消化专科并评估内镜及必要的组织学检查；治疗和随访应根据检查结果、贫血与营养状态制定。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "给出最可能诊断与依据", "required": true },
+        { "id": "RQ1", "text": "判断最可能诊断及危险程度", "required": true },
         { "id": "RQ2", "text": "列出关键鉴别诊断", "required": true },
-        { "id": "RQ3", "text": "提出检查路径", "required": true },
-        { "id": "RQ4", "text": "制定治疗与安全随访计划", "required": true }
+        { "id": "RQ3", "text": "制定进一步检查方案", "required": true },
+        { "id": "RQ4", "text": "制定治疗和随访计划", "required": true }
       ]
     },
+    "route": { "mode": "multi", "reason": "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划" },
     "planner": {
-      "route": { "mode": "multi", "reason": "diagnostic and management workstreams are independently assignable" },
       "subtasks": [
         { "subtask_id": "ST1", "assigned_agent": "diagnostic_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] },
         { "subtask_id": "ST2", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ4"] }
@@ -26,8 +28,15 @@
       { "worker": "diagnostic_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] },
       { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ4"] }
     ],
-    "tools": [],
-    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
-    "trace": ["Question", "RequestSpec", "Planner", "Workers", "Final"]
+    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
+    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
+    "trace": [
+      { "event": "Question received" },
+      { "event": "RequestSpec extracted" },
+      { "event": "Planner selected multi route" },
+      { "event": "Diagnostic Agent completed RQ1-RQ3" },
+      { "event": "Consultation Agent completed RQ4" },
+      { "event": "Final answer generated" }
+    ]
   }
 }

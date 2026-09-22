@@ -1,42 +1,55 @@
 {
-  "fixture_notice": "Synthetic showcase fixture. Evidence below is intentionally fake and must never be represented as a real medical source.",
-  "question": "请结合临床指南，说明如何确认高血压诊断、进行初始风险评估并安排随访。",
+  "name": "循证医学分析（RAG）",
+  "fixture_notice": "Synthetic showcase fixture. Evidence below is fake demo data and must never be represented as a real medical source.",
+  "question": "请结合相关临床指南，制定术后静脉血栓预防、出血风险监测和随访方案，并说明指南依据。",
+  "case_context": "67岁女性，全膝关节置换术后第1天，生命体征稳定，已开始床旁活动。既往无静脉血栓史，肾功能稳定，无活动性出血；术区引流量在团队预期范围内。临床团队需要制定围术期静脉血栓预防与监测方案。",
   "presentation": {
-    "direct_answer": "应先用规范诊室测量并结合家庭或动态血压监测确认持续升高，再完成总体风险、靶器官影响和继发因素评估。",
-    "plain_language": "一次读数高并不等于已经确诊。通常需要正确地重复测量，必要时做家庭或24小时监测，同时检查心、脑、肾等风险。",
-    "clinical_detail": "本例只演示 Research Agent、clinical_guideline 工具和 Evidence Card 的界面链路。证据卡为合成 demo fixture，不是真实指南来源，不得用于临床决策。"
+    "direct_answer": "管理重点：先完成血栓与出血风险评估，再组合早期活动、机械预防和个体化药物预防，并设置出血及血栓警示监测。\n关注：本案例的证据为 synthetic demo evidence，只用于展示 RAG gating 与 Evidence Card，不能作为真实临床指南。",
+    "plain_language": "术后既要预防血栓，也要避免增加出血风险。团队会根据手术、活动能力、肾功能和出血情况决定预防方式，并持续观察腿部肿痛、呼吸困难或异常出血。",
+    "clinical_detail": "先记录静脉血栓与出血风险，再按本中心流程安排早期活动和机械预防；药物选择和持续时间必须由团队结合肾功能、麻醉方式、伤口与出血状态决定。本例 Evidence Card 是明确标注的合成展示数据。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "基于指南说明诊断确认路径", "required": true },
-        { "id": "RQ2", "text": "说明初始风险与靶器官评估", "required": true },
-        { "id": "RQ3", "text": "提出随访安排", "required": true }
+        { "id": "RQ1", "text": "制定术后治疗管理与风险监测建议", "required": true },
+        { "id": "RQ2", "text": "提供并标明指南依据", "required": true }
       ]
     },
+    "route": { "mode": "single", "reason": "用户明确要求指南依据，RAG gate 开启并交由 Research Agent 完成证据整合" },
     "planner": {
-      "route": { "mode": "single", "reason": "guideline-focused evidence synthesis" },
       "subtasks": [
-        { "subtask_id": "ST1", "assigned_agent": "research_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+        { "subtask_id": "ST1", "assigned_agent": "research_agent", "request_item_ids": ["RQ1", "RQ2"] }
       ]
     },
     "workers": [
-      { "worker": "research_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      { "worker": "research_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2"] }
     ],
-    "tools": [
-      { "name": "clinical_guideline", "status": "success", "query": "demo hypertension diagnosis risk assessment follow-up" }
-    ],
+    "tool_state": {
+      "status": "Retrieved",
+      "tools": [
+        { "name": "clinical_guideline", "status": "Retrieved", "query": "demo postoperative VTE prevention and bleeding monitoring" }
+      ]
+    },
     "evidence": {
       "status": "AVAILABLE",
+      "required": true,
       "cards": [
         {
-          "evidence_id": "DEMO-EV-001",
-          "source": "DEMO FIXTURE — not a real medical source",
-          "section": "Synthetic section: diagnostic confirmation",
-          "preview": "演示数据：用于验证 source、section 与 preview 的前端展示。不得作为真实医学指南或临床依据。"
+          "evidence_id": "DEMO-GUIDELINE-001",
+          "source": "Demo Clinical Guideline Fixture",
+          "section": "Management Recommendation",
+          "preview": "Synthetic demo evidence: assess VTE and bleeding risk, combine early mobilisation and mechanical prevention, and individualise medication and follow-up under the surgical team's protocol. Not for clinical use."
         }
       ]
     },
-    "trace": ["Question", "RequestSpec", "Planner", "Workers", "clinical_guideline", "Final"]
+    "trace": [
+      { "event": "Question received" },
+      { "event": "RequestSpec extracted" },
+      { "event": "External evidence required = true" },
+      { "event": "clinical_guideline called" },
+      { "event": "Synthetic evidence retrieved" },
+      { "event": "Research Agent completed RQ1-RQ2" },
+      { "event": "Final answer generated" }
+    ]
   }
 }

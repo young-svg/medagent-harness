@@ -1,32 +1,27 @@
 {
+  "name": "连续诊疗分析（Memory）",
   "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
-  "question": "结合刚才信息进一步分析：应该如何记录诱因、评估预防治疗需要，并安排复诊？",
+  "question": "结合之前的信息，进一步讨论预防治疗方案、疗效记录方式和复诊安排。",
+  "case_context": "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，常伴恶心和畏光，无新发神经功能缺损。用户询问是否需要预防治疗以及需要记录哪些信息。系统保存了发作频率、可能诱因和伴随症状。第二轮：用户基于上一轮信息继续讨论预防治疗方案。",
   "rounds": [
-    {
-      "round": 1,
-      "user": "我每月约有6次偏头痛，伴畏光、恶心。",
-      "assistant_memory": "记录发作频率与伴随症状。"
-    },
-    {
-      "round": 2,
-      "user": "结合刚才信息进一步分析：应该如何记录诱因、评估预防治疗需要，并安排复诊？"
-    }
+    { "round": 1, "user_task": "请分析是否需要预防治疗以及需要记录哪些信息。", "saved_memory": ["每月约6次", "可能诱因", "恶心与畏光"] },
+    { "round": 2, "user_task": "结合之前的信息，进一步讨论预防治疗方案。" }
   ],
   "presentation": {
-    "direct_answer": "结合上一轮每月约6次发作的信息，应建立头痛日记并由医生评估预防治疗适应证，同时设定疗效与安全性复诊节点。",
-    "plain_language": "系统把同一会话中刚才提到的发作频率带入本轮；一个全新会话则不会看到这些历史。",
-    "clinical_detail": "记录频率、持续时间、伴随症状、诱因、急性用药和缓解情况；结合功能影响评估是否讨论预防治疗，并在复诊时比较基线与干预后指标。"
+    "direct_answer": "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
+    "plain_language": "系统记住了上一轮提到的发作频率、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
+    "clinical_detail": "同一 session 注入了上一轮发作频率、恶心、畏光及诱因记录；全新 session 的历史计数为0。治疗评估需结合功能影响、急性药物使用、合并症和个人偏好；复诊时比较基线与治疗后的头痛日数、严重程度和不良反应。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "利用上一轮信息制定头痛记录方案", "required": true },
-        { "id": "RQ2", "text": "评估预防治疗讨论条件", "required": true },
-        { "id": "RQ3", "text": "安排复诊与安全提示", "required": true }
+        { "id": "RQ1", "text": "结合历史评估预防治疗讨论条件", "required": true },
+        { "id": "RQ2", "text": "说明预防方案选择因素", "required": true },
+        { "id": "RQ3", "text": "制定疗效记录与复诊安排", "required": true }
       ]
     },
+    "route": { "mode": "single", "reason": "连续诊疗任务依赖同一 session 历史，由 Consultation Agent 完成纵向管理建议" },
     "planner": {
-      "route": { "mode": "single", "reason": "follow-up request uses session-scoped clinical context" },
       "subtasks": [
         { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
       ]
@@ -34,13 +29,19 @@
     "workers": [
       { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
     ],
-    "tools": [],
-    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
+    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
+    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
     "memory": {
       "session_id": "demo-memory-session",
-      "history_injected": ["Round 1 user message", "Round 1 assistant memory"],
-      "new_session_history": []
+      "history_injected": ["Round 1 user task and symptoms", "Round 1 saved clinical context"],
+      "new_session_history_count": 0
     },
-    "trace": ["Question", "MemoryRead", "RequestSpec", "Planner", "Workers", "Final"]
+    "trace": [
+      { "event": "Question received" },
+      { "event": "Same-session history injected" },
+      { "event": "RequestSpec extracted" },
+      { "event": "Consultation Agent completed RQ1-RQ3" },
+      { "event": "Final answer generated" }
+    ]
   }
 }

@@ -3,8 +3,8 @@ import type { AnalyzeResponse, EvidenceCard } from "./types";
 type DemoCaseFixture = {
   id: string;
   label: string;
-  description: string;
   question: string;
+  case_context: string;
   presentation: {
     direct_answer: string;
     plain_language: string;
@@ -12,9 +12,10 @@ type DemoCaseFixture = {
   };
   developer: {
     request_spec: Record<string, unknown>;
-    planner: { route: Record<string, unknown>; subtasks: Record<string, unknown>[] };
+    route: Record<string, unknown>;
+    planner: { subtasks: Record<string, unknown>[] };
     workers: Record<string, unknown>[];
-    tools: Record<string, unknown>[];
+    tool_state: { status: string; tools: Record<string, unknown>[] };
     evidence: {
       status: "NOT_REQUIRED" | "REQUIRED_UNAVAILABLE" | "AVAILABLE";
       required: boolean;
@@ -27,37 +28,38 @@ type DemoCaseFixture = {
 };
 
 const commonTrace = [
-  { event_type: "run_start", stage: "lifecycle" },
-  { event_type: "request_spec_built", stage: "context" },
-  { event_type: "plan_created", stage: "planning" },
-  { event_type: "worker_draft", stage: "worker" },
-  { event_type: "checker_result", stage: "guardrail" },
-  { event_type: "final_answer", stage: "output" },
+  { event_type: "run_start", stage: "lifecycle", label: "Question received" },
+  { event_type: "request_spec_built", stage: "context", label: "RequestSpec extracted" },
+  { event_type: "plan_created", stage: "planning", label: "Planner selected route" },
+  { event_type: "worker_draft", stage: "worker", label: "Workers completed" },
+  { event_type: "checker_result", stage: "guardrail", label: "Coverage checked" },
+  { event_type: "final_answer", stage: "output", label: "Final answer generated" },
 ];
 
 export const demoFixtures: DemoCaseFixture[] = [
   {
     id: "demo-01-simple-single",
-    label: "01 · Simple single-agent",
-    description: "演示病例：计划接受心脏手术，团队希望快速梳理心肌保护液的常见选择与使用前核实事项。无可识别个人信息。",
-    question: "心肌保护通常使用哪类停搏液？请说明常见选择、选择依据和使用前需要核实的事项。",
+    label: "01 · 临床快速分析（Single Agent）",
+    case_context: "58岁男性，反复餐后胃灼热、反酸半年，每周约3～4次，平卧及晚餐过晚时加重。BMI 28 kg/m²，偶尔饮酒；无吞咽困难、呕血、黑便或近期体重下降。心电图无急性异常，血常规未见贫血，近期未规律接受抑酸治疗。",
+    question: "请分析最可能诊断、诊断依据、需要关注的检查以及初步处理方案。",
     presentation: {
-      direct_answer: "心肌保护液需按术式、灌注策略、患者情况和本中心方案选择；常见为晶体型、含血型及不同配方的复合停搏液。",
-      plain_language: "没有一种停搏液适合所有手术。医生会根据手术时间、给药方式、患者心脏和电解质情况，以及医院成熟流程来决定。",
-      clinical_detail: "常见选择包括晶体型与含血型心肌保护方案。选择时需综合预计阻断时间、顺行或逆行灌注方式、再次给药间隔、温度策略及团队经验。使用前应核实适应证、配方与浓度、电解质和肾功能、过敏史、灌注路径及监测和再灌注计划。本演示仅展示信息组织方式，不替代心外科和灌注团队的个体化决策。",
+      direct_answer: "最可能诊断：胃食管反流病（GERD）。\n关注：目前没有明确警示症状，可先规范评估与初步处理；若症状持续、加重或出现吞咽困难、出血、体重下降，应及时进一步检查。",
+      plain_language: "症状模式很符合胃酸反流：饭后和平躺时更明显，超重和晚餐过晚也可能加重。现有信息没有提示紧急危险，但仍应由医生结合症状频率和治疗反应决定是否需要检查。",
+      clinical_detail: "诊断判断\n餐后胃灼热、反酸、平卧加重及相关生活方式因素支持胃食管反流病；现有心电图和血常规信息降低了部分替代诊断的可能性，但不能替代完整临床评估。\n\n检查建议\n先核对症状模式、用药史和警示症状。无警示线索时可根据临床评估先行规范处理；疗效不佳、诊断不确定或出现警示表现时，再由医生评估上消化道内镜或反流监测。\n\n治疗原则\n调整进餐时间、体重与诱发因素，并在医生指导下进行规范抑酸治疗和疗效复评。出现进行性吞咽困难、消化道出血、持续胸痛或体重下降时应及时就医。",
     },
     developer: {
       request_spec: { items: [
-        { id: "RQ1", text: "说明常见心肌保护液类别", required: true, semantic_type: "CLINICAL_INFORMATION" },
-        { id: "RQ2", text: "说明方案选择依据", required: true, semantic_type: "DECISION_FACTORS" },
-        { id: "RQ3", text: "列出使用前核实事项", required: true, semantic_type: "SAFETY_CHECKS" },
+        { id: "RQ1", text: "判断最可能诊断", required: true, semantic_type: "DIAGNOSIS" },
+        { id: "RQ2", text: "说明诊断依据", required: true, semantic_type: "DIAGNOSIS_WITH_BASIS" },
+        { id: "RQ3", text: "提出需要关注的检查", required: true, semantic_type: "INVESTIGATION_PLAN" },
+        { id: "RQ4", text: "给出初步治疗原则", required: true, semantic_type: "TREATMENT_PLAN" },
       ] },
+      route: { mode: "single", reason: "四个请求项相互依赖、复杂度适中，一个 Consultation Agent 可完整覆盖" },
       planner: {
-        route: { mode: "single", reason: "one consultation worker can cover the related items" },
-        subtasks: [{ subtask_id: "ST1", assigned_agent: "consultation_agent", description: "整合停搏液类别、选择依据与安全核实项", request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
+        subtasks: [{ subtask_id: "ST1", assigned_agent: "consultation_agent", description: "完成诊断判断、检查分层与初步管理建议", request_item_ids: ["RQ1", "RQ2", "RQ3", "RQ4"] }],
       },
-      workers: [{ worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
-      tools: [],
+      workers: [{ worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3", "RQ4"] }],
+      tool_state: { status: "NOT_REQUIRED", tools: [] },
       evidence: {
         status: "NOT_REQUIRED",
         required: false,
@@ -69,33 +71,33 @@ export const demoFixtures: DemoCaseFixture[] = [
   },
   {
     id: "demo-02-multi-agent",
-    label: "02 · Multi-agent reasoning",
-    description: "演示病例：58岁患者反复餐后胸骨后灼热与反酸，夜间加重，近期出现间歇性吞咽不适。既往超重，无急性胸痛或黑便。",
-    question: "请给出最可能诊断及鉴别诊断，说明需要完善的检查，并制定分阶段治疗与安全随访计划。",
+    label: "02 · 复杂病例协作分析（Multi Agent）",
+    case_context: "58岁男性，反酸和胸骨后灼热约1年，近3个月出现进行性固体食物吞咽困难，近2个月非主动减重5 kg。血红蛋白105 g/L，粪便隐血阳性。无呕血，生命体征稳定。尚未接受胃镜检查。",
+    question: "请分析最可能诊断和鉴别诊断，制定进一步检查方案，并给出治疗与随访计划。",
     presentation: {
-      direct_answer: "首要考虑胃食管反流病，但新出现的吞咽不适属于需要进一步评估的警示线索，应同时排除结构性病变及其他上消化道疾病。",
-      plain_language: "症状很像胃酸反流，但吞咽不舒服意味着不能只按普通反流自行处理。下一步要由医生判断是否需要内镜等检查，再根据结果分阶段治疗。",
-      clinical_detail: "诊断思路：餐后烧心、反酸及夜间加重支持胃食管反流病；吞咽不适要求评估食管炎、狭窄、裂孔疝、动力障碍及占位性病变。检查路径：先完成病史与用药核对、体格检查和危险分层；存在警示症状时由专科评估上消化道内镜，必要时再考虑反流监测或动力学检查。治疗原则：生活方式干预与规范抑酸治疗并行，根据反应和检查结果调整；避免长期无评估自行用药。若出现进行性吞咽困难、消化道出血、体重明显下降或持续胸痛，应及时就医。",
+      direct_answer: "最需要优先排除：食管或胃食管结合部占位性病变。\n关注：进行性吞咽困难、非主动体重下降、贫血和粪便隐血阳性均为警示信号，应尽快完成专科评估，而不能只按普通反流处理。",
+      plain_language: "虽然患者长期有反流症状，但现在出现了吞咽越来越困难、体重下降和贫血。这些变化要求尽快检查食管和胃，先排除结构性病变，再决定具体治疗。",
+      clinical_detail: "诊断与鉴别\n占位性病变需要优先排除；同时考虑重度反流性食管炎、消化性狭窄、食管动力障碍以及其他上消化道出血来源。\n\n检查路径\n建议尽快转诊消化专科，评估上消化道内镜及必要的组织学检查；同步复核血常规、铁代谢和出血风险。后续影像、动力学或反流监测应根据内镜结果和专科判断选择。\n\n治疗与随访\n在明确病因前避免仅以经验性抑酸替代检查。治疗按病理和分期结果决定；同时处理贫血、营养和症状风险。建立检查结果回访节点，若吞咽迅速恶化、无法进食、呕血或黑便，应立即就医。",
     },
     developer: {
       request_spec: { items: [
-        { id: "RQ1", text: "给出最可能诊断与依据", required: true, semantic_type: "DIAGNOSIS_WITH_BASIS" },
+        { id: "RQ1", text: "判断最可能诊断及危险程度", required: true, semantic_type: "DIAGNOSIS_WITH_BASIS" },
         { id: "RQ2", text: "列出关键鉴别诊断", required: true, semantic_type: "DIFFERENTIAL_DIAGNOSIS" },
-        { id: "RQ3", text: "提出检查路径", required: true, semantic_type: "INVESTIGATION_PLAN" },
-        { id: "RQ4", text: "制定治疗与安全随访计划", required: true, semantic_type: "TREATMENT_PLAN" },
+        { id: "RQ3", text: "制定进一步检查方案", required: true, semantic_type: "INVESTIGATION_PLAN" },
+        { id: "RQ4", text: "制定治疗和随访计划", required: true, semantic_type: "TREATMENT_PLAN" },
       ] },
+      route: { mode: "multi", reason: "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划" },
       planner: {
-        route: { mode: "multi", reason: "diagnostic and management workstreams are independently assignable" },
         subtasks: [
-          { subtask_id: "ST1", assigned_agent: "diagnostic_agent", description: "完成诊断、鉴别诊断与检查分层", request_item_ids: ["RQ1", "RQ2", "RQ3"] },
-          { subtask_id: "ST2", assigned_agent: "consultation_agent", description: "形成分阶段治疗与安全随访计划", request_item_ids: ["RQ4"] },
+          { subtask_id: "ST1", assigned_agent: "diagnostic_agent", description: "完成高风险诊断、鉴别诊断与检查优先级", request_item_ids: ["RQ1", "RQ2", "RQ3"] },
+          { subtask_id: "ST2", assigned_agent: "consultation_agent", description: "基于诊断路径制定治疗、风险处置与随访节点", request_item_ids: ["RQ4"] },
         ],
       },
       workers: [
         { worker: "diagnostic_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3"] },
         { worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ4"] },
       ],
-      tools: [],
+      tool_state: { status: "NOT_REQUIRED", tools: [] },
       evidence: {
         status: "NOT_REQUIRED",
         required: false,
@@ -107,69 +109,71 @@ export const demoFixtures: DemoCaseFixture[] = [
   },
   {
     id: "demo-03-guideline-rag",
-    label: "03 · Guideline / RAG",
-    description: "演示病例：成人反复出现血压升高读数，尚未完成标准化诊室外复测，也未系统评估心血管总体风险。",
-    question: "请结合临床指南，说明如何确认高血压诊断、进行初始风险评估并安排随访。",
+    label: "03 · 循证医学分析（RAG）",
+    case_context: "67岁女性，全膝关节置换术后第1天，生命体征稳定，已开始床旁活动。既往无静脉血栓史，肾功能稳定，无活动性出血；术区引流量在团队预期范围内。临床团队需要制定围术期静脉血栓预防与监测方案。",
+    question: "请结合相关临床指南，制定术后静脉血栓预防、出血风险监测和随访方案，并说明指南依据。",
     presentation: {
-      direct_answer: "应先用规范诊室测量并结合家庭或动态血压监测确认持续升高，再完成总体风险、靶器官影响和继发因素评估。",
-      plain_language: "一次读数高并不等于已经确诊。通常需要用正确方法重复测量，必要时做家庭或24小时监测，同时检查是否已有心、脑、肾等风险。",
-      clinical_detail: "演示工作流将问题拆为诊断确认、初始评估和随访三部分，并展示 Research Agent 调用 clinical_guideline 后生成 Evidence Card。下方证据为明确标注的合成 demo fixture，不是真实指南来源，也不得用于临床决策。实际应用必须接入并核验权威指南原文、版本、适用人群和更新日期。",
+      direct_answer: "管理重点：先完成血栓与出血风险评估，再组合早期活动、机械预防和个体化药物预防，并设置出血及血栓警示监测。\n关注：本案例的证据为 synthetic demo evidence，只用于展示 RAG gating 与 Evidence Card，不能作为真实临床指南。",
+      plain_language: "术后既要预防血栓，也要避免增加出血风险。团队会根据手术、活动能力、肾功能和出血情况决定预防方式，并持续观察腿部肿痛、呼吸困难或异常出血。",
+      clinical_detail: "管理框架\n先记录静脉血栓与出血风险，再按本中心流程安排早期活动和机械预防；是否使用药物、选择何种方案以及持续时间，必须由临床团队结合肾功能、麻醉方式、伤口与出血状态决定。\n\n监测与随访\n动态观察伤口、引流、血红蛋白和药物相关风险，同时告知单侧下肢肿痛、突发胸痛或呼吸困难等警示症状。出院前明确依从性、活动计划、用药核对和复诊节点。\n\n证据说明\n本回答中的 Evidence Card 是明确标注的合成展示数据。实际临床应用必须连接、核验并引用权威指南原文及最新版本。",
     },
     developer: {
       request_spec: { items: [
-        { id: "RQ1", text: "基于指南说明诊断确认路径", required: true, semantic_type: "GUIDELINE_DIAGNOSIS" },
-        { id: "RQ2", text: "说明初始风险与靶器官评估", required: true, semantic_type: "RISK_ASSESSMENT" },
-        { id: "RQ3", text: "提出随访安排", required: true, semantic_type: "FOLLOW_UP" },
+        { id: "RQ1", text: "制定术后治疗管理与风险监测建议", required: true, semantic_type: "TREATMENT_PLAN" },
+        { id: "RQ2", text: "提供并标明指南依据", required: true, semantic_type: "GUIDELINE_EVIDENCE" },
       ] },
+      route: { mode: "single", reason: "用户明确要求指南依据，RAG gate 开启并交由 Research Agent 完成证据整合" },
       planner: {
-        route: { mode: "single", reason: "guideline-focused evidence synthesis" },
-        subtasks: [{ subtask_id: "ST1", assigned_agent: "research_agent", description: "检索并组织指南证据用于诊断、风险评估和随访", request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
+        subtasks: [{ subtask_id: "ST1", assigned_agent: "research_agent", description: "调用指南能力并组织管理建议与证据说明", request_item_ids: ["RQ1", "RQ2"] }],
       },
-      workers: [{ worker: "research_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
-      tools: [{ name: "clinical_guideline", status: "success", query: "demo hypertension diagnosis risk assessment follow-up" }],
+      workers: [{ worker: "research_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2"] }],
+      tool_state: {
+        status: "Retrieved",
+        tools: [{ name: "clinical_guideline", status: "Retrieved", query: "demo postoperative VTE prevention and bleeding monitoring" }],
+      },
       evidence: {
         status: "AVAILABLE",
         required: true,
         cards: [{
-          evidence_id: "DEMO-EV-001",
-          title: "Synthetic guideline evidence — demonstration only",
-          source: "DEMO FIXTURE — not a real medical source",
-          section: "Synthetic section: diagnostic confirmation",
+          evidence_id: "DEMO-GUIDELINE-001",
+          title: "Synthetic demo evidence — showcase only",
+          source: "Demo Clinical Guideline Fixture",
+          section: "Management Recommendation",
           score: 1,
-          text_preview: "演示数据：用于验证 source、section 与 preview 的前端展示。不得作为真实医学指南或临床依据。",
+          text_preview: "Synthetic demo evidence: assess VTE and bleeding risk, combine early mobilisation and mechanical prevention, and individualise medication and follow-up under the surgical team's protocol. Not for clinical use.",
         }],
-        retrieval: { query: "demo hypertension diagnosis risk assessment follow-up", collection: "demo_fixture_only", retrieved_count: 1, admitted_evidence_ids: ["DEMO-EV-001"] },
+        retrieval: { query: "demo postoperative VTE prevention and bleeding monitoring", collection: "synthetic_demo_evidence", retrieved_count: 1, admitted_evidence_ids: ["DEMO-GUIDELINE-001"] },
       },
       trace: [
         ...commonTrace.slice(0, 3),
-        { event_type: "tool_call", stage: "tool", payload: { name: "clinical_guideline" } },
-        { event_type: "tool_result", stage: "tool", payload: { name: "clinical_guideline", result: { count: 1 } } },
+        { event_type: "tool_call", stage: "tool", label: "clinical_guideline called", payload: { name: "clinical_guideline" } },
+        { event_type: "tool_result", stage: "tool", label: "Synthetic evidence retrieved", payload: { name: "clinical_guideline", result: { count: 1, synthetic: true } } },
         ...commonTrace.slice(3),
       ],
     },
   },
   {
     id: "demo-04-memory-followup",
-    label: "04 · Multi-turn memory",
-    description: "第一轮（同一 demo session）：患者因反复偏头痛咨询，既往记录提示每月约6次发作，伴畏光、恶心，无新发神经功能缺损。\n\n第二轮：用户继续追问预防管理方案。",
-    question: "结合刚才信息进一步分析：应该如何记录诱因、评估预防治疗需要，并安排复诊？",
+    label: "04 · 连续诊疗分析（Memory）",
+    case_context: "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，常伴恶心和畏光，无新发神经功能缺损。用户询问是否需要预防治疗以及需要记录哪些信息。系统保存了发作频率、可能诱因和伴随症状。\n\n第二轮：用户基于上一轮信息继续讨论预防治疗方案。",
+    question: "结合之前的信息，进一步讨论预防治疗方案、疗效记录方式和复诊安排。",
     presentation: {
-      direct_answer: "结合上一轮每月约6次发作的信息，应建立头痛日记并由医生评估预防治疗适应证，同时设定疗效与安全性复诊节点。",
-      plain_language: "系统会把同一会话中刚才提到的发作频率带入本轮。接下来可记录发作日期、持续时间、诱因和用药效果，再和医生讨论是否需要预防方案。",
-      clinical_detail: "本轮演示显示 session-scoped memory：上一轮的症状和发作频率被注入当前分析，而一个全新的 session 保持空历史。管理上可用头痛日记记录频率、持续时间、伴随症状、可能诱因、急性用药和缓解情况；结合功能影响与急性药物使用频率评估是否讨论预防治疗。复诊时比较基线与干预后的头痛日数、严重程度、用药次数和不良反应。若出现突发剧烈头痛、新发神经缺损、发热伴颈强直等警示表现，应立即就医。",
+      direct_answer: "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
+      plain_language: "系统记住了上一轮提到的发作频率、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
+      clinical_detail: "会话信息使用\n同一 session 注入了上一轮的每月6次发作、恶心、畏光及需要记录诱因的信息；全新 session 的历史计数为0，不会共享这些内容。\n\n预防治疗讨论\n结合发作频率、功能影响、急性药物使用、合并症、生育计划及个人偏好，由医生评估是否开始预防治疗并选择方案。此演示不指定具体处方。\n\n记录与复诊\n头痛日记应记录头痛日数、持续时间、严重程度、诱因、伴随症状、急性用药与效果。复诊时比较基线和治疗后的变化及不良反应；若出现突发剧烈头痛、新发神经缺损、发热伴颈强直等警示表现，应立即就医。",
     },
     developer: {
       request_spec: { items: [
-        { id: "RQ1", text: "利用上一轮信息制定头痛记录方案", required: true, semantic_type: "MEMORY_GROUNDED_PLAN" },
-        { id: "RQ2", text: "评估预防治疗讨论条件", required: true, semantic_type: "TREATMENT_ASSESSMENT" },
-        { id: "RQ3", text: "安排复诊与安全提示", required: true, semantic_type: "FOLLOW_UP" },
+        { id: "RQ1", text: "结合历史评估预防治疗讨论条件", required: true, semantic_type: "MEMORY_GROUNDED_ASSESSMENT" },
+        { id: "RQ2", text: "说明预防方案选择因素", required: true, semantic_type: "TREATMENT_PLAN" },
+        { id: "RQ3", text: "制定疗效记录与复诊安排", required: true, semantic_type: "FOLLOW_UP" },
       ] },
+      route: { mode: "single", reason: "连续诊疗任务依赖同一 session 历史，由 Consultation Agent 完成纵向管理建议" },
       planner: {
-        route: { mode: "single", reason: "follow-up request uses session-scoped clinical context" },
-        subtasks: [{ subtask_id: "ST1", assigned_agent: "consultation_agent", description: "结合已注入会话历史完成随访建议", request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
+        subtasks: [{ subtask_id: "ST1", assigned_agent: "consultation_agent", description: "读取已注入历史并形成预防治疗、记录和复诊方案", request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
       },
       workers: [{ worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3"] }],
-      tools: [],
+      tool_state: { status: "NOT_REQUIRED", tools: [] },
       evidence: {
         status: "NOT_REQUIRED",
         required: false,
@@ -177,15 +181,15 @@ export const demoFixtures: DemoCaseFixture[] = [
         retrieval: { query: null, collection: null, retrieved_count: 0, admitted_evidence_ids: [] },
       },
       trace: [
-        { event_type: "run_start", stage: "lifecycle" },
-        { event_type: "memory_read", stage: "context", payload: { session_id: "demo-memory-session", history_count: 2 } },
+        { event_type: "run_start", stage: "lifecycle", label: "Question received" },
+        { event_type: "memory_read", stage: "context", label: "Same-session history injected", payload: { session_id: "demo-memory-session", history_count: 2 } },
         ...commonTrace.slice(1),
       ],
       memory: {
         session_id: "demo-memory-session",
         history_injected: [
-          "Round 1 · User: 每月约6次偏头痛，伴畏光、恶心。",
-          "Round 1 · Assistant: 已记录发作频率与伴随症状，下一轮可继续讨论预防管理。",
+          "Round 1 · User: 35岁女性，每月约6次偏头痛，伴恶心、畏光；询问预防治疗和记录内容。",
+          "Round 1 · Assistant memory: 已保存发作频率、可能诱因与伴随症状。",
         ],
         isolated_session_history_count: 0,
       },
@@ -210,9 +214,9 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
       execution_summary: {
         request_spec: developer.request_spec,
         plan: { subtasks: developer.planner.subtasks },
-        route: developer.planner.route,
+        route: developer.route,
         workers: developer.workers,
-        tools: developer.tools,
+        tools: developer.tool_state.tools,
         complexity_profile: { requires_external_evidence: developer.evidence.required },
         retrieval: developer.evidence.retrieval,
         trace_events: developer.trace,
@@ -224,5 +228,6 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
 
 export const demoCases = demoFixtures.map((fixture) => ({
   ...fixture,
+  description: fixture.case_context,
   response: toAnalyzeResponse(fixture),
 }));

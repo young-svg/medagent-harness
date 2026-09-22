@@ -1,30 +1,39 @@
 {
+  "name": "临床快速分析（Single Agent）",
   "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
-  "question": "心肌保护通常使用哪类停搏液？请说明常见选择、选择依据和使用前需要核实的事项。",
+  "question": "请分析最可能诊断、诊断依据、需要关注的检查以及初步处理方案。",
+  "case_context": "58岁男性，反复餐后胃灼热、反酸半年，每周约3～4次，平卧及晚餐过晚时加重。BMI 28 kg/m²，偶尔饮酒；无吞咽困难、呕血、黑便或近期体重下降。心电图无急性异常，血常规未见贫血，近期未规律接受抑酸治疗。",
   "presentation": {
-    "direct_answer": "心肌保护液需按术式、灌注策略、患者情况和本中心方案选择；常见为晶体型、含血型及不同配方的复合停搏液。",
-    "plain_language": "没有一种停搏液适合所有手术。医生会根据手术时间、给药方式、患者心脏和电解质情况，以及医院成熟流程来决定。",
-    "clinical_detail": "常见选择包括晶体型与含血型方案。选择时需综合预计阻断时间、灌注方式、再次给药间隔、温度策略及团队经验；使用前核实适应证、配方浓度、电解质与肾功能、过敏史、灌注路径及监测计划。"
+    "direct_answer": "最可能诊断：胃食管反流病（GERD）。\n关注：目前没有明确警示症状，可先规范评估与初步处理；若症状持续、加重或出现吞咽困难、出血、体重下降，应及时进一步检查。",
+    "plain_language": "症状模式很符合胃酸反流：饭后和平躺时更明显，超重和晚餐过晚也可能加重。现有信息没有提示紧急危险，但仍应由医生结合症状频率和治疗反应决定是否需要检查。",
+    "clinical_detail": "餐后胃灼热、反酸、平卧加重及相关生活方式因素支持胃食管反流病。先核对症状模式、用药史和警示症状；无警示线索时可先规范处理，疗效不佳或出现警示表现时再评估内镜或反流监测。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "说明常见心肌保护液类别", "required": true },
-        { "id": "RQ2", "text": "说明方案选择依据", "required": true },
-        { "id": "RQ3", "text": "列出使用前核实事项", "required": true }
+        { "id": "RQ1", "text": "判断最可能诊断", "required": true },
+        { "id": "RQ2", "text": "说明诊断依据", "required": true },
+        { "id": "RQ3", "text": "提出需要关注的检查", "required": true },
+        { "id": "RQ4", "text": "给出初步治疗原则", "required": true }
       ]
     },
+    "route": { "mode": "single", "reason": "四个请求项相互依赖、复杂度适中，一个 Consultation Agent 可完整覆盖" },
     "planner": {
-      "route": { "mode": "single", "reason": "one consultation worker can cover the related items" },
       "subtasks": [
-        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3", "RQ4"] }
       ]
     },
     "workers": [
-      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3", "RQ4"] }
     ],
-    "tools": [],
-    "evidence": { "status": "NOT_REQUIRED", "cards": [] },
-    "trace": ["Question", "RequestSpec", "Planner", "Workers", "Final"]
+    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
+    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
+    "trace": [
+      { "event": "Question received" },
+      { "event": "RequestSpec extracted" },
+      { "event": "Planner selected single route" },
+      { "event": "Consultation Agent completed RQ1-RQ4" },
+      { "event": "Final answer generated" }
+    ]
   }
 }

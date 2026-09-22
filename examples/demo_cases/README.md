@@ -1,33 +1,35 @@
-# MedAgent Showcase Demo Cases
+# Showcase Demo Fixtures
 
-These four fixtures are synthetic, deterministic presentation examples. They exist only to demonstrate the frontend and developer observability surfaces. Loading one in the **Demo Cases** dropdown does not call an LLM, a retrieval service, or the backend API.
+These JSON files are synthetic, deterministic examples for demonstrating MedAgent Harness orchestration. They do not contain real patient records, model-generated benchmark answers, or real clinical evidence.
 
-| Fixture | Capability shown | Route / worker |
+| Fixture | Showcase name | Harness capability |
 | --- | --- | --- |
-| `demo_01_simple_single.json` | RequestSpec coverage and a three-tier answer | `single` / Consultation Agent |
-| `demo_02_multi_agent.json` | Multi-agent decomposition and request ownership | `multi` / Diagnostic + Consultation Agents |
-| `demo_03_guideline_rag.json` | Tool invocation and AVAILABLE evidence-card rendering | `single` / Research Agent |
-| `demo_04_memory_followup.json` | Same-session history injection and new-session isolation | `single` / Consultation Agent |
+| `demo_01_simple_single.json` | 临床快速分析（Single Agent） | Complexity-aware `single` routing for a complete but bounded task |
+| `demo_02_multi_agent.json` | 复杂病例协作分析（Multi Agent） | RequestSpec decomposition and Diagnostic/Consultation ownership |
+| `demo_03_guideline_rag.json` | 循证医学分析（RAG） | Explicit evidence gating, Research Agent, tool and Evidence Card state |
+| `demo_04_memory_followup.json` | 连续诊疗分析（Memory） | Same-session history injection and new-session isolation |
 
-Every fixture exposes the same top-level contract:
+Every fixture contains this presentation-compatible shape:
 
 ```json
 {
-  "question": "...",
+  "question": "explicit user task",
+  "case_context": "synthetic clinical background",
   "presentation": {
-    "direct_answer": "...",
-    "plain_language": "...",
-    "clinical_detail": "..."
+    "direct_answer": "core conclusion",
+    "plain_language": "patient-facing explanation",
+    "clinical_detail": "full clinical detail"
   },
   "developer": {
     "request_spec": {},
+    "route": {},
     "planner": {},
     "workers": [],
-    "tools": [],
+    "tool_state": {},
     "evidence": {},
     "trace": []
   }
 }
 ```
 
-The RAG fixture is intentionally and visibly synthetic. `DEMO FIXTURE — not a real medical source` must remain on its evidence card. None of these answers or evidence records may be represented as model output, benchmark output, a real patient record, or a real clinical source.
+The RAG example intentionally uses the source `Demo Clinical Guideline Fixture`. It must remain clearly labeled as synthetic evidence and must never be represented as a real guideline citation.
