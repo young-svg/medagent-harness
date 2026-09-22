@@ -1,16 +1,26 @@
 {
   "name": "连续诊疗分析（Memory）",
   "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
-  "question": "结合之前的信息，进一步讨论预防治疗方案、疗效记录方式和复诊安排。",
-  "case_context": "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，常伴恶心和畏光，无新发神经功能缺损。用户询问是否需要预防治疗以及需要记录哪些信息。系统保存了发作频率、可能诱因和伴随症状。第二轮：用户基于上一轮信息继续讨论预防治疗方案。",
+  "question": "结合之前信息，进一步讨论预防治疗方案。",
+  "case_context": "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。用户咨询：请分析是否需要预防治疗，并记录需要持续关注的信息。Session Memory 保存了发作频率、伴随症状和当前关注方向。第二轮：用户基于同一会话继续追问预防治疗方案。",
   "rounds": [
-    { "round": 1, "user_task": "请分析是否需要预防治疗以及需要记录哪些信息。", "saved_memory": ["每月约6次", "可能诱因", "恶心与畏光"] },
-    { "round": 2, "user_task": "结合之前的信息，进一步讨论预防治疗方案。" }
+    { "round": 1, "user_task": "请分析是否需要预防治疗，并记录需要持续关注的信息。", "saved_memory": ["发作频率：每月约6次", "伴随症状：恶心、畏光", "当前关注方向：预防治疗评估"] },
+    { "round": 2, "user_task": "结合之前信息，进一步讨论预防治疗方案。" }
   ],
+  "memory_context": {
+    "session_id": "demo-memory-session",
+    "history_injected_count": 2,
+    "stored_facts": [
+      { "key": "attack_frequency", "value": "每月约6次" },
+      { "key": "associated_symptoms", "value": "恶心、畏光" },
+      { "key": "current_focus", "value": "预防治疗评估" }
+    ],
+    "new_session_history_count": 0
+  },
   "presentation": {
     "direct_answer": "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
-    "plain_language": "系统记住了上一轮提到的发作频率、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
-    "clinical_detail": "同一 session 注入了上一轮发作频率、恶心、畏光及诱因记录；全新 session 的历史计数为0。治疗评估需结合功能影响、急性药物使用、合并症和个人偏好；复诊时比较基线与治疗后的头痛日数、严重程度和不良反应。"
+    "plain_language": "Session Memory 注入了上一轮记录的每月约6次发作、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
+    "clinical_detail": "这是 session-scoped memory：同一 session 注入2条历史并恢复每月约6次发作、恶心和畏光以及预防治疗评估方向；全新 session 的历史计数为0，不会共享这些内容。治疗评估需结合功能影响、急性药物使用、合并症和个人偏好；复诊时比较基线与治疗后的头痛日数、严重程度和不良反应。"
   },
   "developer": {
     "request_spec": {
@@ -31,11 +41,6 @@
     ],
     "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
     "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
-    "memory": {
-      "session_id": "demo-memory-session",
-      "history_injected": ["Round 1 user task and symptoms", "Round 1 saved clinical context"],
-      "new_session_history_count": 0
-    },
     "trace": [
       { "event": "Question received" },
       { "event": "Same-session history injected" },

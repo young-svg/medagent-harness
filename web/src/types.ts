@@ -53,7 +53,9 @@ export type TraceEvent = {
 export type MemoryInfo = {
   sessionId: string;
   historyInjected: string[];
-  isolatedSessionHistoryCount: number;
+  historyInjectedCount: number;
+  storedFacts: Array<{ key: string; value: string }>;
+  newSessionHistoryCount: number;
 };
 
 export type PresentationView = {

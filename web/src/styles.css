@@ -152,11 +152,15 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .status-list .status-idle { background: #fafafa; }
 .empty-state { color: #999ea6; font-size: 11px; text-align: center; }
 .memory-card { grid-column: 1 / -1; }
+.memory-scope { display: inline-flex; margin: -7px 0 14px; padding: 5px 9px; border-radius: 999px; color: #315da9; background: #eef3ff; font-size: 9px; font-weight: 600; }
 .memory-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 0 0 12px; }
 .memory-facts div { padding: 12px; border: 1px solid #e8eaed; border-radius: 9px; background: #fff; }
 .memory-facts dt { color: #9297a0; font-size: 9px; text-transform: uppercase; }
 .memory-facts dd { margin: 4px 0 0; color: #354052; font-size: 11px; font-weight: 600; }
 .memory-history { margin: 0; padding: 13px 13px 13px 32px; border-radius: 9px; color: #666d78; background: #eef3ff; font-size: 10px; line-height: 1.65; }
+.stored-context { padding: 14px 16px; border: 1px solid #dce6fb; border-radius: 10px; background: #f7faff; }
+.stored-context h4 { margin: 0 0 9px; color: #4d5c72; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+.stored-context ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; color: #465166; font-size: 11px; line-height: 1.55; }
 
 footer { display: flex; justify-content: space-between; padding: 25px 0 35px; border-top: 1px solid #eceef0; color: #9a9fa7; font-size: 10px; }
 

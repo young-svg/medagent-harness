@@ -5,6 +5,12 @@ type DemoCaseFixture = {
   label: string;
   question: string;
   case_context: string;
+  memory_context?: {
+    session_id: string;
+    history_injected_count: number;
+    stored_facts: Array<{ key: string; value: string }>;
+    new_session_history_count: number;
+  };
   presentation: {
     direct_answer: string;
     plain_language: string;
@@ -23,7 +29,6 @@ type DemoCaseFixture = {
       retrieval: Record<string, unknown>;
     };
     trace: Record<string, unknown>[];
-    memory?: Record<string, unknown>;
   };
 };
 
@@ -155,12 +160,22 @@ export const demoFixtures: DemoCaseFixture[] = [
   {
     id: "demo-04-memory-followup",
     label: "04 · 连续诊疗分析（Memory）",
-    case_context: "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，常伴恶心和畏光，无新发神经功能缺损。用户询问是否需要预防治疗以及需要记录哪些信息。系统保存了发作频率、可能诱因和伴随症状。\n\n第二轮：用户基于上一轮信息继续讨论预防治疗方案。",
-    question: "结合之前的信息，进一步讨论预防治疗方案、疗效记录方式和复诊安排。",
+    case_context: "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。用户咨询：请分析是否需要预防治疗，并记录需要持续关注的信息。Session Memory 保存了发作频率、伴随症状和当前关注方向。\n\n第二轮：用户基于同一会话继续追问预防治疗方案。",
+    question: "结合之前信息，进一步讨论预防治疗方案。",
+    memory_context: {
+      session_id: "demo-memory-session",
+      history_injected_count: 2,
+      stored_facts: [
+        { key: "attack_frequency", value: "每月约6次" },
+        { key: "associated_symptoms", value: "恶心、畏光" },
+        { key: "current_focus", value: "预防治疗评估" },
+      ],
+      new_session_history_count: 0,
+    },
     presentation: {
       direct_answer: "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
-      plain_language: "系统记住了上一轮提到的发作频率、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
-      clinical_detail: "会话信息使用\n同一 session 注入了上一轮的每月6次发作、恶心、畏光及需要记录诱因的信息；全新 session 的历史计数为0，不会共享这些内容。\n\n预防治疗讨论\n结合发作频率、功能影响、急性药物使用、合并症、生育计划及个人偏好，由医生评估是否开始预防治疗并选择方案。此演示不指定具体处方。\n\n记录与复诊\n头痛日记应记录头痛日数、持续时间、严重程度、诱因、伴随症状、急性用药与效果。复诊时比较基线和治疗后的变化及不良反应；若出现突发剧烈头痛、新发神经缺损、发热伴颈强直等警示表现，应立即就医。",
+      plain_language: "Session Memory 注入了上一轮记录的每月约6次发作、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
+      clinical_detail: "会话信息使用\n这是 session-scoped memory：同一 session 注入2条历史并恢复每月约6次发作、恶心和畏光以及预防治疗评估方向；全新 session 的历史计数为0，不会共享这些内容。\n\n预防治疗讨论\n结合发作频率、功能影响、急性药物使用、合并症、生育计划及个人偏好，由医生评估是否开始预防治疗并选择方案。此演示不指定具体处方。\n\n记录与复诊\n头痛日记应记录头痛日数、持续时间、严重程度、诱因、伴随症状、急性用药与效果。复诊时比较基线和治疗后的变化及不良反应；若出现突发剧烈头痛、新发神经缺损、发热伴颈强直等警示表现，应立即就医。",
     },
     developer: {
       request_spec: { items: [
@@ -185,14 +200,6 @@ export const demoFixtures: DemoCaseFixture[] = [
         { event_type: "memory_read", stage: "context", label: "Same-session history injected", payload: { session_id: "demo-memory-session", history_count: 2 } },
         ...commonTrace.slice(1),
       ],
-      memory: {
-        session_id: "demo-memory-session",
-        history_injected: [
-          "Round 1 · User: 35岁女性，每月约6次偏头痛，伴恶心、畏光；询问预防治疗和记录内容。",
-          "Round 1 · Assistant memory: 已保存发作频率、可能诱因与伴随症状。",
-        ],
-        isolated_session_history_count: 0,
-      },
     },
   },
 ];
@@ -220,7 +227,7 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
         complexity_profile: { requires_external_evidence: developer.evidence.required },
         retrieval: developer.evidence.retrieval,
         trace_events: developer.trace,
-        memory: developer.memory,
+        memory: fixture.memory_context,
       },
     },
   };
