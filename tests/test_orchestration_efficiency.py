@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from medagent.context.contract import build_answer_contract
+from medagent.context.request_spec import build_request_spec
 from medagent.planning.complexity import (
     build_complexity_profile,
     build_response_profile,
@@ -74,7 +75,7 @@ def test_focused_plan_maps_to_contract_and_removes_expansion() -> None:
     assert Router().route(constrained, profile).mode == "single"
 
 
-def test_moderate_plan_allows_limited_contract_mapped_collaboration() -> None:
+def test_generic_diagnosis_and_treatment_preserves_cross_role_plan() -> None:
     question = "Give the diagnosis and treatment plan."
     contract = build_answer_contract(question)
     profile = build_complexity_profile(question, contract)
@@ -98,9 +99,80 @@ def test_moderate_plan_allows_limited_contract_mapped_collaboration() -> None:
     constrained = apply_contract_policy(proposed, contract, profile)
 
     assert profile.breadth == "moderate"
+    assert profile.requires_cross_role_reasoning
+    assert not profile.requires_multi_agent
     assert len(constrained.subtasks) == 2
-    assert all(item.deliverable_ids for item in constrained.subtasks)
     assert Router().route(constrained, profile).mode == "multi"
+
+
+def test_simple_gerd_request_uses_one_worker_without_retrieval() -> None:
+    question = "请分析最可能诊断、诊断依据以及初步处理方案。"
+    contract = build_answer_contract(question)
+    profile = build_complexity_profile(question, contract)
+    request_spec = build_request_spec(question)
+    proposed = Plan(
+        [
+            Subtask(
+                "d1",
+                "分析最可能诊断及依据。",
+                "diagnostic_agent",
+                ["DIAGNOSIS_WITH_BASIS"],
+                request_item_ids=["RQ1"],
+            ),
+            Subtask(
+                "m1",
+                "给出初步处理方案。",
+                "consultation_agent",
+                ["TREATMENT_PLAN"],
+                request_item_ids=["RQ1"],
+            ),
+        ]
+    )
+
+    constrained = apply_contract_policy(proposed, contract, profile, request_spec)
+    route = Router().route(constrained, profile)
+    capabilities = tool_capabilities(profile)
+
+    assert not profile.requires_cross_role_reasoning
+    assert not profile.requires_multi_agent
+    assert route.mode == "single"
+    assert len(route.workers) == 1
+    assert "research_agent" not in route.workers
+    assert capabilities["research_agent"] == set()
+    assert "clinical_guideline" not in capabilities[route.workers[0]]
+
+
+def test_guideline_request_keeps_research_and_consultation_workers() -> None:
+    question = "请结合相关指南说明高血压患者生活方式管理方案。"
+    contract = build_answer_contract(question)
+    profile = build_complexity_profile(question, contract)
+    request_spec = build_request_spec(question)
+    proposed = Plan(
+        [
+            Subtask(
+                "r1",
+                "检索指南证据。",
+                "research_agent",
+                ["COMPREHENSIVE_CASE_ANALYSIS"],
+                request_item_ids=["RQ1"],
+            ),
+            Subtask(
+                "c1",
+                "形成生活方式管理方案。",
+                "consultation_agent",
+                ["COMPREHENSIVE_CASE_ANALYSIS"],
+                request_item_ids=["RQ1"],
+            ),
+        ]
+    )
+
+    constrained = apply_contract_policy(proposed, contract, profile, request_spec)
+    route = Router().route(constrained, profile)
+
+    assert profile.requires_external_evidence
+    assert profile.requires_cross_role_reasoning
+    assert route.mode == "multi"
+    assert route.workers == ["research_agent", "consultation_agent"]
 
 
 def test_same_worker_deliverables_are_merged_without_losing_contract_mapping() -> None:

@@ -19,6 +19,7 @@ class PresentationResponse:
     headline: str
     plain_language_summary: str
     professional_answer: str
+    direct_answer: str | None = None
     evidence_cards: list[EvidenceCard] = field(default_factory=list)
     execution_summary: dict[str, Any] = field(default_factory=dict)
     disclaimer: str = (

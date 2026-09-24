@@ -234,6 +234,45 @@ def apply_contract_policy(
         if len(plan.subtasks) > 1:
             actions.append("collapsed_focused_plan")
 
+    low_scope_single_worker = (
+        not complexity.requires_multi_agent
+        and complexity.deliverable_count <= 2
+        and not complexity.requires_cross_role_reasoning
+    )
+    if low_scope_single_worker and len(retained) > 1:
+        primary = contract.requested_deliverables[0]
+        selected_worker = preferred_worker(
+            primary, external_evidence=complexity.requires_external_evidence
+        )
+        descriptions = list(
+            dict.fromkeys(item.description.strip() for item in retained if item.description.strip())
+        )
+        request_item_ids = (
+            [item.id for item in request_spec.items]
+            if request_spec
+            else list(
+                dict.fromkeys(
+                    request_id
+                    for item in retained
+                    for request_id in item.request_item_ids
+                )
+            )
+        )
+        retained = [
+            Subtask(
+                subtask_id=retained[0].subtask_id,
+                description=" ".join(descriptions),
+                assigned_agent=selected_worker,
+                deliverable_ids=list(contract.requested_deliverables),
+                justification=(
+                    "Low-scope request handled by one worker because multi-agent "
+                    "coordination is not required."
+                ),
+                request_item_ids=request_item_ids,
+            )
+        ]
+        actions.append("collapsed_low_scope_single_worker")
+
     if not retained:
         primary = contract.requested_deliverables[0]
         retained = [

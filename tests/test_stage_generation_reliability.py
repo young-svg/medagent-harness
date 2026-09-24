@@ -241,7 +241,11 @@ async def test_stage_generation_budgets_are_independent(tmp_path) -> None:
     )
     engine = NativeMedAgentEngine(config, llm=llm)
 
-    await engine.analyze("Synthetic case", "Assess safely", "budget-isolation")
+    await engine.analyze(
+        "Synthetic case",
+        "Assess the diagnosis and treatment safely.",
+        "budget-isolation",
+    )
     await engine.close()
 
     assert [request["max_tokens"] for request in llm.requests] == [8192, 8192, 8192, 8192]

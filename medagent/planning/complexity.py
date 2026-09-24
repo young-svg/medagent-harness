@@ -43,6 +43,11 @@ _FOCUSED_REQUEST = re.compile(
     r"\b(?:what is|which|first.?line|mechanism|how does)\b|首选|是什么|哪一|机制|作用",
     re.I,
 )
+_INITIAL_MANAGEMENT = re.compile(
+    r"\b(?:initial|preliminary|first.?step)\s+(?:management|treatment|plan)\b|"
+    r"初步(?:处理|治疗|管理|方案)",
+    re.I,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,8 +103,19 @@ def build_complexity_profile(
             requires_external_evidence,
         )
     )
-    requires_cross_role_reasoning = clinical_roles >= 2
     comprehensive_request = bool(_COMPREHENSIVE.search(question))
+    low_scope_initial_pathway = (
+        requires_diagnosis
+        and requires_management
+        and not requires_differential
+        and not requires_tests
+        and not requires_external_evidence
+        and len(deliverables) <= 2
+        and bool(_INITIAL_MANAGEMENT.search(question))
+    )
+    requires_cross_role_reasoning = (
+        clinical_roles >= 2 and not low_scope_initial_pathway
+    )
     covers_full_pathway = (
         requires_diagnosis
         and requires_differential

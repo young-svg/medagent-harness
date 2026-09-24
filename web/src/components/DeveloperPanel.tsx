@@ -16,6 +16,15 @@ const agentResponsibilities: Record<string, string> = {
   research_agent: "证据检索与归纳",
 };
 
+const toolNames: Record<string, string> = {
+  analyze_symptoms: "Symptom analysis",
+  assess_risk: "Risk assessment",
+  clinical_guideline: "Clinical guideline retrieval",
+  search_knowledge: "Clinical knowledge retrieval",
+  deep_research: "Evidence research",
+  disease_code: "Disease classification lookup",
+};
+
 function memoryFactText(key: string, value: string): string {
   if (key === "attack_frequency") return `${value}偏头痛发作`;
   if (key === "associated_symptoms") return `伴${value}`;
@@ -65,10 +74,26 @@ export function DeveloperPanel({ presentation }: Props) {
           <div className="tool-list">
             {presentation.tools.map((tool) => (
               <div className="tool-row" key={tool.name}>
-                <code>{tool.name}</code>
-                {tool.status && <span className="success-chip">{tool.status}</span>}
+                <div><strong>{toolNames[tool.name] || tool.name}</strong><code>{tool.name}</code></div>
+                {tool.status && <span className="success-chip">{tool.status === "completed" ? "✓ completed" : tool.status}</span>}
               </div>
             ))}
+          </div>
+        )}
+        {presentation.retrievalSummary && (
+          <div className="stored-context retrieval-summary">
+            <h4>Retrieval Summary</h4>
+            <p><strong>Query:</strong> {presentation.retrievalSummary.query || "Not available"}</p>
+            <dl className="memory-facts">
+              <div><dt>Logical Collection</dt><dd>{presentation.retrievalSummary.logicalCollection || "Not available"}</dd></div>
+              <div><dt>Physical Collection</dt><dd>{presentation.retrievalSummary.physicalCollection || "Not available"}</dd></div>
+              <div><dt>Queries</dt><dd>{presentation.retrievalSummary.queryCount}</dd></div>
+              <div><dt>Candidates</dt><dd>{presentation.retrievalSummary.candidateCount}</dd></div>
+              <div><dt>Admitted</dt><dd>{presentation.retrievalSummary.admittedCount}</dd></div>
+              <div><dt>Unique Evidence</dt><dd>{presentation.retrievalSummary.uniqueEvidenceCount}</dd></div>
+              <div><dt>Top-k</dt><dd>{presentation.retrievalSummary.topK ?? "Not available"}</dd></div>
+              <div><dt>Top Score</dt><dd>{presentation.retrievalSummary.topScore?.toFixed(4) ?? "Not available"}</dd></div>
+            </dl>
           </div>
         )}
         {evidenceStatus === "NOT_REQUIRED" && (
@@ -92,7 +117,10 @@ export function DeveloperPanel({ presentation }: Props) {
             {presentation.evidenceCards.map((card) => (
               <article key={card.evidence_id}>
                 <strong>{card.title || card.evidence_id}</strong>
-                <small>{card.source}{card.section ? ` · ${card.section}` : ""}</small>
+                <small>
+                  {card.source}{card.section ? ` · ${card.section}` : ""}
+                  {typeof card.score === "number" ? ` · score ${card.score.toFixed(4)}` : ""}
+                </small>
                 <p>{card.text_preview}</p>
               </article>
             ))}

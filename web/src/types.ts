@@ -34,6 +34,18 @@ export type RetrievalInfo = {
   admittedEvidenceIds: string[];
 };
 
+export type RetrievalSummary = {
+  query: string | null;
+  queryCount: number;
+  logicalCollection: string | null;
+  physicalCollection: string | null;
+  topK: number | null;
+  candidateCount: number;
+  admittedCount: number;
+  uniqueEvidenceCount: number;
+  topScore: number | null;
+};
+
 export type EvidenceState = {
   status: "NOT_REQUIRED" | "REQUIRED_UNAVAILABLE" | "AVAILABLE";
   reason?: string;
@@ -70,6 +82,7 @@ export type PresentationView = {
   route: RouteInfo | null;
   workers: WorkerPlan[];
   retrieval: RetrievalInfo | null;
+  retrievalSummary?: RetrievalSummary | null;
   traceEvents: TraceEvent[];
   memory: MemoryInfo | null;
 };
