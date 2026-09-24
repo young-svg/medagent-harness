@@ -1,52 +1,122 @@
 {
   "name": "连续诊疗分析（Memory）",
-  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
   "question": "结合之前信息，进一步讨论预防治疗方案。",
   "case_context": "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。用户咨询：请分析是否需要预防治疗，并记录需要持续关注的信息。Session Memory 保存了发作频率、伴随症状和当前关注方向。第二轮：用户基于同一会话继续追问预防治疗方案。",
   "rounds": [
-    { "round": 1, "user_task": "请分析是否需要预防治疗，并记录需要持续关注的信息。", "saved_memory": ["发作频率：每月约6次", "伴随症状：恶心、畏光", "当前关注方向：预防治疗评估"] },
-    { "round": 2, "user_task": "结合之前信息，进一步讨论预防治疗方案。" }
+    {
+      "round": 1,
+      "user_task": "请分析是否需要预防治疗，并记录需要持续关注的信息。",
+      "saved_memory": [
+        "发作频率：每月约6次",
+        "伴随症状：恶心、畏光",
+        "当前关注方向：预防治疗评估"
+      ]
+    },
+    {
+      "round": 2,
+      "user_task": "结合之前信息，进一步讨论预防治疗方案。"
+    }
   ],
   "memory_context": {
     "session_id": "demo-memory-session",
     "history_injected_count": 2,
     "stored_facts": [
-      { "key": "attack_frequency", "value": "每月约6次" },
-      { "key": "associated_symptoms", "value": "恶心、畏光" },
-      { "key": "current_focus", "value": "预防治疗评估" }
+      {
+        "key": "attack_frequency",
+        "value": "每月约6次"
+      },
+      {
+        "key": "associated_symptoms",
+        "value": "恶心、畏光"
+      },
+      {
+        "key": "current_focus",
+        "value": "预防治疗评估"
+      }
     ],
     "new_session_history_count": 0
   },
   "presentation": {
-    "direct_answer": "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
-    "plain_language": "Session Memory 注入了上一轮记录的每月约6次发作、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
-    "clinical_detail": "这是 session-scoped memory：同一 session 注入2条历史并恢复每月约6次发作、恶心和畏光以及预防治疗评估方向；全新 session 的历史计数为0，不会共享这些内容。治疗评估需结合功能影响、急性药物使用、合并症和个人偏好；复诊时比较基线与治疗后的头痛日数、严重程度和不良反应。"
+    "direct_answer": "【结合既往情况】每月约6次偏头痛，值得讨论预防治疗。\n【预防方案】由医生结合合并症、生育计划和用药风险选择。\n【记录与复诊】记录头痛、诱因与急性用药，复诊比较疗效和不良反应。",
+    "plain_language": "此前每月约6次发作已值得评估预防治疗。头痛日记能帮助医生比较治疗前后变化和副作用，而不只凭一次就诊印象判断。",
+    "clinical_detail": "以下均为管理建议（尚未实施任何治疗），需与患者共同决策后执行。\n\n一、预防治疗（PREVENTION）\n\n1. 启动条件（本例已基本满足，建议而非必须）\n- 每月偏头痛日≥4天（本例约6次/月），或头痛虽少但功能影响显著；\n- 急性期治疗效果不足、不能耐受、或存在药物过度使用；\n- 患者本人希望减少发作、有明确的致残性发作。\n前提：先确认偏头痛诊断、记录基线（头痛日记），并排除预警征象；无新发神经功能缺损不提示需急诊处理。\n\n2. 可选药物（按合并症、妊娠/避孕需求、副作用与偏好个体化选择，从小剂量起始并滴定）\n- 一线：β受体阻滞剂（普萘洛尔、美托洛尔）、托吡酯、坎地沙坦、氟桂利嗪等；\n- 伴睡眠障碍、情绪共病或慢性疼痛时可考虑阿米替林；\n- 符合条件且既往治疗失败/不耐受者，可评估CGRP单抗或gepant类；\n- 可讨论核黄素、镁剂、辅酶Q10等辅助选项（证据强度较弱）。\n- 备孕/妊娠相关需单独权衡，避免在无评估情况下使用致畸风险药物。\n\n3. 疗效目标与监测要点\n- 4–8周复诊评估，逐步滴定至有效剂量；目标为每月偏头痛天数减少≥50%并改善功能；\n- 监测发作频率、严重度、持续时间、伴随症状（恶心、畏光、畏声）及功能影响（MIDAS/HIT-6）；\n- 监测急性药物使用天数（简单镇痛药<15天/月、含曲普坦或联合用药<10天/月），警惕药物过度使用性头痛；\n- 监测预防药物依从性与副作用（如托吡酯的认知/体重影响、β阻滞剂的心率血压、坎地沙坦的低血压/肾功能）；\n- 关注情绪、共病、妊娠计划与避孕情况；\n- 需升级评估的警示征象：新发神经功能缺损、霹雳样头痛、发热/颈强直、意识改变、癫痫、视乳头水肿、进行性加重或妊娠期特殊风险。\n\n二、个体化治疗计划（TREATMENT_PLAN，建议未完成）\n\n1. 诊断与基线：确认诊断，记录头痛日记、发作特征及既往急性/预防用药史与失败原因。\n2. 急性期处理：早期使用NSAIDs或对乙酰氨基酚；中重度或疗效不足时可考虑曲普坦类；限制使用频率（见上），避免药物过度使用。\n3. 预防治疗：与患者共同决策后，从上述一线药物中选一种起始，小剂量滴定至有效或最大耐受剂量；如无效/不耐受则更换或联用，必要时评估CGRP通路药物。\n4. 辅助与生活方式：规律睡眠与进食、规律有氧运动、减少已知诱因、限制酒精与咖啡因波动，可联合核黄素/镁剂等。\n5. 随访安排：启动后4–8周首次复诊评估疗效与副作用并调整剂量；达标后每3–6个月复诊；期间如出现警示征象或急性药物使用超限，应提前就诊或转诊神经内科。\n\n说明：以上为预防与治疗建议，未表示已实施或已完成任何检查、处方或随访。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "结合历史评估预防治疗讨论条件", "required": true },
-        { "id": "RQ2", "text": "说明预防方案选择因素", "required": true },
-        { "id": "RQ3", "text": "制定疗效记录与复诊安排", "required": true }
+        {
+          "id": "RQ1",
+          "text": "结合历史评估预防治疗讨论条件",
+          "required": true
+        },
+        {
+          "id": "RQ2",
+          "text": "说明预防方案选择因素",
+          "required": true
+        },
+        {
+          "id": "RQ3",
+          "text": "制定疗效记录与复诊安排",
+          "required": true
+        }
       ]
     },
-    "route": { "mode": "single", "reason": "连续诊疗任务依赖同一 session 历史，由 Consultation Agent 完成纵向管理建议" },
+    "route": {
+      "mode": "single",
+      "reason": "连续诊疗任务依赖同一 session 历史，由 Consultation Agent 完成纵向管理建议"
+    },
     "planner": {
       "subtasks": [
-        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+        {
+          "subtask_id": "ST1",
+          "assigned_agent": "consultation_agent",
+          "request_item_ids": [
+            "RQ1",
+            "RQ2",
+            "RQ3"
+          ]
+        }
       ]
     },
     "workers": [
-      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] }
+      {
+        "worker": "consultation_agent",
+        "status": "success",
+        "answered_request_item_ids": [
+          "RQ1",
+          "RQ2",
+          "RQ3"
+        ]
+      }
     ],
-    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
-    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
+    "tool_state": {
+      "status": "NOT_REQUIRED",
+      "tools": []
+    },
+    "evidence": {
+      "status": "NOT_REQUIRED",
+      "required": false,
+      "cards": []
+    },
     "trace": [
-      { "event": "Question received" },
-      { "event": "Same-session history injected" },
-      { "event": "RequestSpec extracted" },
-      { "event": "Consultation Agent completed RQ1-RQ3" },
-      { "event": "Final answer generated" }
+      {
+        "event": "Question received"
+      },
+      {
+        "event": "Same-session history injected"
+      },
+      {
+        "event": "RequestSpec extracted"
+      },
+      {
+        "event": "Consultation Agent completed RQ1-RQ3"
+      },
+      {
+        "event": "Final answer generated"
+      }
     ]
-  }
+  },
+  "source_run_id": "41aa51be-245b-4ef7-80de-af132a36e98b",
+  "source_kind": "completed_real_agent_final_answer"
 }

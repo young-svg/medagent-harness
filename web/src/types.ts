@@ -74,6 +74,7 @@ export type PresentationView = {
   directAnswer: string;
   directAnswerTitle: string;
   directAnswerItems: string[];
+  directAnswerSections: Array<{ requestItemId: string; title: string; items: string[] }>;
   plainLanguage: string;
   plainExplanation: string[];
   clinicalDetail: string;
@@ -94,6 +95,7 @@ export type BackendPresentation = {
   direct_answer?: string;
   direct_answer_title?: string;
   direct_answer_items?: string[];
+  direct_answer_sections?: Array<{ request_item_id: string; title: string; items: string[] }>;
   plain_explanation?: string[];
   plain_language?: string;
   clinical_detail?: string;

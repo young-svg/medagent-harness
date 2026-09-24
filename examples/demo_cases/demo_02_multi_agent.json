@@ -1,42 +1,110 @@
 {
   "name": "复杂病例协作分析（Multi Agent）",
-  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
   "question": "请分析最可能诊断和鉴别诊断，制定进一步检查方案，并给出治疗与随访计划。",
   "case_context": "58岁男性，反酸和胸骨后灼热约1年，近3个月出现进行性固体食物吞咽困难，近2个月非主动减重5 kg。血红蛋白105 g/L，粪便隐血阳性。无呕血，生命体征稳定。尚未接受胃镜检查。",
   "presentation": {
-    "direct_answer": "最需要优先排除：食管或胃食管结合部占位性病变。\n关注：进行性吞咽困难、非主动体重下降、贫血和粪便隐血阳性均为警示信号，应尽快完成专科评估，而不能只按普通反流处理。",
-    "plain_language": "虽然患者长期有反流症状，但现在出现了吞咽越来越困难、体重下降和贫血。这些变化要求尽快检查食管和胃，先排除结构性病变，再决定具体治疗。",
-    "clinical_detail": "占位性病变需要优先排除，同时考虑重度反流性食管炎、消化性狭窄和动力障碍。建议尽快转诊消化专科并评估内镜及必要的组织学检查；治疗和随访应根据检查结果、贫血与营养状态制定。"
+    "direct_answer": "【最可能诊断】高度怀疑食管或食管胃结合部恶性肿瘤，需活检病理证实。\n【主要鉴别】食管鳞癌或贲门癌、反流相关狭窄、重度食管炎及食管动力障碍。\n【进一步检查】尽快胃镜多点活检；若证实恶性，再完善分期及贫血营养评估。\n【治疗与随访】治疗依病理和分期决定；明确回访，吞咽恶化或出血及时就医。",
+    "plain_language": "普通反流会引起烧心反酸，但吞咽越来越困难、体重下降、贫血及粪便隐血阳性不能仅用反流解释。胃镜观察并取组织，才能明确病变性质与后续治疗。",
+    "clinical_detail": "（说明：尚未行胃镜，以下诊断均为待验证的临床推测；检查、治疗及随访均为建议，不代表已完成诊疗。）\n\n## 一、最可能诊断及依据（DIAGNOSIS_WITH_BASIS）\n**最可能诊断：食管或食管胃结合部恶性肿瘤，食管腺癌可能性最大，其次为食管鳞癌/贲门癌，需胃镜活检病理证实。**\n\n依据：\n1. **报警征象组合**：58岁男性，进行性固体食物吞咽困难3个月，非主动减重5 kg，提示器质性梗阻及恶性肿瘤消耗。\n2. **慢性反流背景**：反酸、胸骨后灼热约1年，为食管腺癌/Barrett食管相关腺癌的危险背景。\n3. **慢性失血证据**：Hb 105 g/L提示贫血，粪便隐血阳性，符合消化道肿瘤表面糜烂/溃疡渗血。\n4. **症状演变**：由反流症状进展为机械性吞咽困难，提示炎症向占位性狭窄演变。\n\n## 二、鉴别诊断（DIFFERENTIAL_DIAGNOSIS）\n1. **恶性肿瘤**：食管腺癌、食管鳞癌、贲门/食管胃结合部腺癌、近端胃癌；少见者如淋巴瘤、GIST、转移瘤或纵隔肿瘤外压。\n2. **良性梗阻性病变**：反流性/消化性食管狭窄、腐蚀性或药物性狭窄、Schatzki环、贲门失弛缓症、弥漫性食管痉挛。\n3. **炎症性病变**：重度反流性食管炎、嗜酸性食管炎、Barrett溃疡。\n4. **良性肿瘤**：食管平滑肌瘤、脂肪瘤等。\n5. **贫血/隐血阳性的其他来源**：消化性溃疡、胃炎/糜烂、结肠肿瘤或腺瘤等同步结直肠病变，以及其他慢性失血或营养不良原因。\n6. **功能性/口咽性吞咽困难**：与进行性固体梗阻及消瘦、贫血、隐血阳性不符，可能性低。\n\n## 三、进一步检查方案（FURTHER_TESTS）\n1. **首选且紧急**：上消化道内镜（胃镜）+多点活检，为确诊金标准；记录病变部位、长度、环周度及狭窄程度；对可疑病灶及Barrett黏膜规范取材，必要时染色/放大内镜。\n2. **病理与分子检测**：组织学类型、分化；按需检测HER2、PD-L1、MSI/MMR等。\n3. **若病理证实恶性，行分期评估**：胸腹盆增强CT；超声内镜（EUS）评估T/N分期；必要时PET-CT；评估颈部/锁骨上及腹部淋巴结；必要时诊断性腹腔镜/胸腔镜。\n4. **实验室及支持评估**：血常规及网织红细胞、铁代谢/铁蛋白、肝肾功能、电解质、白蛋白/前白蛋白、凝血、血型；肿瘤标志物仅作辅助，不作确诊依据；营养及吞咽功能评估。\n5. **贫血/隐血阳性**：评估缺铁性贫血并补铁；考虑结肠镜以排除同步结直肠病变。\n6. **若胃镜阴性而症状持续**：食管钡餐/吞咽造影、食管测压、24小时pH-阻抗监测，必要时EUS或纵隔影像。\n7. 评估误吸风险；若完全梗阻、反复误吸或营养急剧恶化，提前处理。\n\n## 四、治疗与随访计划（TREATMENT_PLAN）\n### 确诊前\n- 尽快完成胃镜+活检，避免延误。\n- 营养支持：口服营养补充，必要时肠内营养。\n- 纠正贫血：评估缺铁，必要时补铁/输血。\n- 维持水电解质平衡，监测出血、梗阻加重等恶化征象。\n\n### 若确诊食管/食管胃结合部癌\n- **MDT讨论，按分期治疗**。\n- 早期局限于黏膜层：内镜下切除（EMR/ESD）或手术。\n- 局部进展期：新辅助放化疗/化疗+根治性手术，或根治性放化疗。\n- 晚期/转移/复发：系统治疗；一线可考虑PD-1抑制剂联合铂类+氟尿嘧啶（依PD-L1 CPS、HER2状态调整），HER2阳性者加抗HER2治疗；后线按体能状态及分子标志物选择。\n- 对症支持：内镜扩张、食管支架、姑息放疗缓解吞咽困难；肠内/肠外营养；补铁/输血；镇痛；PPI控制反酸；预防误吸；必要时血栓预防；戒烟酒。\n\n### 若为良性病变\n- 反流性狭窄：PPI、内镜扩张，必要时抗反流手术。\n- 嗜酸性食管炎：局部糖皮质激素/饮食治疗。\n- 贲门失弛缓症：气囊扩张、POEM或肌切开术。\n\n### 随访\n- 治愈性治疗后：前2年每3~4个月临床评估+影像/内镜，2~5年每6个月，5年后每年；内镜监测吻合口/局部复发及Barrett。\n- 转移性/姑息治疗：每2~3个周期影像评估疗效，监测症状、体重、营养及生活质量。\n- 支持随访：血红蛋白及铁代谢直至纠正；营养/体重、吞咽功能及误吸监测；心理支持。\n- 有Barrett食管者按指南规律内镜监测。\n\n## 五、安全警示\n进行性吞咽困难、非主动减重、贫血及粪便隐血阳性为消化道恶性肿瘤报警征象，应尽快转诊消化科/肿瘤科并完成胃镜，不宜延误。若出现**完全不能进食/进水、呕血、黑便、反复误吸/肺炎、剧烈胸痛、贫血迅速加重或生命体征不稳定**，立即急诊处理。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "判断最可能诊断及危险程度", "required": true },
-        { "id": "RQ2", "text": "列出关键鉴别诊断", "required": true },
-        { "id": "RQ3", "text": "制定进一步检查方案", "required": true },
-        { "id": "RQ4", "text": "制定治疗和随访计划", "required": true }
+        {
+          "id": "RQ1",
+          "text": "判断最可能诊断及危险程度",
+          "required": true
+        },
+        {
+          "id": "RQ2",
+          "text": "列出关键鉴别诊断",
+          "required": true
+        },
+        {
+          "id": "RQ3",
+          "text": "制定进一步检查方案",
+          "required": true
+        },
+        {
+          "id": "RQ4",
+          "text": "制定治疗和随访计划",
+          "required": true
+        }
       ]
     },
-    "route": { "mode": "multi", "reason": "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划" },
+    "route": {
+      "mode": "multi",
+      "reason": "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划"
+    },
     "planner": {
       "subtasks": [
-        { "subtask_id": "ST1", "assigned_agent": "diagnostic_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3"] },
-        { "subtask_id": "ST2", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ4"] }
+        {
+          "subtask_id": "ST1",
+          "assigned_agent": "diagnostic_agent",
+          "request_item_ids": [
+            "RQ1",
+            "RQ2",
+            "RQ3"
+          ]
+        },
+        {
+          "subtask_id": "ST2",
+          "assigned_agent": "consultation_agent",
+          "request_item_ids": [
+            "RQ4"
+          ]
+        }
       ]
     },
     "workers": [
-      { "worker": "diagnostic_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3"] },
-      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ4"] }
+      {
+        "worker": "diagnostic_agent",
+        "status": "success",
+        "answered_request_item_ids": [
+          "RQ1",
+          "RQ2",
+          "RQ3"
+        ]
+      },
+      {
+        "worker": "consultation_agent",
+        "status": "success",
+        "answered_request_item_ids": [
+          "RQ4"
+        ]
+      }
     ],
-    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
-    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
+    "tool_state": {
+      "status": "NOT_REQUIRED",
+      "tools": []
+    },
+    "evidence": {
+      "status": "NOT_REQUIRED",
+      "required": false,
+      "cards": []
+    },
     "trace": [
-      { "event": "Question received" },
-      { "event": "RequestSpec extracted" },
-      { "event": "Planner selected multi route" },
-      { "event": "Diagnostic Agent completed RQ1-RQ3" },
-      { "event": "Consultation Agent completed RQ4" },
-      { "event": "Final answer generated" }
+      {
+        "event": "Question received"
+      },
+      {
+        "event": "RequestSpec extracted"
+      },
+      {
+        "event": "Planner selected multi route"
+      },
+      {
+        "event": "Diagnostic Agent completed RQ1-RQ3"
+      },
+      {
+        "event": "Consultation Agent completed RQ4"
+      },
+      {
+        "event": "Final answer generated"
+      }
     ]
-  }
+  },
+  "source_run_id": "eccbee9f-4cfe-4b29-b550-4364695e8387",
+  "source_kind": "completed_real_agent_final_answer"
 }

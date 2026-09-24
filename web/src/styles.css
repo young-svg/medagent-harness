@@ -73,6 +73,9 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .direct-facts .attention-fact dd { color: #5d4937; font-size: 15px; font-weight: 500; }
 .direct-items { margin: 18px 0 0; padding-left: 24px; display: grid; gap: 12px; color: #293242; font-size: 17px; line-height: 1.75; font-weight: 550; }
 .direct-items li::marker { color: #2563eb; font-weight: 700; }
+.direct-section { padding: 13px 0; border-top: 1px solid #e1e9f8; }
+.direct-section h4 { margin: 0; color: #2458b8; font-size: 15px; font-weight: 700; }
+.direct-section .direct-items { margin-top: 8px; }
 .plain-explanation { color: #565c66; font-size: 16px; line-height: 1.8; }
 .plain-explanation p { margin: 12px 0 0; }
 .card-subtitle { margin: -8px 0 14px; color: #9297a0; font-size: 11px; }
@@ -89,6 +92,7 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .result-context { display: flex; align-items: center; gap: 8px; }
 .mode-badge { padding: 3px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
 .mode-demo { color: #2456be; background: #eaf0ff; }
+.fixture-note { margin: 0 0 12px; color: #6b7280; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .mode-live { color: #13724d; background: #e7f6ef; }
 
 .developer-area { margin: 25px 0 64px; padding: 26px 28px; border: 1px solid #e7e9ed; border-radius: 17px; background: #fafbfc; }

@@ -2,9 +2,9 @@
 
 ## Purpose
 
-The four deterministic fixtures demonstrate Agent Harness behavior through realistic synthetic clinical workflows—not isolated medical trivia. Each case contains clinical context, an explicit user task, RequestSpec items, routing and worker ownership, observable execution state, and a three-tier presentation answer.
+The four deterministic fixtures demonstrate Agent Harness behavior through illustrative clinical workflows—not isolated medical trivia. Their third layer is the exact, full `final_answer` from a completed real Agent run; `source_run_id` in each JSON fixture identifies that source. The local Developer workflow metadata is illustrative and must not be mistaken for a live trace.
 
-Selecting a fixture from **Demo Cases** loads local data through the existing presentation adapter. It does not call `/api/analyze`, an LLM, retrieval, or the production runtime. All cases are synthetic and are not medical advice.
+Selecting a fixture from **Demo Cases** loads local data through the existing presentation adapter. It does not call `/api/analyze`, an LLM, retrieval, or the production runtime. The case descriptions are demonstrations, not real patient records or medical advice.
 
 ## 1. 临床快速分析（Single Agent）
 
@@ -41,7 +41,7 @@ Fixture: `examples/demo_cases/demo_01_simple_single.json`
 
 ### 展示能力
 
-- RequestSpec 把复杂请求拆为 RQ1–RQ4。
+- Fixture RequestSpec 将四类明确用户请求展示为 RQ1–RQ4；第一层按相同四类分段回答。
 - Planner 识别诊断工作流和治疗管理工作流可独立分工，选择 `multi`。
 - Diagnostic Agent 负责 RQ1、RQ2、RQ3：诊断、鉴别诊断和检查优先级。
 - Consultation Agent 负责 RQ4：治疗、风险处置和随访。
@@ -57,26 +57,24 @@ Fixture: `examples/demo_cases/demo_02_multi_agent.json`
 
 ### 背景
 
-67岁女性在全膝关节置换术后需要制定静脉血栓预防、出血监测和随访方案。
+60岁男性已诊断原发性高血压，希望优化生活方式管理。
 
 ### 用户任务
 
-用户明确要求“结合相关临床指南”制定管理方案并说明指南依据。
+用户明确要求“结合相关指南”说明高血压生活方式管理方案。
 
 ### 展示能力
 
-- RequestSpec 包含管理建议和指南依据两个交付项。
+- Fixture RequestSpec 包含生活方式管理和检索依据两个展示项。
 - `requires_external_evidence=true` 仅因用户明确要求外部指南而开启；普通医学问题不会自动检索。
 - Planner 分配 Research Agent，并调用 `clinical_guideline`。
-- Tool 状态为 `Retrieved`，Evidence 状态为 `AVAILABLE`。
-- Evidence Card 使用明确标注的 synthetic demo evidence：
-  - source: `Demo Clinical Guideline Fixture`
-  - section: `Management Recommendation`
-  - preview: 明确说明为合成演示数据且不可用于临床。
+- 原始来源运行使用真实 MedicalQA-DX Milvus 检索并纳入证据；本地 Demo 将捕获的 Evidence Card 静态展示，不再伪称合成卡片为真实结果。
+- Tool 状态为 `Retrieved`，Evidence 状态为 `AVAILABLE`；卡片保留来源运行的 source、section、score 和 preview。
+- 医学语料来源与再分发许可尚须确认，不能未经审核公开发布这些预览。
 
 ### 执行流程
 
-Question → RequestSpec → RAG gate → Planner → `clinical_guideline` → Synthetic evidence retrieved → Research Agent → Final
+Question → RequestSpec → RAG gate → Planner → `clinical_guideline` → MedicalQA-DX evidence → Research/Consultation Agents → Final
 
 Fixture: `examples/demo_cases/demo_03_guideline_rag.json`
 

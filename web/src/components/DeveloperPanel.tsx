@@ -2,7 +2,7 @@ import type { PresentationView } from "../types";
 import { AgentTrace } from "./AgentTrace";
 import { RequestSpecView } from "./RequestSpecView";
 
-type Props = { presentation: PresentationView };
+type Props = { presentation: PresentationView; isDemo?: boolean };
 
 const agentNames: Record<string, string> = {
   diagnostic_agent: "Diagnostic Agent",
@@ -32,10 +32,11 @@ function memoryFactText(key: string, value: string): string {
   return value;
 }
 
-export function DeveloperPanel({ presentation }: Props) {
+export function DeveloperPanel({ presentation, isDemo = false }: Props) {
   const evidenceStatus = presentation.evidenceState.status;
   return (
     <div className="developer-panel">
+      {isDemo && <p className="fixture-note">DEMO FIXTURE · Local data · No API call</p>}
       <RequestSpecView items={presentation.requestItems} />
 
       <section className="developer-card">

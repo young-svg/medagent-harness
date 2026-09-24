@@ -13,7 +13,7 @@ export function ClinicalDetail({ content, expanded, onExpandedChange }: Props) {
     >
       <summary>
         <span>
-          <span className="card-label"><span>03</span> Clinical Detail</span>
+          <span className="card-label">Clinical Detail</span>
           <strong>医学详细分析</strong>
         </span>
         <span className="expand-label"><i aria-hidden="true" /> {expanded ? "收起" : "展开"}</span>

@@ -1,4 +1,6 @@
 import type { AnalyzeResponse, EvidenceCard } from "./types";
+import demoFinalAnswers from "./demoFinalAnswers.json";
+import demoEvidenceCards from "./demoEvidenceCards.json";
 
 type DemoCaseFixture = {
   id: string;
@@ -50,7 +52,7 @@ export const demoFixtures: DemoCaseFixture[] = [
     presentation: {
       direct_answer: "最可能诊断：胃食管反流病（GERD）。\n关注：目前没有明确警示症状，可先规范评估与初步处理；若症状持续、加重或出现吞咽困难、出血、体重下降，应及时进一步检查。",
       plain_language: "症状模式很符合胃酸反流：饭后和平躺时更明显，超重和晚餐过晚也可能加重。现有信息没有提示紧急危险，但仍应由医生结合症状频率和治疗反应决定是否需要检查。",
-      clinical_detail: "诊断判断\n餐后胃灼热、反酸、平卧加重及相关生活方式因素支持胃食管反流病；现有心电图和血常规信息降低了部分替代诊断的可能性，但不能替代完整临床评估。\n\n检查建议\n先核对症状模式、用药史和警示症状。无警示线索时可根据临床评估先行规范处理；疗效不佳、诊断不确定或出现警示表现时，再由医生评估上消化道内镜或反流监测。\n\n治疗原则\n调整进餐时间、体重与诱发因素，并在医生指导下进行规范抑酸治疗和疗效复评。出现进行性吞咽困难、消化道出血、持续胸痛或体重下降时应及时就医。",
+      clinical_detail: demoFinalAnswers["demo-01-simple-single"],
     },
     developer: {
       request_spec: { items: [
@@ -82,7 +84,7 @@ export const demoFixtures: DemoCaseFixture[] = [
     presentation: {
       direct_answer: "最需要优先排除：食管或胃食管结合部占位性病变。\n关注：进行性吞咽困难、非主动体重下降、贫血和粪便隐血阳性均为警示信号，应尽快完成专科评估，而不能只按普通反流处理。",
       plain_language: "虽然患者长期有反流症状，但现在出现了吞咽越来越困难、体重下降和贫血。这些变化要求尽快检查食管和胃，先排除结构性病变，再决定具体治疗。",
-      clinical_detail: "诊断与鉴别\n占位性病变需要优先排除；同时考虑重度反流性食管炎、消化性狭窄、食管动力障碍以及其他上消化道出血来源。\n\n检查路径\n建议尽快转诊消化专科，评估上消化道内镜及必要的组织学检查；同步复核血常规、铁代谢和出血风险。后续影像、动力学或反流监测应根据内镜结果和专科判断选择。\n\n治疗与随访\n在明确病因前避免仅以经验性抑酸替代检查。治疗按病理和分期结果决定；同时处理贫血、营养和症状风险。建立检查结果回访节点，若吞咽迅速恶化、无法进食、呕血或黑便，应立即就医。",
+      clinical_detail: demoFinalAnswers["demo-02-multi-agent"],
     },
     developer: {
       request_spec: { items: [
@@ -115,44 +117,43 @@ export const demoFixtures: DemoCaseFixture[] = [
   {
     id: "demo-03-guideline-rag",
     label: "03 · 循证医学分析（RAG）",
-    case_context: "67岁女性，全膝关节置换术后第1天，生命体征稳定，已开始床旁活动。既往无静脉血栓史，肾功能稳定，无活动性出血；术区引流量在团队预期范围内。临床团队需要制定围术期静脉血栓预防与监测方案。",
-    question: "请结合相关临床指南，制定术后静脉血栓预防、出血风险监测和随访方案，并说明指南依据。",
+    case_context: "60岁男性，已诊断原发性高血压，目前血压控制一般，希望优化生活方式管理。",
+    question: "请结合相关指南说明高血压患者生活方式管理方案。",
     presentation: {
-      direct_answer: "管理重点：先完成血栓与出血风险评估，再组合早期活动、机械预防和个体化药物预防，并设置出血及血栓警示监测。\n关注：本案例的证据为 synthetic demo evidence，只用于展示 RAG gating 与 Evidence Card，不能作为真实临床指南。",
-      plain_language: "术后既要预防血栓，也要避免增加出血风险。团队会根据手术、活动能力、肾功能和出血情况决定预防方式，并持续观察腿部肿痛、呼吸困难或异常出血。",
-      clinical_detail: "管理框架\n先记录静脉血栓与出血风险，再按本中心流程安排早期活动和机械预防；是否使用药物、选择何种方案以及持续时间，必须由临床团队结合肾功能、麻醉方式、伤口与出血状态决定。\n\n监测与随访\n动态观察伤口、引流、血红蛋白和药物相关风险，同时告知单侧下肢肿痛、突发胸痛或呼吸困难等警示症状。出院前明确依从性、活动计划、用药核对和复诊节点。\n\n证据说明\n本回答中的 Evidence Card 是明确标注的合成展示数据。实际临床应用必须连接、核验并引用权威指南原文及最新版本。",
+      direct_answer: "结合已检索到的高血压生活方式资料，重点落实限盐、健康膳食、规律运动、体重管理、戒烟限酒与家庭血压记录，并持续复诊。",
+      plain_language: "减少盐分和多运动有助于降低血管里的压力；持续记录家庭血压，才能判断这些改变是否有效，是否还需要医生调整治疗。",
+      clinical_detail: demoFinalAnswers["demo-03-guideline-rag"],
     },
     developer: {
       request_spec: { items: [
-        { id: "RQ1", text: "制定术后治疗管理与风险监测建议", required: true, semantic_type: "TREATMENT_PLAN" },
-        { id: "RQ2", text: "提供并标明指南依据", required: true, semantic_type: "GUIDELINE_EVIDENCE" },
+        { id: "RQ1", text: "说明高血压患者的生活方式管理方案", required: true, semantic_type: "TREATMENT_PLAN" },
+        { id: "RQ2", text: "结合已检索资料说明指南依据", required: true, semantic_type: "GUIDELINE_EVIDENCE" },
       ] },
-      route: { mode: "single", reason: "用户明确要求指南依据，RAG gate 开启并交由 Research Agent 完成证据整合" },
+      route: { mode: "multi", reason: "指南证据检索与生活方式管理建议由 Research Agent、Consultation Agent 协作" },
       planner: {
-        subtasks: [{ subtask_id: "ST1", assigned_agent: "research_agent", description: "调用指南能力并组织管理建议与证据说明", request_item_ids: ["RQ1", "RQ2"] }],
+        subtasks: [
+          { subtask_id: "ST1", assigned_agent: "research_agent", description: "检索高血压生活方式管理资料", request_item_ids: ["RQ2"] },
+          { subtask_id: "ST2", assigned_agent: "consultation_agent", description: "整合证据并提出生活方式管理建议", request_item_ids: ["RQ1"] },
+        ],
       },
-      workers: [{ worker: "research_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2"] }],
+      workers: [
+        { worker: "research_agent", worker_status: "success", answered_request_item_ids: ["RQ2"] },
+        { worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ1"] },
+      ],
       tool_state: {
         status: "Retrieved",
-        tools: [{ name: "clinical_guideline", status: "Retrieved", query: "demo postoperative VTE prevention and bleeding monitoring" }],
+        tools: [{ name: "clinical_guideline", status: "Retrieved", query: "高血压患者生活方式管理指南" }],
       },
       evidence: {
         status: "AVAILABLE",
         required: true,
-        cards: [{
-          evidence_id: "DEMO-GUIDELINE-001",
-          title: "Synthetic demo evidence — showcase only",
-          source: "Demo Clinical Guideline Fixture",
-          section: "Management Recommendation",
-          score: 1,
-          text_preview: "Synthetic demo evidence: assess VTE and bleeding risk, combine early mobilisation and mechanical prevention, and individualise medication and follow-up under the surgical team's protocol. Not for clinical use.",
-        }],
-        retrieval: { query: "demo postoperative VTE prevention and bleeding monitoring", collection: "synthetic_demo_evidence", retrieved_count: 1, admitted_evidence_ids: ["DEMO-GUIDELINE-001"] },
+        cards: demoEvidenceCards,
+        retrieval: { query: "高血压患者生活方式管理指南", collection: "clinical_guidelines", retrieved_count: 6, admitted_evidence_ids: demoEvidenceCards.map((card) => card.evidence_id) },
       },
       trace: [
         ...commonTrace.slice(0, 3),
         { event_type: "tool_call", stage: "tool", label: "clinical_guideline called", payload: { name: "clinical_guideline" } },
-        { event_type: "tool_result", stage: "tool", label: "Synthetic evidence retrieved", payload: { name: "clinical_guideline", result: { count: 1, synthetic: true } } },
+        { event_type: "tool_result", stage: "tool", label: "MedicalQA-DX evidence retrieved", payload: { name: "clinical_guideline", result: { count: 6 } } },
         ...commonTrace.slice(3),
       ],
     },
@@ -174,8 +175,8 @@ export const demoFixtures: DemoCaseFixture[] = [
     },
     presentation: {
       direct_answer: "可以进入预防治疗评估：上一轮记录的每月约6次发作及伴随症状提示，应与医生讨论预防治疗的获益、风险和个体化选择。\n关注：需继续记录头痛日数、诱因、急性用药、功能影响和不良反应，才能判断方案是否有效。",
-      plain_language: "Session Memory 注入了上一轮记录的每月约6次发作、恶心和畏光，因此本轮不用重复输入。接下来应通过头痛日记比较治疗前后的变化，再与医生共同决定是否开始或调整预防方案。",
-      clinical_detail: "会话信息使用\n这是 session-scoped memory：同一 session 注入2条历史并恢复每月约6次发作、恶心和畏光以及预防治疗评估方向；全新 session 的历史计数为0，不会共享这些内容。\n\n预防治疗讨论\n结合发作频率、功能影响、急性药物使用、合并症、生育计划及个人偏好，由医生评估是否开始预防治疗并选择方案。此演示不指定具体处方。\n\n记录与复诊\n头痛日记应记录头痛日数、持续时间、严重程度、诱因、伴随症状、急性用药与效果。复诊时比较基线和治疗后的变化及不良反应；若出现突发剧烈头痛、新发神经缺损、发热伴颈强直等警示表现，应立即就医。",
+      plain_language: "此前每月约6次发作，已经值得认真评估预防治疗。记录头痛和用药情况，可帮助医生判断是否需要开始治疗，以及方案是否真的有效。",
+      clinical_detail: demoFinalAnswers["demo-04-memory-followup"],
     },
     developer: {
       request_spec: { items: [
@@ -207,56 +208,52 @@ export const demoFixtures: DemoCaseFixture[] = [
 // Local showcase answers are presentation data, never inputs to /api/analyze.
 const threeLayerDemoPresentation: Record<string, {
   direct_answer_title: string;
-  direct_answer_items: string[];
+  direct_answer_sections: Array<{ request_item_id: string; title: string; items: string[] }>;
   plain_explanation: string[];
-  clinical_detail?: string;
 }> = {
   "demo-01-simple-single": {
-    direct_answer_title: "最可能诊断与初步处理",
-    direct_answer_items: [
-      "最可能是胃食管反流病。",
-      "先核对症状、用药情况和警示症状，再由医生指导规范抑酸治疗。",
-      "调整晚餐时间、体重和已知诱发因素，并复评治疗效果。",
-      "若持续不缓解或出现吞咽困难、出血、体重下降，应及时进一步检查。",
+    direct_answer_title: "最可能诊断、依据与初步处理",
+    direct_answer_sections: [
+      { request_item_id: "RQ1", title: "最可能诊断", items: ["首先考虑胃食管反流病，以典型反流症状为主；仍需由医生结合检查确认。"] },
+      { request_item_id: "RQ2", title: "诊断依据", items: ["餐后胃灼热和反酸每周3～4次、平卧和晚餐过晚时加重，且目前没有吞咽困难、出血或体重下降等报警表现。"] },
+      { request_item_id: "RQ3", title: "需要关注的检查", items: ["先核对症状与用药史；若规范处理后仍不缓解、反复发作或出现报警征象，进一步评估上消化道内镜等检查。"] },
+      { request_item_id: "RQ4", title: "初步处理", items: ["调整晚餐时间、体重和诱发因素；由医生指导规范抑酸治疗，约4～8周复评。"] },
     ],
     plain_explanation: [
       "饭后和躺下时胃灼热、反酸更明显，符合胃内容物反流的常见表现。",
-      "目前没有明确报警表现，因此可以先规范评估和处理；若效果不好或出现新症状，再检查是否存在其他原因。",
+      "减少晚餐过晚和卧位反流的诱因，再观察规范治疗的效果，可以帮助判断问题是否主要来自反流；若效果不好或出现新症状，就需要进一步查找其他原因。",
     ],
   },
   "demo-02-multi-agent": {
-    direct_answer_title: "优先排除的诊断与下一步",
-    direct_answer_items: [
-      "应优先排除食管或胃食管结合部占位性病变。",
-      "尽快转诊消化专科，评估内镜和必要的组织检查。",
-      "同步复核贫血、铁代谢和出血风险，后续治疗根据检查结果决定。",
+    direct_answer_title: "诊断、鉴别与下一步方案",
+    direct_answer_sections: [
+      { request_item_id: "RQ1", title: "最可能诊断", items: ["高度怀疑食管或食管胃结合部恶性肿瘤，食管腺癌可能性较大；目前尚未做胃镜，必须经活检病理证实。"] },
+      { request_item_id: "RQ2", title: "主要鉴别诊断", items: ["还需鉴别食管鳞癌或贲门癌、反流相关良性狭窄、重度食管炎，以及贲门失弛缓症等食管动力障碍。"] },
+      { request_item_id: "RQ3", title: "进一步检查", items: ["尽快安排上消化道内镜与多点活检；若病理证实恶性，再完善增强 CT、超声内镜等分期检查，同时评估贫血和营养状况。"] },
+      { request_item_id: "RQ4", title: "治疗与随访", items: ["治疗由病理、分期和多学科评估决定，同时处理营养和贫血；明确检查结果回访节点，吞咽明显恶化、无法进食或出血时及时就医。"] },
     ],
     plain_explanation: [
-      "吞咽越来越困难、体重下降和贫血，说明不能只用普通胃酸反流解释现在的情况。",
-      "先查清食管和胃有没有结构性病变，才能选择合适的治疗；在此之前单靠抑酸治疗可能耽误判断。",
+      "普通反流通常会引起烧心和反酸，但固体食物越来越难下咽、近期体重下降，再加上贫血和粪便隐血阳性，说明不能只用普通反流解释。",
+      "需要尽快通过胃镜直接观察食管和胃，并从可疑区域取组织检查；只有知道病变性质以及是否扩散，才能决定下一步治疗和复查。",
     ],
   },
   "demo-03-guideline-rag": {
-    direct_answer_title: "术后血栓预防与监测",
-    direct_answer_items: [
-      "先完成血栓和出血风险评估。",
-      "按临床团队安排尽早活动，并配合机械预防措施。",
-      "是否使用预防血栓的药物及持续时间，由团队结合肾功能、麻醉和伤口出血情况决定。",
-      "持续观察腿部肿痛、突然胸痛或呼吸困难，以及异常出血。",
-      "出院前确认活动、用药核对和复诊安排。",
+    direct_answer_title: "高血压生活方式管理与证据",
+    direct_answer_sections: [
+      { request_item_id: "RQ1", title: "生活方式管理", items: ["优先限盐，采用蔬菜水果、全谷物等健康膳食；结合自身情况规律运动、控制体重、戒烟限酒，并持续记录家庭血压。"] },
+      { request_item_id: "RQ2", title: "已检索到的依据", items: ["本地 MedicalQA-DX 知识库检索到高血压生活方式和临床指南条目；这些资料支持限盐、膳食调整、运动和体重管理，但个人目标仍需医生结合血压、肾功能与用药核定。"] },
     ],
     plain_explanation: [
-      "膝关节手术后活动减少，腿部血液流动可能变慢，因此需要预防血栓。",
-      "尽早活动和机械预防有助于血液循环；预防血栓的药物同时可能增加出血，所以要结合伤口、肾功能和麻醉方式决定。",
+      "盐吃得多，身体更容易留住水分，血管里的压力也会增加；减少盐分、控制体重并规律活动，有助于血压更平稳。",
+      "家庭血压记录可以让医生看出改变是否奏效；因为每个人的肾功能、药物和其他疾病不同，不能直接照搬同一套目标。",
     ],
-    clinical_detail: "管理框架\n先记录静脉血栓与出血风险，再按本中心流程安排早期活动和机械预防；是否使用药物、选择何种方案以及持续时间，必须由临床团队结合肾功能、麻醉方式、伤口与出血状态决定。\n\n监测与随访\n动态观察伤口、引流、血红蛋白和药物相关风险，同时告知单侧下肢肿痛、突发胸痛或呼吸困难等警示症状。出院前明确依从性、活动计划、用药核对和复诊节点。",
   },
   "demo-04-memory-followup": {
-    direct_answer_title: "下一步预防治疗讨论",
-    direct_answer_items: [
-      "可以和医生讨论是否启动偏头痛预防治疗。",
-      "继续记录头痛日数、诱因、急性用药、功能影响和伴随症状。",
-      "复诊时比较记录和治疗效果，再决定是否调整方案。",
+    direct_answer_title: "偏头痛预防治疗与复诊",
+    direct_answer_sections: [
+      { request_item_id: "RQ1", title: "结合既往情况", items: ["此前每月约6次偏头痛发作，伴恶心、畏光，已达到值得与医生讨论预防治疗的频率。"] },
+      { request_item_id: "RQ2", title: "预防方案", items: ["由医生结合合并症、生育计划、用药风险及个人偏好选择预防方案；不要自行开始或调整处方。"] },
+      { request_item_id: "RQ3", title: "记录与复诊", items: ["继续记录头痛日数、诱因、急性用药和功能影响，复诊时对比治疗前后变化与不良反应。"] },
     ],
     plain_explanation: [
       "此前记录的每月约六次发作以及恶心、畏光，说明头痛已反复影响生活，值得评估预防治疗。",
@@ -268,7 +265,8 @@ const threeLayerDemoPresentation: Record<string, {
 function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
   const { developer, presentation } = fixture;
   const threeLayer = threeLayerDemoPresentation[fixture.id];
-  const clinicalDetail = threeLayer?.clinical_detail || presentation.clinical_detail;
+  const clinicalDetail = presentation.clinical_detail;
+  const directItems = threeLayer?.direct_answer_sections.flatMap((section) => section.items) || [];
   return {
     final_answer: clinicalDetail,
     status: "completed",
@@ -280,7 +278,8 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
     presentation: {
       ...presentation,
       ...threeLayer,
-      direct_answer: threeLayer?.direct_answer_items.join("\n") || presentation.direct_answer,
+      direct_answer_items: directItems,
+      direct_answer: directItems.join("\n") || presentation.direct_answer,
       plain_language: threeLayer?.plain_explanation.join("\n\n") || presentation.plain_language,
       clinical_detail: clinicalDetail,
       disclaimer: "Showcase demo fixture only. This is not a real patient record or medical recommendation.",

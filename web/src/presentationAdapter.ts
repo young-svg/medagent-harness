@@ -349,12 +349,24 @@ export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationVie
     ? displayText(source.plain_language)
     : plainLanguageFallback;
   const directAnswerItems = stringArray(source.direct_answer_items).filter((item) => item.trim());
+  const directAnswerSections = Array.isArray(source.direct_answer_sections)
+    ? source.direct_answer_sections.filter((section) =>
+      typeof section.request_item_id === "string"
+      && typeof section.title === "string"
+      && stringArray(section.items).some((item) => item.trim())
+    ).map((section) => ({
+      requestItemId: section.request_item_id,
+      title: section.title,
+      items: stringArray(section.items).filter((item) => item.trim()),
+    }))
+    : [];
   const plainExplanation = stringArray(source.plain_explanation).filter((item) => item.trim());
 
   return {
     directAnswer: directAnswerItems.length ? directAnswerItems.join("\n") : directSource,
     directAnswerTitle: source.direct_answer_title?.trim() || "核心结论",
     directAnswerItems: directAnswerItems.length ? directAnswerItems : [directSource],
+    directAnswerSections,
     plainLanguage: plainExplanation.length ? plainExplanation.join("\n\n") : plainLanguage,
     plainExplanation: plainExplanation.length ? plainExplanation : [plainLanguage],
     clinicalDetail,

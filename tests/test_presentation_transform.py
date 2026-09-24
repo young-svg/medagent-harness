@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from medagent.context.request_spec import RequestItem, RequestSpec
 from medagent.llm.fakes import ScriptedLLM
 from medagent.presentation.transform import (
     TaggedTextParseError,
@@ -24,6 +25,74 @@ def tagged_output(
         f"<DIRECT_TITLE>\n{title}\n\n<DIRECT_ITEMS>\n- {item}\n\n"
         f"<PLAIN_EXPLANATION>\n- {explanation}\n<END_PRESENTATION>"
     )
+
+
+def required_spec(count: int = 1) -> RequestSpec:
+    labels = ["最可能诊断", "鉴别诊断", "进一步检查", "治疗与随访"]
+    return RequestSpec([
+        RequestItem(f"RQ{index + 1}", label, True, index + 1, label)
+        for index, label in enumerate(labels[:count])
+    ])
+
+
+def sectioned_output(ids: list[str]) -> str:
+    sections = "\n".join(
+        f'<DIRECT_SECTION id="{item_id}" title="{item_id}的答案">\n'
+        f"- {item_id}的具体结论。\n</DIRECT_SECTION>"
+        for item_id in ids
+    )
+    return (
+        "<DIRECT_TITLE>\n结论与下一步\n<DIRECT_ITEMS>\n"
+        f"{sections}\n<PLAIN_EXPLANATION>\n- 因为需要逐项回答。\n<END_PRESENTATION>"
+    )
+
+
+def test_single_required_request_item_has_direct_coverage() -> None:
+    result = parse_tagged_presentation(sectioned_output(["RQ1"]), required_spec())
+    assert [section.request_item_id for section in result.direct_answer_sections or []] == [
+        "RQ1"
+    ]
+
+
+def test_four_required_request_items_have_direct_coverage() -> None:
+    result = parse_tagged_presentation(
+        sectioned_output(["RQ1", "RQ2", "RQ3", "RQ4"]), required_spec(4)
+    )
+    assert len(result.direct_answer_sections or []) == 4
+    assert len(result.direct_answer_items) == 4
+
+
+def test_missing_required_direct_sections_rejects_for_fallback() -> None:
+    with pytest.raises(TaggedTextParseError, match="RQ2,RQ4"):
+        parse_tagged_presentation(sectioned_output(["RQ1", "RQ3"]), required_spec(4))
+
+
+def test_duplicate_required_direct_section_rejected() -> None:
+    with pytest.raises(TaggedTextParseError, match="duplicate_request_item_id"):
+        parse_tagged_presentation(sectioned_output(["RQ1", "RQ1"]), required_spec())
+
+
+def test_placeholder_direct_section_rejected() -> None:
+    content = sectioned_output(["RQ1"]).replace("- RQ1的具体结论。", "- 参见下文。")
+    with pytest.raises(TaggedTextParseError, match="placeholder_direct_section"):
+        parse_tagged_presentation(content, required_spec())
+
+
+@pytest.mark.asyncio
+async def test_transform_sends_only_required_items_and_preserves_final_answer() -> None:
+    spec = required_spec(4)
+    spec = RequestSpec([*spec.items, RequestItem("RQ5", "可选信息", False, 5, "可选信息")])
+    final_answer = "完整专业答案\n第二行原文。"
+    llm = ScriptedLLM([sectioned_output(["RQ1", "RQ2", "RQ3", "RQ4"])])
+    result, _ = await transform_presentation(llm, "病例", "问题", final_answer, spec)
+    payload = json.loads(llm.requests[0]["messages"][1]["content"])
+    assert [item["id"] for item in payload["required_request_items"]] == [
+        "RQ1", "RQ2", "RQ3", "RQ4"
+    ]
+    assert payload["final_professional_answer"] == final_answer
+    assert "trace" not in payload
+    assert result.direct_answer_items == [f"RQ{i}的具体结论。" for i in range(1, 5)]
+    assert llm.requests[0]["max_tokens"] == 6144
 
 
 def test_standard_tagged_output_parses() -> None:
@@ -58,6 +127,15 @@ def test_mixed_bullet_symbols_parse() -> None:
 def test_full_markdown_fence_parses() -> None:
     result = parse_tagged_presentation(f"```text\n{tagged_output()}\n```")
     assert result.direct_answer_title == "最可能诊断"
+
+
+def test_matching_optional_closing_tags_parse() -> None:
+    content = sectioned_output(["RQ1"])
+    content = content.replace("<PLAIN_EXPLANATION>", "</DIRECT_ITEMS>\n<PLAIN_EXPLANATION>")
+    content = content.replace("<END_PRESENTATION>", "</PLAIN_EXPLANATION>\n<END_PRESENTATION>")
+    assert parse_tagged_presentation(content, required_spec()).direct_answer_items == [
+        "RQ1的具体结论。"
+    ]
 
 
 def test_missing_end_requires_clear_blank_section_close() -> None:
@@ -123,6 +201,7 @@ async def test_one_call_uses_only_post_answer_inputs(
     assert transformed.plain_explanation == [why]
     assert len(llm.requests) == 1
     assert llm.requests[0]["response_format"] is None
+    assert llm.requests[0]["max_tokens"] == 6144
     payload = json.loads(llm.requests[0]["messages"][1]["content"])
     assert payload == {
         "case_description": "原始病例",
@@ -190,18 +269,20 @@ def test_presentation_failure_preserves_completed_professional_answer(
 
 
 def test_successful_transform_preserves_final_answer_and_trace(tmp_path) -> None:
-    presentation_llm = ScriptedLLM([tagged_output()])
+    presentation_llm = ScriptedLLM([sectioned_output(["RQ1"])])
     result = run_engine(tmp_path, presentation_llm)
     presentation = result["presentation"]
     assert result["status"] == "completed"
     assert presentation["professional_answer"] == result["final_answer"]
-    assert presentation["direct_answer_title"] == "最可能诊断"
-    assert presentation["direct_answer_items"] == ["最可能是胃食管反流病。"]
-    assert presentation["plain_explanation"] == ["饭后反酸符合反流表现。"]
+    assert presentation["direct_answer_title"] == "结论与下一步"
+    assert presentation["direct_answer_items"] == ["RQ1的具体结论。"]
+    assert presentation["plain_explanation"] == ["因为需要逐项回答。"]
+    assert presentation["direct_answer_sections"][0]["request_item_id"] == "RQ1"
     assert result["trace"]["llm_calls"] == 3
     events = presentation["execution_summary"]["trace_events"]
     transform = next(item for item in events if item["event_type"] == "presentation_transform")
     assert transform["payload"]["status"] == "success"
     assert transform["payload"]["parse_status"] == "valid"
     assert transform["payload"]["protocol"] == "tagged_text"
+    assert transform["payload"]["direct_covered_request_item_ids"] == ["RQ1"]
     assert len(presentation_llm.requests) == 1

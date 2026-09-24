@@ -1,39 +1,95 @@
 {
   "name": "临床快速分析（Single Agent）",
-  "fixture_notice": "Synthetic showcase fixture. Not a real patient record or medical recommendation.",
+  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
   "question": "请分析最可能诊断、诊断依据、需要关注的检查以及初步处理方案。",
   "case_context": "58岁男性，反复餐后胃灼热、反酸半年，每周约3～4次，平卧及晚餐过晚时加重。BMI 28 kg/m²，偶尔饮酒；无吞咽困难、呕血、黑便或近期体重下降。心电图无急性异常，血常规未见贫血，近期未规律接受抑酸治疗。",
   "presentation": {
-    "direct_answer": "最可能诊断：胃食管反流病（GERD）。\n关注：目前没有明确警示症状，可先规范评估与初步处理；若症状持续、加重或出现吞咽困难、出血、体重下降，应及时进一步检查。",
-    "plain_language": "症状模式很符合胃酸反流：饭后和平躺时更明显，超重和晚餐过晚也可能加重。现有信息没有提示紧急危险，但仍应由医生结合症状频率和治疗反应决定是否需要检查。",
-    "clinical_detail": "餐后胃灼热、反酸、平卧加重及相关生活方式因素支持胃食管反流病。先核对症状模式、用药史和警示症状；无警示线索时可先规范处理，疗效不佳或出现警示表现时再评估内镜或反流监测。"
+    "direct_answer": "【最可能诊断】胃食管反流病。\n【诊断依据】餐后烧心反酸、平卧和晚餐过晚加重，暂无报警征象。\n【需要关注的检查】若规范处理无效或出现报警征象，评估内镜等检查。\n【初步处理】调整体重和进餐时间，遵医嘱抑酸，4～8周复评。",
+    "plain_language": "饭后和平卧时胃灼热、反酸更明显，符合胃内容物反流。先减少诱因并观察规范治疗效果；若无改善或出现新症状，再查其他原因。",
+    "clinical_detail": "【最可能诊断】胃食管反流病（GERD），以典型反流症状为主，倾向非糜烂性反流病（NERD）可能；未见警报征象，暂不提示食管恶性病变或消化性溃疡出血。\n\n【诊断依据】\n1. 典型症状：反复餐后胃灼热、反酸，每周3～4次，持续半年，符合GERD核心症状组合。\n2. 诱因/体位相关：平卧及晚餐过晚时加重，符合反流在腹压增高、卧位及餐后胃排空期加重的特点。\n3. 危险因素：BMI 28 kg/m²（超重）、偶尔饮酒，均为GERD相关因素；近期未规律抑酸治疗，症状自然病程可解释。\n4. 缺乏警报征象：无吞咽困难、呕血、黑便、近期体重下降；血常规未见贫血，心电图无急性异常，不支持急性冠脉事件、活动性消化道出血或明显消耗性疾病。\n注：以上为基于现有信息的临床推断，未进行内镜或反流监测，诊断尚未经客观检查确证。\n\n【需关注的检查】\n1. 初始可临床诊断：典型症状者可直接开始经验性抑酸治疗并观察反应（PPI试验），症状缓解支持GERD。\n2. 幽门螺杆菌（H. pylori）检测：可考虑非侵入性检测（呼气试验/粪便抗原/血清学），阳性者按指征根除。\n3. 上消化道内镜（EGD）：本患者58岁、症状持续且新近出现，属可考虑内镜评估的人群；若出现警报征象、抑酸治疗无效或症状反复，应安排内镜以排除反流性食管炎、Barrett食管、贲门失弛缓或肿瘤。\n4. 若诊断存疑或规范PPI治疗无效：可考虑动态食管pH/阻抗监测；拟行抗反流手术前建议食管测压。\n5. 其他：结合症状与心血管危险因素，如胸痛性质改变需再评估心脏来源（本次心电图无急性异常，但胸痛与反流需鉴别）。\n\n【初步处理方案】\n生活方式（基础措施）：\n- 控制体重（减重可显著改善反流症状）；\n- 睡前3小时避免进食，减少晚餐过量，抬高床头约15～20 cm；\n- 减少酒精、高脂、辛辣、咖啡因、巧克力及碳酸饮料等诱因；\n- 如有吸烟建议戒烟（信息未述，可询问）。\n\n药物治疗（按症状程度选择，属建议方案，非已完成治疗）：\n- 质子泵抑制剂（PPI）：标准剂量每日1次，餐前30～60分钟服用，疗程一般8周，用于典型症状及糜烂性食管炎；\n- 轻症或间歇发作者可用H2受体拮抗剂或抗酸剂按需缓解；\n- 症状控制后逐步降阶梯至最低有效剂量或按需治疗，避免长期不必要用药。\n\n【随访与升级条件】\n- 4～8周复诊评估症状改善情况；\n- 若症状未缓解、复发或出现警报征象（吞咽困难、吞咽痛、消化道出血、贫血、体重下降、呕吐、肿瘤家族史），及时行上消化道内镜；\n- 若规范PPI治疗8周无效，考虑诊断重评、依从性核查、H. pylori根除及反流监测。\n\n【安全提示】现有资料未提示急症；上述均为建议性诊疗路径，尚未表明已实施任何治疗或检查。若出现胸痛、呕血、黑便或明显消瘦，应立即就医。"
   },
   "developer": {
     "request_spec": {
       "items": [
-        { "id": "RQ1", "text": "判断最可能诊断", "required": true },
-        { "id": "RQ2", "text": "说明诊断依据", "required": true },
-        { "id": "RQ3", "text": "提出需要关注的检查", "required": true },
-        { "id": "RQ4", "text": "给出初步治疗原则", "required": true }
+        {
+          "id": "RQ1",
+          "text": "判断最可能诊断",
+          "required": true
+        },
+        {
+          "id": "RQ2",
+          "text": "说明诊断依据",
+          "required": true
+        },
+        {
+          "id": "RQ3",
+          "text": "提出需要关注的检查",
+          "required": true
+        },
+        {
+          "id": "RQ4",
+          "text": "给出初步治疗原则",
+          "required": true
+        }
       ]
     },
-    "route": { "mode": "single", "reason": "四个请求项相互依赖、复杂度适中，一个 Consultation Agent 可完整覆盖" },
+    "route": {
+      "mode": "single",
+      "reason": "四个请求项相互依赖、复杂度适中，一个 Consultation Agent 可完整覆盖"
+    },
     "planner": {
       "subtasks": [
-        { "subtask_id": "ST1", "assigned_agent": "consultation_agent", "request_item_ids": ["RQ1", "RQ2", "RQ3", "RQ4"] }
+        {
+          "subtask_id": "ST1",
+          "assigned_agent": "consultation_agent",
+          "request_item_ids": [
+            "RQ1",
+            "RQ2",
+            "RQ3",
+            "RQ4"
+          ]
+        }
       ]
     },
     "workers": [
-      { "worker": "consultation_agent", "status": "success", "answered_request_item_ids": ["RQ1", "RQ2", "RQ3", "RQ4"] }
+      {
+        "worker": "consultation_agent",
+        "status": "success",
+        "answered_request_item_ids": [
+          "RQ1",
+          "RQ2",
+          "RQ3",
+          "RQ4"
+        ]
+      }
     ],
-    "tool_state": { "status": "NOT_REQUIRED", "tools": [] },
-    "evidence": { "status": "NOT_REQUIRED", "required": false, "cards": [] },
+    "tool_state": {
+      "status": "NOT_REQUIRED",
+      "tools": []
+    },
+    "evidence": {
+      "status": "NOT_REQUIRED",
+      "required": false,
+      "cards": []
+    },
     "trace": [
-      { "event": "Question received" },
-      { "event": "RequestSpec extracted" },
-      { "event": "Planner selected single route" },
-      { "event": "Consultation Agent completed RQ1-RQ4" },
-      { "event": "Final answer generated" }
+      {
+        "event": "Question received"
+      },
+      {
+        "event": "RequestSpec extracted"
+      },
+      {
+        "event": "Planner selected single route"
+      },
+      {
+        "event": "Consultation Agent completed RQ1-RQ4"
+      },
+      {
+        "event": "Final answer generated"
+      }
     ]
-  }
+  },
+  "source_run_id": "e9c126e5-f086-4805-a9db-58d9c7a96116",
+  "source_kind": "completed_real_agent_final_answer"
 }

@@ -15,6 +15,7 @@ const emptyPresentation: PresentationView = {
   plainLanguage: "该结果基于病例信息和医学分析生成，详细解释见下方。",
   directAnswerTitle: "现在需要知道什么",
   directAnswerItems: ["提交病例后，这里会显示最直接的结论或行动。"],
+  directAnswerSections: [],
   plainExplanation: ["请先输入病例信息和重点分析的问题。"],
   clinicalDetail: "",
   disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
@@ -225,7 +226,7 @@ export default function App() {
             </div>
           </div>
         </div>
-        <AnswerSummary title={presentation.directAnswerTitle} items={presentation.directAnswerItems} />
+        <AnswerSummary title={presentation.directAnswerTitle} items={presentation.directAnswerItems} sections={presentation.directAnswerSections} />
         <PlainLanguageCard paragraphs={presentation.plainExplanation} />
         <ClinicalDetail
           content={presentation.clinicalDetail}
@@ -246,7 +247,7 @@ export default function App() {
             <span />{developerMode ? "收起" : "展开"}
           </button>
         </div>
-        {developerMode && <DeveloperPanel presentation={presentation} />}
+        {developerMode && <DeveloperPanel presentation={presentation} isDemo={mode === "demo"} />}
       </section>
 
       <footer><span>MedAgent Harness</span><span>Professional answer remains the benchmark output.</span></footer>

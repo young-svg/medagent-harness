@@ -236,6 +236,14 @@ class PresentationAdapter:
             direct_answer_items=list(transformed.direct_answer_items)
             if transformed
             else [direct_answer],
+            direct_answer_sections=[
+                {
+                    "request_item_id": section.request_item_id,
+                    "title": section.title,
+                    "items": list(section.items),
+                }
+                for section in (transformed.direct_answer_sections or [])
+            ] if transformed else [],
             plain_explanation=list(transformed.plain_explanation) if transformed else [],
             evidence_cards=cards,
             execution_summary=execution,

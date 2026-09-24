@@ -368,7 +368,7 @@ class NativeMedAgentEngine:
                 presentation_started = perf_counter()
                 try:
                     transformed, presentation_response = await transform_presentation(
-                        self.presentation_llm, description, question, final_answer
+                        self.presentation_llm, description, question, final_answer, request_spec
                     )
                     trace.record(
                         "presentation_transform",
@@ -376,6 +376,13 @@ class NativeMedAgentEngine:
                             "protocol": "tagged_text",
                             "status": "success",
                             "parse_status": "valid",
+                            "required_request_item_ids": request_spec.required_item_ids,
+                            "direct_covered_request_item_ids": [
+                                section.request_item_id
+                                for section in (transformed.direct_answer_sections or [])
+                            ],
+                            "finish_reason": presentation_response.finish_reason,
+                            "content_length": len(presentation_response.content),
                             "latency_ms": round((perf_counter() - presentation_started) * 1000, 2),
                             "usage": presentation_response.usage,
                             "model": presentation_response.model

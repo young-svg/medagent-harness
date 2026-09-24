@@ -1,6 +1,6 @@
 # Showcase Demo Fixtures
 
-These JSON files are synthetic, deterministic examples for demonstrating MedAgent Harness orchestration. They do not contain real patient records, model-generated benchmark answers, or real clinical evidence.
+These JSON files are local, deterministic showcase fixtures, not real patient records or benchmark answers. Each `clinical_detail` is copied exactly from a completed real Agent `final_answer`; `source_run_id` identifies that answer's source. Direct and Why layers are presentation text; Developer workflow metadata is illustrative fixture data, not a live trace.
 
 | Fixture | Showcase name | Harness capability |
 | --- | --- | --- |
@@ -32,4 +32,4 @@ Every fixture contains this presentation-compatible shape:
 }
 ```
 
-The RAG example intentionally uses the source `Demo Clinical Guideline Fixture`. It must remain clearly labeled as synthetic evidence and must never be represented as a real guideline citation.
+The RAG example uses hypertension instead of the previous postoperative scenario. Its evidence previews and source/section/score fields were captured from a real local MedicalQA-DX Milvus retrieval. The full corpus is not included. Corpus provenance and redistribution license still require confirmation before any public release.
