@@ -10,6 +10,7 @@ from medagent.presentation.models import (
     EvidenceCard,
     PresentationResponse,
 )
+from medagent.presentation.transform import PresentationTransform
 from medagent.retrieval.evidence import EvidenceBundle
 
 _DIRECT_LABEL = re.compile(
@@ -198,6 +199,7 @@ class PresentationAdapter:
         evidence: EvidenceBundle,
         trace_metadata: dict[str, Any],
         developer: dict[str, Any] | None = None,
+        transformed: PresentationTransform | None = None,
     ) -> PresentationResponse:
         direct_answer = extract_direct_answer(final_answer)
         cards = [
@@ -222,10 +224,19 @@ class PresentationAdapter:
         if retrieval_summary is not None:
             execution["retrieval_summary"] = retrieval_summary
         return PresentationResponse(
-            headline=direct_answer,
-            plain_language_summary="",
+            headline=transformed.direct_answer_title if transformed else direct_answer,
+            plain_language_summary="\n\n".join(transformed.plain_explanation)
+            if transformed
+            else "",
             professional_answer=final_answer,
-            direct_answer=direct_answer,
+            direct_answer="\n".join(transformed.direct_answer_items)
+            if transformed
+            else direct_answer,
+            direct_answer_title=transformed.direct_answer_title if transformed else None,
+            direct_answer_items=list(transformed.direct_answer_items)
+            if transformed
+            else [direct_answer],
+            plain_explanation=list(transformed.plain_explanation) if transformed else [],
             evidence_cards=cards,
             execution_summary=execution,
         )

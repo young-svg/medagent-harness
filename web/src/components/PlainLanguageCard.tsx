@@ -1,12 +1,14 @@
-type Props = { explanation: string };
+type Props = { paragraphs: string[] };
 
-export function PlainLanguageCard({ explanation }: Props) {
+export function PlainLanguageCard({ paragraphs }: Props) {
   return (
     <article className="answer-card plain-card">
-      <div className="card-label"><span>02</span> Plain Language</div>
-      <h3>简单解释</h3>
-      <p className="card-subtitle">给患者看的解释</p>
-      <div className="answer-copy">{explanation}</div>
+      <div className="card-label"><span>02</span> Simple Why</div>
+      <h3>为什么这样做</h3>
+      <p className="card-subtitle">用简单语言解释</p>
+      <div className="plain-explanation">
+        {paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph}`}>{paragraph}</p>)}
+      </div>
     </article>
   );
 }

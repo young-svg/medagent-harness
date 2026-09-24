@@ -99,7 +99,7 @@ class TraceRecorder:
         usage = [
             event.payload.get("usage", {})
             for event in self.events
-            if event.event_type == "llm_response"
+            if event.event_type == "llm_response" or event.event_type == "presentation_transform"
         ]
         worker_summaries = [
             event.payload for event in self.events if event.event_type == "worker_draft"
@@ -126,7 +126,8 @@ class TraceRecorder:
             "events": [event.event_type for event in self.events],
             "status": (end.payload if end else {}).get("status", "running"),
             "latency_ms": (end.payload if end else {}).get("latency_ms"),
-            "llm_calls": sum(event.event_type == "llm_request" for event in self.events),
+            "llm_calls": sum(event.event_type == "llm_request" for event in self.events)
+            + sum(event.event_type == "presentation_transform" for event in self.events),
             "tool_calls": sum(event.event_type == "tool_call" for event in self.events),
             "tokens": sum(int(item.get("total_tokens", 0)) for item in usage) or None,
             "worker_infrastructure_retry_count": sum(

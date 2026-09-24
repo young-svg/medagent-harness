@@ -338,8 +338,7 @@ function evidenceStateFrom(
 
 export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationView {
   const source: BackendPresentation = response.presentation || {};
-  const rawClinicalDetail = source.clinical_detail || source.professional_answer || response.final_answer || "";
-  const clinicalDetail = displayText(rawClinicalDetail);
+  const clinicalDetail = response.final_answer || source.professional_answer || source.clinical_detail || "";
   const execution = objectValue(source.execution_summary);
   const evidenceCards = source.evidence_cards || [];
   const traceEvents = traceFrom(execution);
@@ -349,10 +348,15 @@ export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationVie
   const plainLanguage = source.plain_language?.trim()
     ? displayText(source.plain_language)
     : plainLanguageFallback;
+  const directAnswerItems = stringArray(source.direct_answer_items).filter((item) => item.trim());
+  const plainExplanation = stringArray(source.plain_explanation).filter((item) => item.trim());
 
   return {
-    directAnswer: directSource,
-    plainLanguage,
+    directAnswer: directAnswerItems.length ? directAnswerItems.join("\n") : directSource,
+    directAnswerTitle: source.direct_answer_title?.trim() || "核心结论",
+    directAnswerItems: directAnswerItems.length ? directAnswerItems : [directSource],
+    plainLanguage: plainExplanation.length ? plainExplanation.join("\n\n") : plainLanguage,
+    plainExplanation: plainExplanation.length ? plainExplanation : [plainLanguage],
     clinicalDetail,
     disclaimer: source.disclaimer || disclaimerFallback,
     evidenceCards,

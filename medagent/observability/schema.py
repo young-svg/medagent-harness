@@ -35,6 +35,7 @@ EVENT_TYPES = {
     "patch_applied",
     "memory_write",
     "final_answer",
+    "presentation_transform",
     "run_end",
     "error",
 }

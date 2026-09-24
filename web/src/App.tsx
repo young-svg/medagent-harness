@@ -13,6 +13,9 @@ type AppMode = "demo" | "live";
 const emptyPresentation: PresentationView = {
   directAnswer: "提交病例后，这里会显示核心结论与下一步建议。",
   plainLanguage: "该结果基于病例信息和医学分析生成，详细解释见下方。",
+  directAnswerTitle: "现在需要知道什么",
+  directAnswerItems: ["提交病例后，这里会显示最直接的结论或行动。"],
+  plainExplanation: ["请先输入病例信息和重点分析的问题。"],
   clinicalDetail: "",
   disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
   evidenceCards: [],
@@ -78,8 +81,9 @@ export default function App() {
       demo
       && demo.description.trim()
       && demo.question.trim()
-      && demoPresentation?.direct_answer?.trim()
-      && demoPresentation.plain_language?.trim()
+      && demoPresentation?.direct_answer_title?.trim()
+      && demoPresentation.direct_answer_items?.length
+      && demoPresentation.plain_explanation?.length
       && demoPresentation.clinical_detail?.trim(),
     );
     if (!demo || !fixtureReady) {
@@ -221,8 +225,8 @@ export default function App() {
             </div>
           </div>
         </div>
-        <AnswerSummary answer={presentation.directAnswer} />
-        <PlainLanguageCard explanation={presentation.plainLanguage} />
+        <AnswerSummary title={presentation.directAnswerTitle} items={presentation.directAnswerItems} />
+        <PlainLanguageCard paragraphs={presentation.plainExplanation} />
         <ClinicalDetail
           content={presentation.clinicalDetail}
           expanded={clinicalExpanded}

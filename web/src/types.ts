@@ -72,7 +72,10 @@ export type MemoryInfo = {
 
 export type PresentationView = {
   directAnswer: string;
+  directAnswerTitle: string;
+  directAnswerItems: string[];
   plainLanguage: string;
+  plainExplanation: string[];
   clinicalDetail: string;
   disclaimer: string;
   evidenceCards: EvidenceCard[];
@@ -89,6 +92,9 @@ export type PresentationView = {
 
 export type BackendPresentation = {
   direct_answer?: string;
+  direct_answer_title?: string;
+  direct_answer_items?: string[];
+  plain_explanation?: string[];
   plain_language?: string;
   clinical_detail?: string;
   headline?: string;

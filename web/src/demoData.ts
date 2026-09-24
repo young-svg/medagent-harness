@@ -204,10 +204,73 @@ export const demoFixtures: DemoCaseFixture[] = [
   },
 ];
 
+// Local showcase answers are presentation data, never inputs to /api/analyze.
+const threeLayerDemoPresentation: Record<string, {
+  direct_answer_title: string;
+  direct_answer_items: string[];
+  plain_explanation: string[];
+  clinical_detail?: string;
+}> = {
+  "demo-01-simple-single": {
+    direct_answer_title: "最可能诊断与初步处理",
+    direct_answer_items: [
+      "最可能是胃食管反流病。",
+      "先核对症状、用药情况和警示症状，再由医生指导规范抑酸治疗。",
+      "调整晚餐时间、体重和已知诱发因素，并复评治疗效果。",
+      "若持续不缓解或出现吞咽困难、出血、体重下降，应及时进一步检查。",
+    ],
+    plain_explanation: [
+      "饭后和躺下时胃灼热、反酸更明显，符合胃内容物反流的常见表现。",
+      "目前没有明确报警表现，因此可以先规范评估和处理；若效果不好或出现新症状，再检查是否存在其他原因。",
+    ],
+  },
+  "demo-02-multi-agent": {
+    direct_answer_title: "优先排除的诊断与下一步",
+    direct_answer_items: [
+      "应优先排除食管或胃食管结合部占位性病变。",
+      "尽快转诊消化专科，评估内镜和必要的组织检查。",
+      "同步复核贫血、铁代谢和出血风险，后续治疗根据检查结果决定。",
+    ],
+    plain_explanation: [
+      "吞咽越来越困难、体重下降和贫血，说明不能只用普通胃酸反流解释现在的情况。",
+      "先查清食管和胃有没有结构性病变，才能选择合适的治疗；在此之前单靠抑酸治疗可能耽误判断。",
+    ],
+  },
+  "demo-03-guideline-rag": {
+    direct_answer_title: "术后血栓预防与监测",
+    direct_answer_items: [
+      "先完成血栓和出血风险评估。",
+      "按临床团队安排尽早活动，并配合机械预防措施。",
+      "是否使用预防血栓的药物及持续时间，由团队结合肾功能、麻醉和伤口出血情况决定。",
+      "持续观察腿部肿痛、突然胸痛或呼吸困难，以及异常出血。",
+      "出院前确认活动、用药核对和复诊安排。",
+    ],
+    plain_explanation: [
+      "膝关节手术后活动减少，腿部血液流动可能变慢，因此需要预防血栓。",
+      "尽早活动和机械预防有助于血液循环；预防血栓的药物同时可能增加出血，所以要结合伤口、肾功能和麻醉方式决定。",
+    ],
+    clinical_detail: "管理框架\n先记录静脉血栓与出血风险，再按本中心流程安排早期活动和机械预防；是否使用药物、选择何种方案以及持续时间，必须由临床团队结合肾功能、麻醉方式、伤口与出血状态决定。\n\n监测与随访\n动态观察伤口、引流、血红蛋白和药物相关风险，同时告知单侧下肢肿痛、突发胸痛或呼吸困难等警示症状。出院前明确依从性、活动计划、用药核对和复诊节点。",
+  },
+  "demo-04-memory-followup": {
+    direct_answer_title: "下一步预防治疗讨论",
+    direct_answer_items: [
+      "可以和医生讨论是否启动偏头痛预防治疗。",
+      "继续记录头痛日数、诱因、急性用药、功能影响和伴随症状。",
+      "复诊时比较记录和治疗效果，再决定是否调整方案。",
+    ],
+    plain_explanation: [
+      "此前记录的每月约六次发作以及恶心、畏光，说明头痛已反复影响生活，值得评估预防治疗。",
+      "头痛日记能帮助医生看出发作是否减少、治疗是否带来不适，而不是只凭一次就诊时的印象判断。",
+    ],
+  },
+};
+
 function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
   const { developer, presentation } = fixture;
+  const threeLayer = threeLayerDemoPresentation[fixture.id];
+  const clinicalDetail = threeLayer?.clinical_detail || presentation.clinical_detail;
   return {
-    final_answer: presentation.clinical_detail,
+    final_answer: clinicalDetail,
     status: "completed",
     missing_required_deliverables: [],
     successful_workers: developer.workers.length,
@@ -216,6 +279,10 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
     trace: { status: "completed", fixture: true },
     presentation: {
       ...presentation,
+      ...threeLayer,
+      direct_answer: threeLayer?.direct_answer_items.join("\n") || presentation.direct_answer,
+      plain_language: threeLayer?.plain_explanation.join("\n\n") || presentation.plain_language,
+      clinical_detail: clinicalDetail,
       disclaimer: "Showcase demo fixture only. This is not a real patient record or medical recommendation.",
       evidence_cards: developer.evidence.cards,
       execution_summary: {

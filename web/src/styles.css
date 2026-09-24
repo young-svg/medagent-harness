@@ -71,6 +71,10 @@ textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, 
 .direct-facts .attention-fact { padding-top: 13px; border-top: 1px solid #dce6fb; }
 .direct-facts .attention-fact dt { color: #a45b16; }
 .direct-facts .attention-fact dd { color: #5d4937; font-size: 15px; font-weight: 500; }
+.direct-items { margin: 18px 0 0; padding-left: 24px; display: grid; gap: 12px; color: #293242; font-size: 17px; line-height: 1.75; font-weight: 550; }
+.direct-items li::marker { color: #2563eb; font-weight: 700; }
+.plain-explanation { color: #565c66; font-size: 16px; line-height: 1.8; }
+.plain-explanation p { margin: 12px 0 0; }
 .card-subtitle { margin: -8px 0 14px; color: #9297a0; font-size: 11px; }
 .clinical-card { padding: 0; overflow: hidden; border-color: #eceef0; background: #fcfcfc; }
 .clinical-card summary { display: flex; align-items: center; justify-content: space-between; padding: 20px 27px; list-style: none; cursor: pointer; }

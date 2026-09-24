@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+from time import perf_counter
 from typing import Any
 
 from medagent.agents.base import AgentDefinition, WorkerResult
@@ -15,7 +16,7 @@ from medagent.context.request_spec import RequestSpec, build_request_spec
 from medagent.guardrails.contract_checker import Guardrail
 from medagent.guardrails.sanitizer import sanitize_answer
 from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
-from medagent.llm.client import LLMClient, OpenAICompatibleLLM
+from medagent.llm.client import LLMClient, LLMResponse, OpenAICompatibleLLM
 from medagent.llm.fakes import DeterministicLLM
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.memory.session import SessionMemory
@@ -30,6 +31,7 @@ from medagent.planning.complexity import (
 from medagent.planning.planner import Planner, apply_contract_policy
 from medagent.planning.router import Router
 from medagent.presentation.adapter import PresentationAdapter
+from medagent.presentation.transform import PresentationTransform, transform_presentation
 from medagent.retrieval.admission import admit_evidence
 from medagent.retrieval.backend import RetrievalBackend
 from medagent.retrieval.collection_router import CollectionRouter
@@ -66,11 +68,17 @@ class NativeMedAgentEngine:
         config: RuntimeConfig | None = None,
         *,
         llm: LLMClient | None = None,
+        presentation_llm: LLMClient | None = None,
         retrieval_backend: RetrievalBackend | None = None,
         memory: SessionMemory | None = None,
     ) -> None:
         self.config = config or RuntimeConfig.from_env()
         self.llm = llm or self._build_llm()
+        # Scripted/offline runtimes retain their deterministic presentation unless
+        # a presentation client is explicitly supplied. Real provider runs transform once.
+        self.presentation_llm = presentation_llm or (
+            self.llm if isinstance(self.llm, OpenAICompatibleLLM) else None
+        )
         self.retrieval_backend = retrieval_backend or build_retrieval_backend(self.config)
         self.retrieval_mode = (
             self.config.retrieval_mode if retrieval_backend is None else "injected"
@@ -355,6 +363,61 @@ class NativeMedAgentEngine:
                 "memory_write", {"session_id": session_id, "messages_added": 2}, stage="memory"
             )
             trace.record("final_answer", {"answer": final_answer}, stage="output")
+            transformed: PresentationTransform | None = None
+            if self.presentation_llm is not None:
+                presentation_started = perf_counter()
+                try:
+                    transformed, presentation_response = await transform_presentation(
+                        self.presentation_llm, description, question, final_answer
+                    )
+                    trace.record(
+                        "presentation_transform",
+                        {
+                            "protocol": "tagged_text",
+                            "status": "success",
+                            "parse_status": "valid",
+                            "latency_ms": round((perf_counter() - presentation_started) * 1000, 2),
+                            "usage": presentation_response.usage,
+                            "model": presentation_response.model
+                            or getattr(self.presentation_llm, "model", None),
+                        },
+                        stage="presentation",
+                    )
+                except Exception as presentation_error:
+                    failed_response = getattr(presentation_error, "response", None)
+                    provider_response = (
+                        failed_response if isinstance(failed_response, LLMResponse) else None
+                    )
+                    trace.record(
+                        "presentation_transform",
+                        {
+                            "protocol": "tagged_text",
+                            "status": "fallback",
+                            "parse_status": "invalid" if provider_response else "provider_error",
+                            "latency_ms": round((perf_counter() - presentation_started) * 1000, 2),
+                            "usage": provider_response.usage if provider_response else {},
+                            "model": (provider_response.model if provider_response else None)
+                            or getattr(self.presentation_llm, "model", None),
+                            "finish_reason": (
+                                provider_response.finish_reason if provider_response else None
+                            ),
+                            "content_length": (
+                                len(provider_response.content) if provider_response else None
+                            ),
+                            "raw_output": (
+                                provider_response.content if provider_response else None
+                            ),
+                            "error_type": getattr(
+                                presentation_error, "cause_type", type(presentation_error).__name__
+                            ),
+                            "failure_reason": getattr(
+                                presentation_error,
+                                "failure_reason",
+                                type(presentation_error).__name__,
+                            ),
+                        },
+                        stage="presentation",
+                    )
             trace.finish("completed")
             summary = trace.summary()
             developer = {
@@ -380,7 +443,9 @@ class NativeMedAgentEngine:
             }
             presentation = (
                 PresentationAdapter()
-                .adapt(final_answer, contract, ledger, evidence_bundle, summary, developer)
+                .adapt(
+                    final_answer, contract, ledger, evidence_bundle, summary, developer, transformed
+                )
                 .to_dict()
             )
             return {
@@ -561,6 +626,8 @@ class NativeMedAgentEngine:
 
     async def close(self) -> None:
         if not self._closed:
+            if self.presentation_llm is not None and self.presentation_llm is not self.llm:
+                await self.presentation_llm.close()
             await self.llm.close()
             retrieval_close = getattr(self.retrieval_backend, "close", None)
             if retrieval_close is not None:
