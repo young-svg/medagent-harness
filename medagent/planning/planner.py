@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from medagent.context.contract import AnswerContract
+from medagent.context.contract import AnswerContract, infer_deliverable_ids
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.context.request_spec import RequestItem, RequestSpec
 from medagent.llm.client import LLMClient
@@ -11,6 +11,27 @@ from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import TaskComplexityProfile, preferred_worker
 from medagent.planning.models import VALID_WORKERS, Plan, Subtask
+
+
+class PlanCoverageError(ValueError):
+    """A normalized plan has no owner for a required contract deliverable."""
+
+
+def _required_plan_deliverables(contract: AnswerContract) -> list[str]:
+    """Use the Contract Gate's required-item interpretation without importing runtime."""
+
+    def key(value: str) -> str:
+        return " ".join(value.replace("_", " ").casefold().split())
+
+    required_keys = {key(item) for item in contract.must_cover}
+    required_keys.update(
+        key(item.item) for item in contract.coverage_checklist if item.priority == "MUST"
+    )
+    return [
+        deliverable
+        for deliverable in contract.requested_deliverables
+        if key(deliverable) in required_keys
+    ]
 
 
 def _fallback_worker(contract: AnswerContract) -> str:
@@ -321,6 +342,9 @@ def apply_contract_policy(
             constrained_subtasks, request_spec
         )
         actions.extend(request_actions)
+    actions.extend(
+        _reconcile_required_deliverables(constrained_subtasks, contract, complexity, request_spec)
+    )
 
     constrained = Plan(
         constrained_subtasks,
@@ -332,6 +356,72 @@ def apply_contract_policy(
     )
     constrained.validate()
     return constrained
+
+
+def _reconcile_required_deliverables(
+    subtasks: list[Subtask],
+    contract: AnswerContract,
+    complexity: TaskComplexityProfile,
+    request_spec: RequestSpec | None,
+) -> list[str]:
+    """Assign missing ownership after all plan pruning, fallback, and merging."""
+
+    required = _required_plan_deliverables(contract)
+    if not subtasks:
+        raise PlanCoverageError(f"required_deliverable_ownership_missing:{','.join(required)}")
+
+    covered = {item for subtask in subtasks for item in subtask.deliverable_ids}
+    actions: list[str] = []
+    for deliverable in required:
+        if deliverable in covered:
+            continue
+
+        if len(subtasks) == 1:
+            owner = subtasks[0]
+        else:
+            matching_request_ids = (
+                {
+                    item.id
+                    for item in request_spec.items
+                    if item.semantic_type == deliverable
+                    or deliverable in infer_deliverable_ids(item.text)
+                }
+                if request_spec
+                else set()
+            )
+            candidates = [
+                subtask
+                for subtask in subtasks
+                if matching_request_ids.intersection(subtask.request_item_ids)
+            ] or subtasks
+            preferred = (
+                "research_agent"
+                if "GUIDELINE" in deliverable or "EVIDENCE" in deliverable
+                else preferred_worker(
+                    deliverable,
+                    external_evidence=complexity.requires_external_evidence,
+                )
+            )
+            owner = next(
+                (subtask for subtask in candidates if subtask.assigned_agent == preferred),
+                None,
+            ) or next(
+                (
+                    subtask
+                    for subtask in candidates
+                    if subtask.assigned_agent in {"diagnostic_agent", "consultation_agent"}
+                ),
+                candidates[0],
+            )
+
+        owner.deliverable_ids.append(deliverable)
+        covered.add(deliverable)
+        actions.append(f"required_deliverable_reassigned:{deliverable}:{owner.subtask_id}")
+
+    missing = [item for item in required if item not in covered]
+    if missing:
+        raise PlanCoverageError(f"required_deliverable_ownership_missing:{','.join(missing)}")
+    return actions
 
 
 def _request_matches_subtask(item: RequestItem, subtask: Subtask) -> bool:
