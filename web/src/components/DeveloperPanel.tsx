@@ -37,9 +37,9 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
   return (
     <div className="developer-panel">
       {isDemo && <p className="fixture-note">DEMO FIXTURE · Local data · No API call</p>}
-      <RequestSpecView items={presentation.requestItems} />
+      {presentation.requestItems.length > 0 && <RequestSpecView items={presentation.requestItems} />}
 
-      <section className="developer-card">
+      {(presentation.route || presentation.workers.length > 0) && <section className="developer-card">
         <div className="developer-card-title">
           <span>02</span>
           <div><h3>任务分配与执行角色</h3><p>Agent Plan</p></div>
@@ -64,7 +64,7 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
             </div>
           )) : <p className="empty-state">No plan is available yet.</p>}
         </div>
-      </section>
+      </section>}
 
       <section className="developer-card">
         <div className="developer-card-title">
@@ -129,7 +129,7 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
         )}
       </section>
 
-      <AgentTrace events={presentation.traceEvents} />
+      {presentation.traceEvents.length > 0 && <AgentTrace events={presentation.traceEvents} />}
 
       {presentation.memory && (
         <section className="developer-card memory-card">
