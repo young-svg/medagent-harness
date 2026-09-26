@@ -28,6 +28,7 @@ async def complete_with_trace(
     purpose: str,
     parent_event_id: str | None = None,
     max_tokens: int | None = None,
+    temperature: float | None = None,
     planner_max_tokens: int | None = None,
     attempt_index: int | None = None,
     recovery_type: str | None = None,
@@ -50,7 +51,11 @@ async def complete_with_trace(
             "purpose": purpose,
             "requested_model": requested_model,
             "resolved_model": requested_model,
-            "temperature": _client_value(client, "temperature"),
+            "temperature": (
+                temperature
+                if temperature is not None
+                else _client_value(client, "temperature")
+            ),
             "max_tokens": effective_max_tokens,
             "messages": messages,
             "tools": tools or [],
@@ -68,6 +73,8 @@ async def complete_with_trace(
         completion_kwargs = {"tools": tools, "response_format": response_format}
         if max_tokens is not None:
             completion_kwargs["max_tokens"] = max_tokens
+        if temperature is not None:
+            completion_kwargs["temperature"] = temperature
         response = await client.complete(messages, **completion_kwargs)
     except Exception as error:
         response_id = trace.record(

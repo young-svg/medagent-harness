@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any
 
 from medagent.agents.base import AgentDefinition, RequestItemAnswer, WorkerResult
@@ -10,11 +11,38 @@ from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.context.request_spec import RequestSpec
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
+from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import ResponseProfile, TaskComplexityProfile
 from medagent.planning.models import Subtask
 from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolRegistry
+
+MAX_PROTOCOL_RECOVERY_PER_WORKER = 1
+
+_PROTOCOL_RECOVERY_SYSTEM = """You are a serialization repair step.
+
+The previous worker already performed the clinical task, but its response failed the
+WorkerResponse JSON protocol.
+
+Do NOT redo the clinical analysis.
+Do NOT add, remove, reinterpret, or improve clinical claims.
+Do NOT answer any new request.
+Do NOT call tools.
+Do NOT include explanations, markdown, commentary, or multiple JSON objects.
+
+Re-serialize only the substantive answers already present in the previous response into
+exactly one valid WorkerResponse JSON object. Only include allowed request_item_ids, and
+return JSON only."""
+
+_WORKER_RESPONSE_SCHEMA: dict[str, object] = {
+    "answers": [
+        {
+            "request_item_id": "allowed request item ID",
+            "answer": "non-empty string",
+        }
+    ]
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +53,15 @@ class WorkerResponseParseResult:
 
     def __bool__(self) -> bool:
         return bool(self.answers)
+
+
+@dataclass(frozen=True, slots=True)
+class ProtocolRecoveryResult:
+    parsed: WorkerResponseParseResult
+    attempted: bool
+    success: bool
+    provider_attempt_count: int
+    response_id: str | None = None
 
 
 def _validated_answers(
@@ -120,6 +157,55 @@ def parse_worker_response(
     )
 
 
+def _protocol_recovery_messages(
+    malformed_response: str, assigned_request_item_ids: list[str]
+) -> list[dict[str, object]]:
+    return [
+        {"role": "system", "content": _PROTOCOL_RECOVERY_SYSTEM},
+        {
+            "role": "user",
+            "content": json.dumps(
+                {
+                    "malformed_worker_response": malformed_response,
+                    "allowed_request_item_ids": assigned_request_item_ids,
+                    "required_schema": _WORKER_RESPONSE_SCHEMA,
+                },
+                ensure_ascii=False,
+            ),
+        },
+    ]
+
+
+def _recovery_usage(usage: dict[str, Any]) -> dict[str, int]:
+    completion_details = usage.get("completion_tokens_details") or {}
+    reasoning_tokens = usage.get("reasoning_tokens")
+    if reasoning_tokens is None:
+        reasoning_tokens = completion_details.get("reasoning_tokens", 0)
+    return {
+        "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+        "completion_tokens": int(usage.get("completion_tokens") or 0),
+        "reasoning_tokens": int(reasoning_tokens or 0),
+        "total_tokens": int(usage.get("total_tokens") or 0),
+    }
+
+
+def _parse_protocol_recovery_response(
+    content: str, assigned_request_item_ids: list[str]
+) -> WorkerResponseParseResult:
+    parsed = parse_worker_response(content, assigned_request_item_ids)
+    if parsed.parse_status != "direct_json":
+        return WorkerResponseParseResult([], "invalid")
+    try:
+        value = json.loads(content.strip())
+    except json.JSONDecodeError:
+        return WorkerResponseParseResult([], "invalid")
+    answers = _validated_answers(value, assigned_request_item_ids, strict_schema=True)
+    return WorkerResponseParseResult(
+        answers,
+        "direct_json" if answers else "invalid",
+    )
+
+
 class AgentLoop:
     def __init__(
         self,
@@ -136,6 +222,107 @@ class AgentLoop:
         self.max_tool_calls = max_tool_calls
         self.generation_policy = GenerationPolicy(max_tokens, max_length_recoveries)
         self.max_infrastructure_retries = max_infrastructure_retries
+
+    async def _attempt_protocol_recovery(
+        self,
+        *,
+        agent: AgentDefinition,
+        subtask: Subtask,
+        malformed_response: str,
+        original_parse_status: str,
+        original_finish_reason: str | None,
+        trace: TraceRecorder,
+        parent_event_id: str | None,
+    ) -> ProtocolRecoveryResult:
+        attempt = 1
+        start_id = trace.record(
+            "worker_protocol_recovery_start",
+            {
+                "worker": agent.agent_id,
+                "subtask_id": subtask.subtask_id,
+                "original_parse_status": original_parse_status,
+                "original_finish_reason": original_finish_reason,
+                "attempt": attempt,
+                "max_attempts": MAX_PROTOCOL_RECOVERY_PER_WORKER,
+            },
+            stage="worker_protocol_recovery",
+            agent=agent.agent_id,
+            parent_event_id=parent_event_id,
+        )
+        started = perf_counter()
+        try:
+            response, response_id = await complete_with_trace(
+                self.llm,
+                trace,
+                stage="worker_protocol_recovery",
+                agent=agent.agent_id,
+                messages=_protocol_recovery_messages(
+                    malformed_response, subtask.request_item_ids
+                ),
+                tools=None,
+                response_format=None,
+                purpose=f"worker_protocol_recovery:{subtask.subtask_id}",
+                parent_event_id=start_id,
+                max_tokens=self.generation_policy.max_tokens,
+                temperature=0.0,
+                attempt_index=attempt,
+                recovery_type="worker_protocol_recovery",
+            )
+        except Exception as error:
+            trace.record(
+                "worker_protocol_recovery_result",
+                {
+                    "worker": agent.agent_id,
+                    "subtask_id": subtask.subtask_id,
+                    "attempt": attempt,
+                    "provider_outcome": "error",
+                    "provider_error_type": type(error).__name__,
+                    "recovery_finish_reason": None,
+                    "recovery_parse_status": "invalid",
+                    "success": False,
+                    "usage": _recovery_usage({}),
+                    "latency_ms": round((perf_counter() - started) * 1000, 2),
+                },
+                stage="worker_protocol_recovery",
+                agent=agent.agent_id,
+                parent_event_id=start_id,
+            )
+            return ProtocolRecoveryResult(
+                WorkerResponseParseResult([], "invalid"), True, False, 1
+            )
+
+        parsed = (
+            _parse_protocol_recovery_response(
+                response.content, subtask.request_item_ids
+            )
+            if not response.tool_calls and response.content.strip()
+            else WorkerResponseParseResult([], "invalid")
+        )
+        success = (
+            response.finish_reason == "stop"
+            and not response.tool_calls
+            and bool(response.content.strip())
+            and bool(parsed)
+        )
+        trace.record(
+            "worker_protocol_recovery_result",
+            {
+                "worker": agent.agent_id,
+                "subtask_id": subtask.subtask_id,
+                "attempt": attempt,
+                "provider_outcome": "success",
+                "provider_error_type": None,
+                "recovery_finish_reason": response.finish_reason,
+                "recovery_parse_status": parsed.parse_status,
+                "success": success,
+                "usage": _recovery_usage(response.usage),
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            },
+            stage="worker_protocol_recovery",
+            agent=agent.agent_id,
+            parent_event_id=response_id,
+        )
+        return ProtocolRecoveryResult(parsed, True, success, 1, response_id)
 
     async def execute(
         self,
@@ -187,6 +374,8 @@ class AgentLoop:
         length_recovery_count = 0
         infrastructure_retry_count = 0
         provider_attempt_count = 0
+        protocol_recovery_count = 0
+        protocol_recovery_success_count = 0
         sent_evidence_ids: set[str] = set()
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
@@ -227,6 +416,8 @@ class AgentLoop:
                     failure_reason="provider_error",
                     infrastructure_retry_count=infrastructure_retry_count,
                     provider_attempt_count=provider_attempt_count,
+                    protocol_recovery_count=protocol_recovery_count,
+                    protocol_recovery_success_count=protocol_recovery_success_count,
                     worker_status="provider_error",
                 )
                 trace.record(
@@ -248,6 +439,31 @@ class AgentLoop:
                 parsed_response = parse_worker_response(
                     response.content, subtask.request_item_ids
                 )
+                final_response_id = response_id
+                protocol_recovery_eligible = (
+                    generation_status != "length_exhausted"
+                    and response.finish_reason == "stop"
+                    and bool(response.content.strip())
+                    and not parsed_response
+                    and protocol_recovery_count < MAX_PROTOCOL_RECOVERY_PER_WORKER
+                )
+                if protocol_recovery_eligible:
+                    recovery = await self._attempt_protocol_recovery(
+                        agent=agent,
+                        subtask=subtask,
+                        malformed_response=response.content,
+                        original_parse_status=parsed_response.parse_status,
+                        original_finish_reason=response.finish_reason,
+                        trace=trace,
+                        parent_event_id=response_id,
+                    )
+                    protocol_recovery_count += int(recovery.attempted)
+                    protocol_recovery_success_count += int(recovery.success)
+                    provider_attempt_count += recovery.provider_attempt_count
+                    if recovery.success:
+                        parsed_response = recovery.parsed
+                        final_response_id = recovery.response_id
+                        generation_status = "completed_after_protocol_recovery"
                 request_item_answers = parsed_response.answers
                 success = bool(request_item_answers) and generation_status != "length_exhausted"
                 failure_reason = None
@@ -269,6 +485,8 @@ class AgentLoop:
                     failure_reason=failure_reason,
                     infrastructure_retry_count=infrastructure_retry_count,
                     provider_attempt_count=provider_attempt_count,
+                    protocol_recovery_count=protocol_recovery_count,
+                    protocol_recovery_success_count=protocol_recovery_success_count,
                     worker_status="success" if success else "generation_error",
                     request_item_answers=request_item_answers,
                 )
@@ -280,7 +498,7 @@ class AgentLoop:
                     worker_payload,
                     stage="worker",
                     agent=agent.agent_id,
-                    parent_event_id=response_id,
+                    parent_event_id=final_response_id,
                 )
                 return result
             messages.append(

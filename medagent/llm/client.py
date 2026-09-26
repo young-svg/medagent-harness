@@ -31,6 +31,7 @@ class LLMClient(Protocol):
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
         max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> LLMResponse: ...
 
     async def close(self) -> None: ...
@@ -65,12 +66,14 @@ class OpenAICompatibleLLM:
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
         max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> LLMResponse:
         effective_max_tokens = self.max_tokens if max_tokens is None else max_tokens
+        effective_temperature = self.temperature if temperature is None else temperature
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": self.temperature,
+            "temperature": effective_temperature,
             "max_tokens": effective_max_tokens,
         }
         if tools:

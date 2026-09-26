@@ -27,6 +27,7 @@ class ScriptedLLM:
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
         max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> LLMResponse:
         self.requests.append(
             {
@@ -72,6 +73,7 @@ class DeterministicLLM:
         tools: list[dict[str, Any]] | None = None,
         response_format: dict[str, Any] | None = None,
         max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> LLMResponse:
         prompt = str(messages[-1].get("content", "")) if messages else ""
         lower = prompt.casefold()

@@ -39,6 +39,8 @@ class WorkerResult:
     failure_reason: str | None = None
     infrastructure_retry_count: int = 0
     provider_attempt_count: int = 0
+    protocol_recovery_count: int = 0
+    protocol_recovery_success_count: int = 0
     worker_status: str = "success"
     request_item_answers: list[RequestItemAnswer] = field(default_factory=list)
 

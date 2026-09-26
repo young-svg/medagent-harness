@@ -144,6 +144,15 @@ class TraceRecorder:
                 and item.get("worker_status") == "provider_error"
                 for item in worker_summaries
             ),
+            "protocol_recovery_count": sum(
+                event.event_type == "worker_protocol_recovery_start"
+                for event in self.events
+            ),
+            "protocol_recovery_success_count": sum(
+                event.event_type == "worker_protocol_recovery_result"
+                and bool(event.payload.get("success"))
+                for event in self.events
+            ),
             "required_deliverable_ids": coverage.get("required_deliverable_ids", []),
             "covered_deliverable_ids": coverage.get("covered_deliverable_ids", []),
             "missing_required_deliverables": coverage.get(

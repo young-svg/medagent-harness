@@ -21,6 +21,8 @@ EVENT_TYPES = {
     "llm_response",
     "generation_summary",
     "worker_provider_attempt",
+    "worker_protocol_recovery_start",
+    "worker_protocol_recovery_result",
     "tool_call",
     "tool_result",
     "retrieval_query",
