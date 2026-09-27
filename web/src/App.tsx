@@ -81,7 +81,10 @@ export default function App() {
 
       <section className="hero" id="top">
         <p className="overline">AGENT ENGINEERING PORTFOLIO SHOWCASE</p>
-        <h1>Inspect a multi-agent workflow from request to verified response</h1>
+        <h1>
+          <span>Inspect a multi-agent workflow</span>
+          <span>from request to verified response</span>
+        </h1>
         <p className="hero-subtitle">Planner, specialized agents, tool and evidence state, session memory, and execution trace in one inspectable interface.</p>
         <p className="hero-description">This page demonstrates workflow and UI presentation only. It is not an online medical service.</p>
       </section>

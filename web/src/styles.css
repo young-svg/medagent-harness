@@ -26,7 +26,8 @@ button { cursor: pointer; }
 
 .hero { max-width: 1000px; padding: 48px 0 34px; }
 .overline { margin: 0 0 11px; color: #2563eb; font-size: 12px; font-weight: 700; letter-spacing: .16em; }
-.hero h1 { margin: 0; color: #202226; font-size: clamp(35px, 4.2vw, 50px); line-height: 1.16; letter-spacing: -.038em; font-weight: 650; white-space: nowrap; }
+.hero h1 { margin: 0; color: #202226; font-size: clamp(35px, 4.2vw, 50px); line-height: 1.16; letter-spacing: -.038em; font-weight: 650; }
+.hero h1 span { display: block; }
 .hero-subtitle { margin: 17px 0 0; color: #4f5661; font-size: 18px; line-height: 1.55; font-weight: 500; }
 .hero-description { margin: 7px 0 0; color: #7c828c; font-size: 16px; line-height: 1.7; }
 
@@ -44,7 +45,7 @@ button { cursor: pointer; }
 .input-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr); gap: 16px; }
 .input-grid label { color: #555b65; font-size: 14px; font-weight: 600; }
 .input-grid label > span { display: block; margin-bottom: 3px; font-size: 15px; }
-.field-help { display: block; margin: 0 0 10px; color: #969ba4; font-size: 13px; font-weight: 400; line-height: 1.5; }
+.field-help { display: block; min-height: 3em; margin: 0 0 10px; color: #969ba4; font-size: 13px; font-weight: 400; line-height: 1.5; }
 textarea { display: block; width: 100%; min-height: 190px; resize: vertical; padding: 24px; border: 1px solid #dfe2e6; border-radius: 12px; outline: none; color: #292c31; background: #fff; font-size: 18px; line-height: 1.7; transition: border-color .2s, box-shadow .2s; }
 textarea.question-input { min-height: 190px; }
 textarea::placeholder { color: #afb3ba; }
@@ -191,6 +192,7 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .demo-picker { width: 100%; }
   .demo-picker select { width: 100%; min-width: 0; max-width: 100%; }
   .input-grid, .developer-panel { grid-template-columns: 1fr; }
+  .field-help { min-height: 0; }
   textarea, textarea.question-input { min-height: 155px; }
   .answer-card { padding: 22px; }
   .clinical-card { padding: 0; }
