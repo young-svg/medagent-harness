@@ -105,6 +105,18 @@ The largest gains were in:
 
 This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement. See [Benchmark](docs/BENCHMARK.md), [Reliability](docs/RELIABILITY.md), and [Failure analysis](docs/FAILURE_ANALYSIS.md).
 
+## Interactive Demo
+
+A static frontend showcase is available:
+
+[MedAgent Showcase Demo](https://young-svg.github.io/medagent-harness/)
+
+- Loads bundled local fixtures.
+- Requires no backend or API keys.
+- Makes no API or external inference calls.
+
+This page demonstrates the Agent workflow and UI presentation only. It is an engineering portfolio showcase, not an online medical service.
+
 ## Quick Start
 
 Requires Python 3.11+.
@@ -126,17 +138,15 @@ Retrieval is an optional runtime capability, not a requirement for the base harn
 
 ## Demo
 
-Start the API and frontend:
+Run the same fixture-only showcase locally:
 
 ```bash
-medagent serve
-
 cd web
 npm ci
 npm run dev
 ```
 
-The frontend presents four synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory. See the [Demo guide](docs/DEMO.md). The API exposes `GET /health`, `POST /api/analyze`, and trace summaries without requiring a provider for deterministic local smoke tests.
+The frontend presents four synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory. It loads only local fixtures and does not call the backend. See the [Static demo](docs/STATIC_DEMO.md), [Static demo audit](docs/STATIC_DEMO_AUDIT.md), and [Demo guide](docs/DEMO.md).
 
 ## Documentation
 
@@ -146,6 +156,8 @@ The frontend presents four synthetic scenarios: single-agent routing, multi-agen
 - [Reliability](docs/RELIABILITY.md)
 - [Failure analysis](docs/FAILURE_ANALYSIS.md)
 - [Demo guide](docs/DEMO.md)
+- [Static demo](docs/STATIC_DEMO.md)
+- [Static demo audit](docs/STATIC_DEMO_AUDIT.md)
 
 ## Repository Layout
 

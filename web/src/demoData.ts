@@ -205,7 +205,7 @@ export const demoFixtures: DemoCaseFixture[] = [
   },
 ];
 
-// Local showcase answers are presentation data, never inputs to /api/analyze.
+// Local showcase answers are presentation data and never leave the browser.
 const threeLayerDemoPresentation: Record<string, {
   direct_answer_title: string;
   direct_answer_sections: Array<{ request_item_id: string; title: string; items: string[] }>;

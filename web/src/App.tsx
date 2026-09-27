@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { AnswerSummary } from "./components/AnswerSummary";
 import { ClinicalDetail } from "./components/ClinicalDetail";
@@ -6,77 +6,25 @@ import { DeveloperPanel } from "./components/DeveloperPanel";
 import { PlainLanguageCard } from "./components/PlainLanguageCard";
 import { demoCases } from "./demoData";
 import { adaptAnalyzeResponse } from "./presentationAdapter";
-import type { AnalyzeResponse, PresentationView } from "./types";
 
-type AppMode = "demo" | "live";
+const DEFAULT_DEMO_ID = "demo-02-multi-agent";
+const defaultDemo = demoCases.find((item) => item.id === DEFAULT_DEMO_ID) ?? demoCases[0];
 
-const emptyPresentation: PresentationView = {
-  directAnswer: "提交病例后，这里会显示核心结论与下一步建议。",
-  plainLanguage: "该结果基于病例信息和医学分析生成，详细解释见下方。",
-  directAnswerTitle: "现在需要知道什么",
-  directAnswerItems: ["提交病例后，这里会显示最直接的结论或行动。"],
-  directAnswerSections: [],
-  plainExplanation: ["请先输入病例信息和重点分析的问题。"],
-  clinicalDetail: "",
-  disclaimer: "本工具仅用于医学信息与病例分析演示，不能替代专业医生的诊断和治疗。",
-  evidenceCards: [],
-  evidenceState: { status: "NOT_REQUIRED" },
-  tools: [],
-  requestItems: [],
-  route: null,
-  workers: [],
-  retrieval: null,
-  traceEvents: [],
-  memory: null,
-};
+if (!defaultDemo) throw new Error("Static demo fixtures are unavailable");
 
 export default function App() {
-  const [description, setDescription] = useState("");
-  const [question, setQuestion] = useState("");
-  const [presentation, setPresentation] = useState<PresentationView>(emptyPresentation);
-  const [developerMode, setDeveloperMode] = useState(false);
+  const [description, setDescription] = useState(defaultDemo.description);
+  const [question, setQuestion] = useState(defaultDemo.question);
+  const [presentation, setPresentation] = useState(() => adaptAnalyzeResponse(defaultDemo.response));
+  const [developerMode, setDeveloperMode] = useState(true);
   const [clinicalExpanded, setClinicalExpanded] = useState(false);
-  const [status, setStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
-  const [statusMessage, setStatusMessage] = useState("Ready");
-  const [mode, setMode] = useState<AppMode>("live");
-  const [runId, setRunId] = useState<string | null>(null);
-  const [selectedDemo, setSelectedDemo] = useState("");
-  const sessionId = useRef(crypto.randomUUID());
-
-  const canAnalyze = mode === "live" && description.trim().length > 0 && question.trim().length > 0 && status !== "running";
-
-  function resetExpandedState() {
-    setClinicalExpanded(false);
-    setDeveloperMode(false);
-  }
-
-  function updateDescription(value: string) {
-    if (mode === "demo") {
-      setMode("live");
-      setSelectedDemo("");
-    }
-    setDescription(value);
-    if (!value.trim() && !question.trim()) resetExpandedState();
-  }
-
-  function updateQuestion(value: string) {
-    if (mode === "demo") {
-      setMode("live");
-      setSelectedDemo("");
-    }
-    setQuestion(value);
-    if (!value.trim() && !description.trim()) resetExpandedState();
-  }
+  const [status, setStatus] = useState<"complete" | "error">("complete");
+  const [statusMessage, setStatusMessage] = useState("Static fixture loaded");
+  const [runId, setRunId] = useState(defaultDemo.response.run_id);
+  const [selectedDemo, setSelectedDemo] = useState(defaultDemo.id);
 
   function loadDemo(demoId: string) {
-    if (!demoId) {
-      resetCase();
-      return;
-    }
     const demo = demoCases.find((item) => item.id === demoId);
-    resetExpandedState();
-    setMode("demo");
-    setSelectedDemo(demoId);
     const demoPresentation = demo?.response.presentation;
     const fixtureReady = Boolean(
       demo
@@ -87,11 +35,8 @@ export default function App() {
       && demoPresentation.plain_explanation?.length
       && demoPresentation.clinical_detail?.trim(),
     );
+
     if (!demo || !fixtureReady) {
-      setDescription("");
-      setQuestion("");
-      setPresentation(emptyPresentation);
-      setRunId(null);
       setStatus("error");
       setStatusMessage("Demo data unavailable");
       return;
@@ -102,91 +47,61 @@ export default function App() {
       setQuestion(demo.question);
       setPresentation(adaptAnalyzeResponse(demo.response));
       setRunId(demo.response.run_id);
+      setSelectedDemo(demoId);
+      setClinicalExpanded(false);
+      setDeveloperMode(true);
       setStatus("complete");
-      setStatusMessage("Demo loaded · local data");
+      setStatusMessage("Static fixture loaded");
     } catch {
-      setDescription("");
-      setQuestion("");
-      setPresentation(emptyPresentation);
-      setRunId(null);
       setStatus("error");
       setStatusMessage("Demo data unavailable");
-    }
-  }
-
-  function resetCase() {
-    sessionId.current = crypto.randomUUID();
-    setDescription("");
-    setQuestion("");
-    setPresentation(emptyPresentation);
-    resetExpandedState();
-    setRunId(null);
-    setStatus("idle");
-    setStatusMessage("Ready");
-    setMode("live");
-    setSelectedDemo("");
-  }
-
-  async function analyze() {
-    if (!canAnalyze) return;
-    resetExpandedState();
-    setMode("live");
-    setSelectedDemo("");
-    setStatus("running");
-    setStatusMessage("Analyzing case…");
-
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, question, session_id: sessionId.current }),
-      });
-      const payload = (await response.json()) as AnalyzeResponse & { detail?: string };
-      if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
-
-      setPresentation(adaptAnalyzeResponse(payload));
-      setRunId(payload.run_id);
-      setStatus(payload.status === "completed" ? "complete" : "error");
-      setStatusMessage(payload.status === "completed" ? "Analysis complete" : `Run ${payload.status}`);
-    } catch (error) {
-      setStatus("error");
-      setStatusMessage(error instanceof Error ? error.message : "Analysis failed");
     }
   }
 
   return (
     <main className="app-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="MedAgent home">
+        <a className="brand" href="#top" aria-label="MedAgent showcase home">
           <span className="brand-mark" aria-hidden="true">M</span>
-          <span><strong>MedAgent</strong><small>AI Clinical Analysis</small></span>
+          <span><strong>MedAgent Harness</strong><small>Agent Engineering Showcase</small></span>
         </a>
         <div className={`run-status status-${status}`} role="status">
           <span className="status-dot" />{statusMessage}
         </div>
       </header>
 
+      <section className="showcase-banner" aria-label="Static showcase status">
+        <div className="showcase-badges">
+          <strong>STATIC SHOWCASE</strong>
+          <strong>LOCAL FIXTURES</strong>
+          <strong>NO API CALL</strong>
+        </div>
+        <p>Static showcase only. Runs on local demo fixtures without backend inference.</p>
+      </section>
+
       <section className="hero" id="top">
-        <p className="overline">CLINICAL REASONING, MADE CLEAR</p>
-        <h1>从病例到<wbr />清晰、可读的医学分析</h1>
-        <p className="hero-subtitle">多 Agent 协作，让答案先给结论，再解释依据。</p>
-        <p className="hero-description">输入病例与问题，MedAgent 会按阅读深度呈现同一份专业答案。</p>
+        <p className="overline">AGENT ENGINEERING PORTFOLIO SHOWCASE</p>
+        <h1>Inspect a multi-agent workflow from request to verified response</h1>
+        <p className="hero-subtitle">Planner, specialized agents, tool and evidence state, session memory, and execution trace in one inspectable interface.</p>
+        <p className="hero-description">This page demonstrates workflow and UI presentation only. It is not an online medical service.</p>
       </section>
 
       <section className="input-card" aria-labelledby="case-input-title">
         <div className="section-heading compact-heading">
           <div>
             <span className="step-number">01</span>
-            <div><h2 id="case-input-title">输入病例或医学问题</h2><p>请勿输入可识别个人身份的信息。</p></div>
+            <div>
+              <h2 id="case-input-title">Explore a demo fixture</h2>
+              <p>Switch between four fixed scenarios. All content is bundled with this static site.</p>
+            </div>
           </div>
           <label className="demo-picker">
-            <span>Demo Cases</span>
+            <span>Showcase Cases</span>
             <select
-              aria-label="Demo Cases"
+              aria-label="Showcase Cases"
               value={selectedDemo}
               onChange={(event) => loadDemo(event.target.value)}
             >
-              <option value="">Select a showcase…</option>
               {demoCases.map((demo) => <option value={demo.id} key={demo.id}>{demo.label}</option>)}
             </select>
           </label>
@@ -194,21 +109,20 @@ export default function App() {
 
         <div className="input-grid">
           <label>
-            <span>病例信息</span>
-            <small className="field-help">患者信息、病史、检查结果等</small>
-            <textarea value={description} onChange={(event) => updateDescription(event.target.value)} placeholder="粘贴病史、体格检查和辅助检查结果…" />
+            <span>Synthetic case context</span>
+            <small className="field-help">Read-only local fixture; no patient record is submitted.</small>
+            <textarea value={description} readOnly />
           </label>
           <label>
-            <span>重点分析的问题</span>
-            <small className="field-help">例如：诊断依据、鉴别诊断、治疗方案等</small>
-            <textarea className="question-input" value={question} onChange={(event) => updateQuestion(event.target.value)} placeholder="写下这次希望重点了解的临床问题…" />
+            <span>User request</span>
+            <small className="field-help">The request drives the displayed plan, worker ownership, and answer contract.</small>
+            <textarea className="question-input" value={question} readOnly />
           </label>
         </div>
 
         <div className="input-actions">
-          <button className="secondary-button" type="button" onClick={resetCase}>新病例</button>
-          <button className="primary-button" type="button" onClick={analyze} disabled={!canAnalyze}>
-            {mode === "demo" ? "Demo loaded" : status === "running" ? "分析中…" : "Analyze"}<span aria-hidden="true">→</span>
+          <button className="secondary-button" type="button" onClick={() => loadDemo(DEFAULT_DEMO_ID)}>
+            Reset to Multi-Agent
           </button>
         </div>
       </section>
@@ -218,10 +132,10 @@ export default function App() {
           <div>
             <span className="step-number">02</span>
             <div>
-              <h2 id="results-title">Analysis</h2>
+              <h2 id="results-title">Fixture Response</h2>
               <p className="result-context">
-                {runId && <span className={`mode-badge mode-${mode}`}>{mode === "demo" ? "Demo fixture" : "Live run"}</span>}
-                {runId ? `Run ${runId}` : "结果会按阅读深度分为三层。"}
+                <span className="mode-badge mode-demo">Local fixture</span>
+                {`Run ${runId}`}
               </p>
             </div>
           </div>
@@ -240,17 +154,20 @@ export default function App() {
         <div className="developer-toggle-row">
           <div>
             <p className="overline">EXECUTION DETAILS</p>
-            <h2 id="developer-title">查看 Agent 工作过程</h2>
-            <p>按需展开 RequestSpec、Planner、Workers、Tools / Evidence 与 Trace。</p>
+            <h2 id="developer-title">Inspect the Agent workflow</h2>
+            <p>RequestSpec, Planner, worker ownership, tools and evidence, trace events, and session memory.</p>
           </div>
           <button className={`toggle ${developerMode ? "toggle-on" : ""}`} type="button" role="switch" aria-checked={developerMode} onClick={() => setDeveloperMode((value) => !value)}>
-            <span />{developerMode ? "收起" : "展开"}
+            <span />{developerMode ? "Collapse" : "Expand"}
           </button>
         </div>
-        {developerMode && <DeveloperPanel presentation={presentation} isDemo={mode === "demo"} />}
+        {developerMode && <DeveloperPanel presentation={presentation} isDemo />}
       </section>
 
-      <footer><span>MedAgent Harness</span><span>Professional answer remains the benchmark output.</span></footer>
+      <footer>
+        <span>MedAgent Harness · Static portfolio showcase</span>
+        <span>No backend · No API keys · No external inference</span>
+      </footer>
     </main>
   );
 }

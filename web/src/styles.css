@@ -1,6 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
-
-:root { color: #24262a; background: #fff; font-family: "DM Sans", "Noto Sans SC", system-ui, sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+:root { color: #24262a; background: #fff; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #fff; }
@@ -20,6 +18,11 @@ button { cursor: pointer; }
 .status-complete .status-dot { background: #22a06b; }
 .status-error .status-dot { background: #d64545; }
 @keyframes pulse { 50% { opacity: .35; } }
+
+.showcase-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; padding: 14px 16px; border: 1px solid #dce6fb; border-radius: 12px; background: #f7faff; }
+.showcase-banner p { margin: 0; color: #5d6878; font-size: 14px; }
+.showcase-badges { display: flex; flex-wrap: wrap; gap: 7px; }
+.showcase-badges strong { padding: 5px 8px; border-radius: 6px; color: #2456be; background: #e7efff; font-size: 10px; letter-spacing: .08em; }
 
 .hero { max-width: 1000px; padding: 48px 0 34px; }
 .overline { margin: 0 0 11px; color: #2563eb; font-size: 12px; font-weight: 700; letter-spacing: .16em; }
@@ -46,6 +49,7 @@ textarea { display: block; width: 100%; min-height: 190px; resize: vertical; pad
 textarea.question-input { min-height: 190px; }
 textarea::placeholder { color: #afb3ba; }
 textarea:focus { border-color: #7da2f4; box-shadow: 0 0 0 3px rgba(37, 99, 235, .09); }
+textarea[readonly] { cursor: default; color: #3e4550; background: #fff; }
 .input-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .primary-button, .secondary-button { min-width: 116px; padding: 11px 17px; border-radius: 10px; font-size: 15px; font-weight: 600; }
 .primary-button { display: inline-flex; justify-content: space-between; gap: 30px; border: 1px solid #2563eb; color: #fff; background: #2563eb; }
@@ -177,6 +181,7 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .app-shell { width: min(100% - 28px, 1120px); }
   .site-header { height: 76px; }
   .run-status { max-width: 150px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .showcase-banner { align-items: flex-start; flex-direction: column; gap: 10px; }
   .hero { padding: 38px 2px 29px; }
   .hero h1 { font-size: 36px; white-space: normal; text-wrap: balance; }
   .hero-subtitle { margin-top: 14px; font-size: 16px; }
