@@ -1,88 +1,111 @@
 # MedAgent Harness
 
-## Overview
+A native multi-agent clinical decision-support harness with context engineering, planning, agent orchestration, tool and retrieval loops, session memory, verification, reliability control, observability, and evaluation.
 
-A multi-agent medical decision-support system that improves complex clinical reasoning through task decomposition, specialized agents, verification, and reliability control.
+MedAgent Harness is an agent-runtime engineering project for traceable clinical-domain workflows. It is not a medical device, does not replace qualified clinical judgment, and does not guarantee a diagnosis.
 
-MedAgent Harness is an engineering project for traceable clinical-domain workflows. It is not a medical device and does not replace qualified clinical judgment.
+## Why MedAgent Harness?
 
-At a glance:
+A direct LLM call can blur a complex clinical request into one generation: explicit deliverables may be dropped, tools may be invoked without clear bounds, and failures are difficult to inspect. MedAgent turns the request into an execution contract, decomposes and routes the work, gives specialized agents bounded context and capabilities, and verifies completion before returning an answer.
 
-- **Flow:** request understanding -> complexity routing -> specialized workers -> verification.
-- **Reliability control:** one bounded protocol-recovery attempt can repair malformed worker serialization without rerunning planning or replaying tools.
-- **Fixed development benchmark:** 59/60 completed; tool replay remained zero.
-- **Fixed comparison set:** overall clinical decision-support quality was 4.6733 for MedAgent and 4.3883 for the saved DeepSeek Web baseline.
-- **Quick start:** `pip install -e ".[dev]"` then `medagent run examples/synthetic_case_1.json`.
-
-## Why this project
-
-Complex clinical questions often hide several deliverables inside one prompt: identify the likely diagnosis, explain the evidence, compare alternatives, recommend tests, propose treatment, and define follow-up. MedAgent turns those requirements into an explicit execution contract and checks that the final response covers them.
-
-Key capabilities:
-
-- deterministic request decomposition with `RequestSpec`;
-- complexity-aware single-agent or multi-agent routing;
-- specialized Diagnostic, Consultation, and Research agents;
-- bounded tool use and optional evidence retrieval;
-- answer-contract and request-coverage verification;
-- bounded structured-output protocol recovery;
-- observable traces without exposing hidden chain-of-thought;
-- offline deterministic fixtures for local development and CI.
+**The core contribution is the harness around the LLM rather than a new foundation model.** The harness owns request structuring, routing, planning, worker dispatch, tool execution, context construction, state handling, verification, recovery, and tracing.
 
 ## Architecture
 
-```text
-User Query
-    |
-    v
-Request Understanding (RequestSpec + AnswerContract)
-    |
-    v
-Complexity Router
-    |
-    +--------------------+
-    |                    |
-    v                    v
-Single Agent         Multi Agent
-    |                    |
-    +----------+---------+
-               |
-               v
-   Diagnostic / Consultation / Research Agents
-               |
-               v
-        Tools / Retrieval
-               |
-               v
-     Answer Contract Verification
-               |
-               v
-         Final Response
+```mermaid
+flowchart TB
+    INPUT["Clinical Case + User Request"]
+    CONTEXT["Context Engineering<br/>RequestSpec · AnswerContract · Stage-aware Context"]
+    PLAN["Planning & Routing<br/>Task Decomposition · Complexity Router"]
+    HARNESS["Agent Harness / Runtime<br/>Coordinator · AgentLoop · State · Dispatch"]
+
+    subgraph ORCHESTRATION["Multi-Agent Orchestration"]
+        WORKERS["Specialized Agents<br/>Diagnostic · Consultation · Research"]
+    end
+
+    subgraph CAPABILITIES["Runtime Capabilities"]
+        TOOL["Tool Use<br/>Function Calling"]
+        RAG["Optional RAG<br/>Evidence Retrieval"]
+    end
+
+    VERIFY["Guardrails & Verification<br/>Request Coverage · Answer Contract · Completion Gate"]
+    OUTPUT["Final Response<br/>Direct Answer · Clinical Detail · Review Views"]
+    MEMORY["Session Memory<br/>Bounded · Process-local · Session-scoped"]
+    RELIABILITY["Reliability Control<br/>Infrastructure Retry · Protocol Recovery"]
+    OBS["Observability & Evaluation<br/>Trace · Usage · Latency · Failure Analysis · Benchmark"]
+
+    INPUT --> CONTEXT
+    CONTEXT --> PLAN
+    PLAN --> HARNESS
+    HARNESS --> WORKERS
+    WORKERS <--> TOOL
+    WORKERS <--> RAG
+    WORKERS --> VERIFY
+    VERIFY --> OUTPUT
+
+    MEMORY --> CONTEXT
+    MEMORY --> HARNESS
+    OUTPUT -.->|updates session| MEMORY
+
+    RELIABILITY -.->|protects execution| HARNESS
+    RELIABILITY -.->|repairs worker protocol| WORKERS
+
+    HARNESS -.->|runtime events| OBS
+    WORKERS -.->|worker and tool events| OBS
+    VERIFY -.->|coverage metrics| OBS
 ```
 
-- **RequestSpec** prevents explicit user requirements from disappearing inside a broad clinical task.
-- **Multi-agent routing** separates independently useful diagnostic, consultation, and evidence work when one long generation would be brittle.
-- **Answer Contract verification** checks required diagnosis, tests, treatment, and follow-up components where the request calls for them.
-- **Protocol Recovery** repairs a malformed worker serialization at most once, without rerunning the planner, replaying tools, or triggering a quality retry.
+The harness constructs context according to execution stage; it does not reuse one oversized prompt everywhere:
 
-See [Architecture](docs/ARCHITECTURE.md) and [Design](docs/DESIGN.md) for the engineering rationale.
+- `RequestSpec` preserves the user's explicit deliverables, while `AnswerContract` identifies required clinical coverage.
+- The Planner receives task-level context; workers receive role-specific assignments, the current request, bounded session context, and admitted evidence only when needed.
+- Tools and optional retrieval add evidence through the controlled worker loop.
+- Session Memory provides bounded state from the current session to Planner and worker execution.
+- Protocol recovery receives only the malformed output, assigned request IDs, and required response schema. It repairs serialization rather than redoing clinical reasoning or reinjecting the full case.
 
-## Repository layout
+See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure model.
 
-```text
-api/                 FastAPI boundary
-docs/                Architecture, evaluation, reliability, and demo documentation
-eval/                Reusable evaluation schemas and scoring utilities
-examples/demo_cases/ Synthetic showcase fixtures
-medagent/            Planner, runtime, agents, tools, retrieval, and verification
-scripts/             Public script policy and extension point
-tests/               Deterministic unit and integration-contract tests
-web/                 React/Vite frontend
-```
+## Engineering Capabilities
 
-The package keeps its established module layout to avoid import churn in a release-only cleanup.
+| Capability | Implementation |
+| --- | --- |
+| Context Engineering | `RequestSpec`, `AnswerContract`, and stage-aware context construction |
+| Planning | Task decomposition and complexity-aware routing |
+| Multi-Agent | Specialized worker ownership and centralized orchestration |
+| Tool Use | Schema-filtered execution with a per-worker call budget |
+| Retrieval | Optional RAG with query routing, evidence admission, and compact injection |
+| Memory | Bounded, process-local, session-scoped context injection |
+| Guardrails | Request coverage, Answer Contract, completion gate, and stable patching |
+| Reliability | Bounded infrastructure retry and worker protocol recovery |
+| Observability | Structured execution traces with model events, tools, usage, latency, and recovery |
+| Evaluation | Reliability benchmark, quality comparison, and failure analysis |
 
-## Quick start
+## Key Reliability Design
+
+Two bounded worker recovery paths are emphasized:
+
+1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors.
+2. **Worker protocol recovery** handles non-empty semantic content that fails the required structured-output protocol.
+
+Protocol recovery is limited to one attempt. It does not rerun the Planner, replay tools, or trigger a quality retry, and its output must pass the same parser and completion gates as the original worker response. Stage-specific generation-length handling is also bounded and is documented in [Architecture](docs/ARCHITECTURE.md#8-reliability-control).
+
+## Evaluation
+
+| Fixed 60-case development evaluation | Result |
+| --- | ---: |
+| Reliability | **59 / 60 completed** |
+| MedAgent clinical decision-support quality | **4.6733 / 5** |
+| DeepSeek Web saved-output baseline | **4.3883 / 5** |
+| Delta | **+0.2850 / +6.49%** |
+
+The largest gains were in:
+
+- Completeness: **+0.7166**
+- Workflow: **+0.7000**
+
+This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement. See [Benchmark](docs/BENCHMARK.md), [Reliability](docs/RELIABILITY.md), and [Failure analysis](docs/FAILURE_ANALYSIS.md).
+
+## Quick Start
 
 Requires Python 3.11+.
 
@@ -93,63 +116,27 @@ python -m venv .venv
 pip install -e ".[dev]"
 
 medagent run examples/synthetic_case_1.json
+```
+
+Without an external model endpoint, the harness uses its deterministic local client for workflow smoke tests. Copy `.env.example` only when configuring an OpenAI-compatible endpoint; never commit `.env`.
+
+### Optional RAG / Retrieval
+
+Retrieval is an optional runtime capability, not a requirement for the base harness. Real Milvus retrieval requires the `retrieval` extra and a corpus the user is authorized to use and govern. This repository does not distribute a local medical knowledge base or raw guideline corpus, and it does not present the synthetic RAG fixtures as an authoritative guideline database.
+
+## Demo
+
+Start the API and frontend:
+
+```bash
 medagent serve
-```
 
-Without an external model endpoint, the project uses its deterministic local client for workflow smoke tests. Copy `.env.example` only when configuring an OpenAI-compatible endpoint; never commit `.env`.
-
-### Optional RAG
-
-Retrieval is optional and defaults to an offline-safe mode. Real Milvus retrieval requires the `retrieval` extra plus a corpus supplied and governed by the user. This repository does not distribute a local medical knowledge base or raw guideline corpus, and the synthetic RAG demo is not presented as a verified authoritative guideline database.
-
-### API
-
-```bash
-curl http://127.0.0.1:8000/health
-curl -X POST http://127.0.0.1:8000/api/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"description":"Synthetic example: intermittent fatigue","question":"What should be assessed?","session_id":"demo"}'
-```
-
-### Frontend
-
-```bash
 cd web
 npm ci
-npm run build
 npm run dev
 ```
 
-The frontend includes four synthetic demonstrations: single-agent routing, multi-agent collaboration, synthetic RAG, and same-session memory. See [Demo guide](docs/DEMO.md).
-
-## Evaluation
-
-### Reliability Benchmark
-
-Fixed 60 clinical cases:
-
-| Metric | Result |
-| --- | ---: |
-| Completion | 59/60 |
-| Non-empty answers | 59/60 |
-| Tool replay | 0 |
-| Protocol recovery | Validated |
-
-This is a fixed development reliability benchmark, not an unseen test set. It measures execution reliability, not general medical capability. See [Reliability](docs/RELIABILITY.md).
-
-## Comparison with DeepSeek Web
-
-The comparison used 60 matched clinical cases and a fixed clinical decision-support rubric.
-
-| Metric | MedAgent | DeepSeek Web |
-| --- | ---: | ---: |
-| Overall Clinical Quality | 4.6733 | 4.3883 |
-| Medical | 4.8333 | 4.3333 |
-| Completeness | 4.7833 | 4.0667 |
-| Workflow | 4.7833 | 4.0833 |
-| Safety | 4.8833 | 4.4833 |
-
-On this fixed benchmark, MedAgent achieved higher overall clinical decision-support quality, mainly through better requirement coverage, a more structured clinical workflow, and safety-aware reasoning. The result is benchmark-specific and does not support broad claims about general medical ability. See [Benchmark](docs/BENCHMARK.md).
+The frontend presents four synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory. See the [Demo guide](docs/DEMO.md). The API exposes `GET /health`, `POST /api/analyze`, and trace summaries without requiring a provider for deterministic local smoke tests.
 
 ## Documentation
 
@@ -159,6 +146,18 @@ On this fixed benchmark, MedAgent achieved higher overall clinical decision-supp
 - [Reliability](docs/RELIABILITY.md)
 - [Failure analysis](docs/FAILURE_ANALYSIS.md)
 - [Demo guide](docs/DEMO.md)
+
+## Repository Layout
+
+```text
+api/                 FastAPI boundary
+docs/                Architecture, evaluation, reliability, and demo documentation
+eval/                Reusable evaluation schemas and scoring utilities
+examples/demo_cases/ Synthetic showcase fixtures
+medagent/            Context, planning, runtime, agents, tools, retrieval, and verification
+tests/               Deterministic unit and integration-contract tests
+web/                 React/Vite frontend
+```
 
 ## Validation
 
@@ -173,9 +172,9 @@ npm run build
 
 CI runs offline and does not require a model endpoint, vector database, patient dataset, or private corpus.
 
-## Public-release data policy
+## Public-release Data Policy
 
-This repository does not distribute patient records, benchmark case text, candidate answer dumps, private medical corpora, vector databases, model weights, credentials, or local traces. Demo inputs and evidence cards are synthetic fixtures.
+This repository does not distribute patient records, benchmark case text, candidate-answer dumps, private medical corpora, vector databases, model weights, credentials, or local traces. Demo inputs and evidence cards are synthetic fixtures.
 
 ## License
 
