@@ -1,50 +1,18 @@
 [
   {
-    "evidence_id": "milvus-1",
-    "title": "hypertension",
-    "source": "生活方式建议数据库",
-    "section": "lifestyle",
-    "score": 0.8789716362953186,
-    "text_preview": "高血压生活方式建议\n\n一、饮食建议\n\n1. 低盐饮食\n   - 每日钠摄入<2g，约5g食盐\n   - 避免高盐食品：腌制品、酱菜、加工肉类\n\n2. 增加钾摄入\n   - 富钾食物：香蕉、土豆、豆类\n   - 每日推荐：3500-5000mg\n\n3. 控制饱和脂肪和胆固醇\n   - 减少红肉、动物内脏摄入\n   - 选择瘦肉、鱼类、豆制品\n\n4. 增加全谷物、蔬菜和水果\n   - 每日蔬菜：500g以上\n   - 每日水果：200-350g\n   - 全谷物占主食的1/3以上\n\n二、运动建议\n\n1. 有氧运动频率\n   - 每周至少150分钟中等强度有氧运动\n   - 或每周75分钟高强度有氧"
+    "evidence_id": "synthetic-guideline-1",
+    "title": "Measurement and context checklist",
+    "source": "Synthetic Guideline Fixture",
+    "section": "assessment",
+    "score": 0.91,
+    "text_preview": "SYNTHETIC EVIDENCE: confirm measurement technique, review trends, medicines, comorbidities, warning symptoms, and practical barriers before personalizing a plan."
   },
   {
-    "evidence_id": "milvus-23",
-    "title": "hypertension",
-    "source": "临床指南数据库",
-    "section": "clinical_guideline",
-    "score": 0.8037919402122498,
-    "text_preview": "血压：\n- 目标血压：140-150/90-100mmHg\n- 原因：过度降压影响胎盘灌注、胎儿发育\n\n重度妊娠期高血压或子痫前期：\n- 目标血压：<160/110mmHg（预防脑出血、抽搐）\n- 紧急情况：静脉降压药（硫酸镁、拉贝洛尔）\n\n产后：\n- 多数妊娠期高血压产后6周内自行恢复\n- 若持续升高，按一般高血压治疗\n\n9. 难治性高血压\n\n定义：使用≥3种降压药（包括利尿剂）足量治疗，血压仍≥140/90mmHg\n\n治疗目标：\n- <140/90mmHg（可能需要4-5种药物）\n\n策略：\n- 排查继发性高血压（肾动脉狭窄、原发性醛固酮增多症）\n- 评估依从性（药物是否规律服用）\n- 加用"
-  },
-  {
-    "evidence_id": "milvus-18",
-    "title": "hypertension",
-    "source": "临床指南数据库",
-    "section": "clinical_guideline",
-    "score": 0.8026987314224243,
-    "text_preview": "中国高血压防治指南（2023年修订版）- 完整版\n\n发布机构：中华医学会心血管病学分会\n发布年份：2023年\n指南类型：临床诊疗指南\n指南版本：最新修订版\n证据等级：A级（基于多项大型随机对照试验）\n\n【核心更新要点】\n- 诊断标准维持不变：≥140/90mmHg（与WHO、ESC标准一致）\n- 强调家庭血压监测的重要性\n- 细化特殊人群（老年人、糖尿病、肾病）的治疗目标\n- 推荐单片复方制剂提高依从性\n- 新增数字化管理建议\n\n一、诊断标准（核心内容）\n\n【基本诊断标准】\n所有成年人（≥18岁）统一标准：\n- 诊室血压：收缩压≥140mmHg 和/或 舒张压≥90mmHg\n- 测量要求：非同"
-  },
-  {
-    "evidence_id": "milvus-19",
-    "title": "hypertension",
-    "source": "临床指南数据库",
-    "section": "clinical_guideline",
-    "score": 0.7978799343109131,
-    "text_preview": "）\n\n高血压分级：\n- 1级高血压（轻度）：140-159/90-99mmHg\n- 2级高血压（中度）：160-179/100-109mmHg\n- 3级高血压（重度）：≥180/110mmHg\n- 单纯收缩期高血压：收缩压≥140mmHg 且 舒张压<90mmHg（老年人常见）\n\n【特殊说明】\n- 无论年龄、性别、种族，诊断标准相同\n- 老年人、糖尿病患者诊断标准不降低（治疗目标有差异，见后）\n- 青少年高血压参照年龄、性别、身高的百分位标准（<18岁）\n\n3. 诊断流程\n\n初步筛查：\n- 所有成年人每年至少测量1次血压\n- 高危人群（肥胖、家族史、糖尿病）每3-6个月测1次\n\n诊断流程：\n步"
-  },
-  {
-    "evidence_id": "milvus-21",
-    "title": "hypertension",
-    "source": "临床指南数据库",
-    "section": "clinical_guideline",
-    "score": 0.7676788568496704,
-    "text_preview": "0/90mmHg（耐受性好的患者）\n- 理想目标：<130/80mmHg（身体状况良好、无体位性低血压者）\n- 降压速度：比年轻人更缓慢，观察4-8周\n\n≥80岁（高龄老年人）：\n- 目标：<150/90mmHg（不推荐更严格控制）\n- 原因：过度降压增加跌倒、骨折、肾损伤风险\n- 特殊考虑：\n  * 若已达<140/90mmHg且耐受良好，可维持\n  * 衰弱、多重用药、认知障碍者，目标可放宽至<160/90mmHg\n\n老年人特殊监测：\n- 立位血压：每次随访测量，排除体位性低血压（立位血压下降≥20/10mmHg）\n- 肾功能：每3-6个月监测，避免过度降压导致肾灌注不足\n- 认知功能：关"
-  },
-  {
-    "evidence_id": "milvus-20",
-    "title": "hypertension",
-    "source": "临床指南数据库",
-    "section": "clinical_guideline",
-    "score": 0.7107159495353699,
-    "text_preview": "  * 易合并肾脏损害、视网膜病变\n- 筛查频率：每3个月测1次血压\n- 治疗目标：更严格（<130/80mmHg）\n\n合并慢性肾脏病（CKD）患者：\n- 诊断标准：相同（≥140/90mmHg）\n- 特点：\n  * 高血压加速肾功能恶化\n  * 易发生难治性高血压\n  * 需监测血钾（ACEI/ARB可致高钾血症）\n- 治疗目标：<130/80mmHg（减缓肾病进展）\n\n妊娠期高血压：\n- 诊断标准：≥140/90mmHg（妊娠20周后新发）\n- 分类：\n  * 妊娠期高血压：单纯血压升高\n  * 子痫前期：血压升高 + 蛋白尿\n  * 子痫：子痫前期 + 抽搐\n- 治疗目标：140-150"
+    "evidence_id": "synthetic-guideline-2",
+    "title": "Lifestyle review and follow-up",
+    "source": "Synthetic Guideline Fixture",
+    "section": "follow-up",
+    "score": 0.84,
+    "text_preview": "SYNTHETIC EVIDENCE: discuss feasible lifestyle actions, document a baseline and agreed goals, and reassess measurements, adherence, and tolerability at follow-up."
   }
 ]

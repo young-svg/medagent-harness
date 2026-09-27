@@ -1,6 +1,6 @@
 {
   "name": "临床快速分析（Single Agent）",
-  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
+  "fixture_notice": "Synthetic showcase fixture. It contains no real patient record, benchmark input, or private-corpus excerpt.",
   "question": "请分析最可能诊断、诊断依据、需要关注的检查以及初步处理方案。",
   "case_context": "58岁男性，反复餐后胃灼热、反酸半年，每周约3～4次，平卧及晚餐过晚时加重。BMI 28 kg/m²，偶尔饮酒；无吞咽困难、呕血、黑便或近期体重下降。心电图无急性异常，血常规未见贫血，近期未规律接受抑酸治疗。",
   "presentation": {
@@ -90,6 +90,6 @@
       }
     ]
   },
-  "source_run_id": "e9c126e5-f086-4805-a9db-58d9c7a96116",
-  "source_kind": "completed_real_agent_final_answer"
+  "source_run_id": "synthetic-demo-single-001",
+  "source_kind": "synthetic_demo_fixture"
 }

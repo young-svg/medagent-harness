@@ -1,6 +1,6 @@
 {
   "name": "连续诊疗分析（Memory）",
-  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
+  "fixture_notice": "Synthetic showcase fixture. It contains no real patient record, benchmark input, or private-corpus excerpt.",
   "question": "结合之前信息，进一步讨论预防治疗方案。",
   "case_context": "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。用户咨询：请分析是否需要预防治疗，并记录需要持续关注的信息。Session Memory 保存了发作频率、伴随症状和当前关注方向。第二轮：用户基于同一会话继续追问预防治疗方案。",
   "rounds": [
@@ -117,6 +117,6 @@
       }
     ]
   },
-  "source_run_id": "41aa51be-245b-4ef7-80de-af132a36e98b",
-  "source_kind": "completed_real_agent_final_answer"
+  "source_run_id": "synthetic-demo-memory-001",
+  "source_kind": "synthetic_demo_fixture"
 }

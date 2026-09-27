@@ -1,112 +1,96 @@
 # MedAgent Harness
 
-MedAgent Harness is a self-contained, traceable clinical-domain agent runtime. Its
-public execution path is the centralized Planner-Worker architecture implemented by
-`NativeMedAgentEngine`.
+## Overview
 
-This project is an engineering demonstration, not a medical device. It must not be
-used as a substitute for qualified clinical judgment.
+A multi-agent medical decision-support system that improves complex clinical reasoning through task decomposition, specialized agents, verification, and reliability control.
 
-## Runtime flow
+MedAgent Harness is an engineering project for traceable clinical-domain workflows. It is not a medical device and does not replace qualified clinical judgment.
+
+## Why this project
+
+Complex clinical questions often hide several deliverables inside one prompt: identify the likely diagnosis, explain the evidence, compare alternatives, recommend tests, propose treatment, and define follow-up. MedAgent turns those requirements into an explicit execution contract and checks that the final response covers them.
+
+Key capabilities:
+
+- deterministic request decomposition with `RequestSpec`;
+- complexity-aware single-agent or multi-agent routing;
+- specialized Diagnostic, Consultation, and Research agents;
+- bounded tool use and optional evidence retrieval;
+- answer-contract and request-coverage verification;
+- bounded structured-output protocol recovery;
+- observable traces without exposing hidden chain-of-thought;
+- offline deterministic fixtures for local development and CI.
+
+## Architecture
 
 ```text
-Case -> Context + bounded memory -> Contract + Ledger -> Planner -> Workers
-     -> Tools / optional RAG -> Synthesis -> Guardrail -> Answer -> Trace + Presentation
+User Query
+    |
+    v
+Request Understanding (RequestSpec + AnswerContract)
+    |
+    v
+Complexity Router
+    |
+    +--------------------+
+    |                    |
+    v                    v
+Single Agent         Multi Agent
+    |                    |
+    +----------+---------+
+               |
+               v
+   Diagnostic / Consultation / Research Agents
+               |
+               v
+        Tools / Retrieval
+               |
+               v
+     Answer Contract Verification
+               |
+               v
+         Final Response
 ```
 
-- Bounded, process-local session memory is injected into the actual Planner and Worker
-  messages. Current description/question and the current Contract/Ledger remain
-  authoritative over history; sessions are isolated. Applications can explicitly disable
-  process-local history with `SessionMemory(enabled=False)`.
-- The four public procedural specs in `medagent/skills/specs/` are loaded at startup and
-  injected into the corresponding Diagnostic, Consultation, Research, and Synthesis
-  system messages. Trace metadata records each skill name and SHA-256 digest.
-- Tool schemas are filtered before every Worker model call and revalidated at execution.
-- Retrieval mode is selected by configuration: `off`, deterministic `fake`, or optional
-  `milvus`. Only admitted compact evidence reaches model context; raw candidates,
-  admission decisions, collection routing, and compact evidence are traced.
-- Every Planner, Worker, and Synthesis model boundary records actual messages, tool
-  schemas, model settings, content/tool calls, usage, finish reason, latency, and errors.
-  Central trace redaction removes credential-shaped values without deleting normal
-  clinical text.
-- Multi-agent drafts are synthesized, checked, and conservatively edited as stable units.
-- Patient, Clinical, and Developer views share the exact native final answer.
+- **RequestSpec** prevents explicit user requirements from disappearing inside a broad clinical task.
+- **Multi-agent routing** separates independently useful diagnostic, consultation, and evidence work when one long generation would be brittle.
+- **Answer Contract verification** checks required diagnosis, tests, treatment, and follow-up components where the request calls for them.
+- **Protocol Recovery** repairs a malformed worker serialization at most once, without rerunning the planner, replaying tools, or triggering a quality retry.
 
-Long-term memory is intentionally excluded. No model weights, clinical corpus, vector
-database, credentials, or third-party benchmark answers are distributed here.
+See [Architecture](docs/ARCHITECTURE.md) and [Design](docs/DESIGN.md) for the engineering rationale.
 
-## Quick start: offline smoke
+## Repository layout
+
+```text
+api/                 FastAPI boundary
+docs/                Architecture, evaluation, reliability, and demo documentation
+eval/                Reusable evaluation schemas and scoring utilities
+examples/demo_cases/ Synthetic showcase fixtures
+medagent/            Planner, runtime, agents, tools, retrieval, and verification
+scripts/             Public script policy and extension point
+tests/               Deterministic unit and integration-contract tests
+web/                 React/Vite frontend
+```
+
+The package keeps its established module layout to avoid import churn in a release-only cleanup.
+
+## Quick start
 
 Requires Python 3.11+.
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
 # POSIX: source .venv/bin/activate
+# Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-# This is the default; shown explicitly for reproducibility.
-MEDAGENT_RETRIEVAL_MODE=off medagent run examples/synthetic_case_1.json
-medagent --help
+medagent run examples/synthetic_case_1.json
 medagent serve
 ```
 
-On Windows PowerShell, set an environment value with
-`$env:MEDAGENT_RETRIEVAL_MODE = "off"`. With no model endpoint configured, the runtime
-uses a deterministic local client for installation and workflow smoke tests. It does not
-make a commercial API call.
+Without an external model endpoint, the project uses its deterministic local client for workflow smoke tests. Copy `.env.example` only when configuring an OpenAI-compatible endpoint; never commit `.env`.
 
-## Real OpenAI-compatible model endpoint
-
-Set the following variables before running the CLI or API:
-
-```text
-MEDAGENT_LLM_BASE_URL=https://your-endpoint.example/v1
-MEDAGENT_LLM_API_KEY=replace-me
-MEDAGENT_LLM_MODEL=your-model
-```
-
-Temperature and the generic client fallback retain their documented defaults through
-`MEDAGENT_LLM_TEMPERATURE` and `MEDAGENT_LLM_MAX_TOKENS`. Planner, Worker, and Synthesis
-generation use independent ceilings through `MEDAGENT_PLANNER_MAX_TOKENS`,
-`MEDAGENT_WORKER_MAX_TOKENS`, and `MEDAGENT_SYNTHESIS_MAX_TOKENS` (each defaults to `8192`).
-Each stage allows at most one same-input completion recovery after an unusable
-`finish_reason=length` response. The corresponding settings are
-`MEDAGENT_PLANNER_MAX_LENGTH_RECOVERIES`, `MEDAGENT_WORKER_MAX_LENGTH_RECOVERIES`, and
-`MEDAGENT_SYNTHESIS_MAX_LENGTH_RECOVERIES` (each defaults to `1`). These are output ceilings,
-not fixed consumption targets; normal `stop` responses use only their actual tokens.
-
-## Clinical RAG configuration
-
-Offline-safe modes require no optional dependency:
-
-```text
-MEDAGENT_RETRIEVAL_MODE=off   # retrieval calls fail explicitly
-MEDAGENT_RETRIEVAL_MODE=fake  # deterministic tests/fixtures
-```
-
-For a real Milvus deployment:
-
-```bash
-pip install -e ".[retrieval]"
-```
-
-```text
-MEDAGENT_RETRIEVAL_MODE=milvus
-MEDAGENT_MILVUS_URI=https://your-milvus-endpoint.example
-MEDAGENT_MILVUS_TOKEN=replace-me
-MEDAGENT_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
-MEDAGENT_GENERIC_COLLECTION=clinical_knowledge
-MEDAGENT_SPECIAL_COLLECTION=clinical_guidelines
-MEDAGENT_RETRIEVAL_TOP_K=5
-MEDAGENT_RETRIEVAL_THRESHOLD=0.63
-```
-
-Milvus mode validates URI, embedding configuration, and optional packages. Missing
-configuration fails clearly; it never silently falls back to fake retrieval. Users must
-provide and govern their own lawfully obtained clinical corpus and database.
-
-## API
+### API
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -115,45 +99,63 @@ curl -X POST http://127.0.0.1:8000/api/analyze \
   -d '{"description":"Synthetic example: intermittent fatigue","question":"What should be assessed?","session_id":"demo"}'
 ```
 
-The response contains `final_answer`, `run_id`, `trace`, and `presentation`.
-`presentation.professional_answer` is always identical to `final_answer`.
-
-## Frontend and trace replay
+### Frontend
 
 ```bash
 cd web
 npm ci
 npm run build
+npm run dev
 ```
 
-Patient, Clinical, and Developer views are provided. Evidence Cards contain only admitted
-references and do not claim patient-specific proof. Large structured trace content is
-collapsed by default in Developer View; it exposes observable inputs/outputs, not hidden
-chain-of-thought.
+The frontend includes four synthetic demonstrations: single-agent routing, multi-agent collaboration, synthetic RAG, and same-session memory. See [Demo guide](docs/DEMO.md).
 
-Every run writes `runs/<run_id>/trace.jsonl` by default. Replay reads the recorded final
-answer without invoking a model:
+## Evaluation
 
-```bash
-medagent replay runs/<run_id>
-```
+### Reliability Benchmark
+
+Fixed 60 clinical cases:
+
+| Metric | Result |
+| --- | ---: |
+| Completion | 59/60 |
+| Non-empty answers | 59/60 |
+| Tool replay | 0 |
+| Protocol recovery | Validated |
+
+This is a fixed development reliability benchmark, not an unseen test set. It measures execution reliability, not general medical capability. See [Reliability](docs/RELIABILITY.md).
+
+## Comparison with DeepSeek Web
+
+The comparison used 60 matched clinical cases and a fixed clinical decision-support rubric.
+
+| Metric | MedAgent | DeepSeek Web |
+| --- | ---: | ---: |
+| Overall Clinical Quality | 4.6733 | 4.3883 |
+| Medical | 4.8333 | 4.3333 |
+| Completeness | 4.7833 | 4.0667 |
+| Workflow | 4.7833 | 4.0833 |
+| Safety | 4.8833 | 4.4833 |
+
+On this fixed benchmark, MedAgent achieved higher overall clinical decision-support quality, mainly through better requirement coverage, a more structured clinical workflow, and safety-aware reasoning. The result is benchmark-specific and does not support broad claims about general medical ability. See [Benchmark](docs/BENCHMARK.md).
 
 ## Validation
 
 ```bash
-ruff check .
-pytest -m "not integration"
+pytest
+ruff check medagent tests
+
+cd web
+npm ci
+npm run build
 ```
 
-The public tests need no model endpoint, Milvus service, or long-term-memory service.
-`tests/test_runtime_claims.py` prevents the documented Memory, Skills, RAG, and full Trace
-capabilities from becoming disconnected files or dead code.
+CI runs offline and does not require a model endpoint, vector database, patient dataset, or private corpus.
 
-## Evaluation and license status
+## Public-release data policy
 
-Historical design-baseline metrics in `docs/evaluation.md` are not measurements of this
-native engine. Readiness for a future rerun is documented in
-`docs/NATIVE_BENCHMARK_READINESS.md`; this release does not rerun or alter the benchmark.
+This repository does not distribute patient records, benchmark case text, candidate answer dumps, private medical corpora, vector databases, model weights, credentials, or local traces. Demo inputs and evidence cards are synthetic fixtures.
 
-License selection and ownership confirmation remain user decisions. No legal-clearance
-claim is made. See `LICENSE_PENDING.md` and `docs/OPEN_SOURCE_STATUS.md`.
+## License
+
+Released under the [MIT License](LICENSE).

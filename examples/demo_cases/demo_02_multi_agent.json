@@ -1,6 +1,6 @@
 {
   "name": "复杂病例协作分析（Multi Agent）",
-  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative.",
+  "fixture_notice": "Synthetic showcase fixture. It contains no real patient record, benchmark input, or private-corpus excerpt.",
   "question": "请分析最可能诊断和鉴别诊断，制定进一步检查方案，并给出治疗与随访计划。",
   "case_context": "58岁男性，反酸和胸骨后灼热约1年，近3个月出现进行性固体食物吞咽困难，近2个月非主动减重5 kg。血红蛋白105 g/L，粪便隐血阳性。无呕血，生命体征稳定。尚未接受胃镜检查。",
   "presentation": {
@@ -105,6 +105,6 @@
       }
     ]
   },
-  "source_run_id": "eccbee9f-4cfe-4b29-b550-4364695e8387",
-  "source_kind": "completed_real_agent_final_answer"
+  "source_run_id": "synthetic-demo-multi-001",
+  "source_kind": "synthetic_demo_fixture"
 }

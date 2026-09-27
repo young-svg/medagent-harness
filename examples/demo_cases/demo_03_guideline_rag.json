@@ -1,31 +1,31 @@
 {
-  "name": "循证医学分析（RAG）",
-  "fixture_notice": "Local showcase fixture, not a real patient record. Clinical detail is an exact completed Agent final_answer; developer workflow metadata is illustrative. Evidence previews were captured from local MedicalQA-DX Milvus retrieval.",
-  "question": "请结合相关指南说明高血压患者生活方式管理方案。",
-  "case_context": "60岁男性，已诊断原发性高血压，目前血压控制一般，希望优化生活方式管理。",
+  "name": "Synthetic evidence workflow (RAG)",
+  "fixture_notice": "Synthetic showcase fixture. It contains no real patient record, benchmark input, or private-corpus excerpt.",
+  "question": "Using the supplied synthetic evidence cards, outline a safe lifestyle-review workflow for an adult with previously diagnosed hypertension.",
+  "case_context": "SYNTHETIC EXAMPLE: an adult with previously diagnosed hypertension asks how a clinician would structure a lifestyle review. No patient-specific measurements or treatment decision are supplied.",
   "presentation": {
-    "direct_answer": "【管理方案】限盐、健康膳食、规律运动、体重管理、戒烟限酒和家庭血压记录。\n【检索依据】本地 MedicalQA-DX 知识库检索到高血压生活方式和指南条目；个体目标仍需医生核定。",
-    "plain_language": "盐多会使身体留住更多水分，升高血管压力。减盐、运动和控制体重有助于稳定血压；家庭记录则帮助医生判断是否有效。",
-    "clinical_detail": "## 高血压患者生活方式管理方案（基于指南的综合说明）\n\n**依据**：《中国高血压防治指南（2023年修订版）》及相关生活方式管理建议数据库条目。以下为通用推荐，**不构成对任何具体患者的个体化处方**，也不代表任何干预已完成；具体目标与实施应由临床医师结合患者个体情况确定。\n\n---\n\n### 一、管理要点（按优先级）\n\n**1. 限盐（首要重点）**\n- 每日钠摄入 <2 g（相当于食盐 <5 g/d）。\n- 避免腌制食品、酱菜、加工肉类及高钠调味品（酱油、味精、鸡精等）。\n\n**2. 膳食模式（DASH/健康膳食）**\n- 多蔬菜（≥500 g/d）、水果（200–350 g/d）、全谷物（占主食 1/3 以上）、低脂奶制品。\n- 减少饱和脂肪与胆固醇：少红肉、动物内脏；选瘦肉、鱼类、豆制品。\n\n**3. 增加钾摄入**\n- 每日约 3500–5000 mg，来源如香蕉、土豆、豆类。\n- **警示**：合并慢性肾脏病，或正在使用 ACEI/ARB、保钾利尿剂者，补钾前须评估血钾与肾功能，不宜自行大量补钾（ACEI/ARB 可致高钾血症）。\n\n**4. 体重管理**\n- 目标 BMI 18.5–24；腰围男性 <90 cm（女性 <85 cm）。超重者减重本身即有降压作用。\n\n**5. 规律运动**\n- 有氧运动每周至少 150 分钟中等强度（或 75 分钟高强度），每周 3–5 次、每次 30–60 分钟，如快走（5–6 km/h）、游泳、骑车。\n- **注意事项**：避免剧烈运动与突然发力；清晨运动充分热身；运动中出现胸痛、明显气促、头晕、心悸应立即停止并评估。\n\n**6. 戒烟与限酒**\n- 严格戒烟（含避免二手烟）。\n- 如饮酒，男性每日酒精 <25 g（女性 <15 g）；建议戒酒或仅少量饮用。\n\n**7. 睡眠与压力管理**\n- 规律作息，保证 7–8 小时睡眠，避免熬夜。\n- 放松训练（深呼吸、冥想），保持良好心态，必要时寻求心理支持。\n\n**8. 家庭血压监测（指南强调）**\n- 家庭血压高血压标准 ≥135/85 mmHg（诊室标准 ≥140/90 mmHg，两者阈值不同）。\n- 时间：早晨起床 1 小时内与晚间睡前；每次测 2–3 遍取平均值。\n- 频度：可连续测 7 天，弃第 1 天，取后 6 天平均值评估基线；日常每日早晚各测一次并记录。\n- 24 小时动态血压监测（24 h 平均 ≥130/80 mmHg）适用于疑似白大衣/难治性高血压或血压波动大者。\n\n**9. 依从性与随访**\n- 遵医嘱规律服药，按时按量，**不自行停药或改药**；生活方式干预不能替代已处方的药物。\n- 指南推荐单片复方制剂以提高依从性，并新增数字化管理建议。\n- 一般 1–3 个月复诊评估效果；同时关注血脂、血糖、尿酸、肾功能、尿常规、心电图等风险与靶器官评估（具体项目与频次由医生决定）。\n- 药物与生活方式的关系（供参考）：1 级高血压低危者可先生活方式干预 3 个月，无效再启动药物；中高危或 2 级及以上者应同时立即启动药物。\n\n**10. 需立即就医的警示情况**\n- 血压突然显著升高（如 >180/110 mmHg）并伴头痛、胸痛、视物模糊、呼吸困难、肢体无力或言语不清等，应立即就医或拨打 120。\n\n---\n\n### 二、个体化与不确定性说明\n\n- 上述为通用指南推荐。要制定真正的个体化方案，需补充血压分级与数值、心血管危险分层、靶器官损害与合并症、目前用药及依从性、体重/BMI、烟酒、睡眠与运动习惯等信息。\n- 降压目标一般为 <140/90 mmHg，合并糖尿病/冠心病/肾病者更严格，老年人需个体化，**具体目标由主管医生确定**。\n- 各指南在 BMI、腰围、运动量、酒精上限及特殊人群分层目标上存在差异，指南版本更新也会影响细节；限盐强度、补钾等在合并肾病、糖尿病或使用特定降压药时需相应调整。"
+    "direct_answer": "Use the admitted evidence to organize measurement review, lifestyle discussion, safety checks, and follow-up. Patient-specific targets and medication decisions require the missing clinical context and qualified review.",
+    "plain_language": "The demo shows how retrieved notes can support a checklist without pretending that a short evidence card proves what is right for one person.",
+    "clinical_detail": "## Synthetic evidence-assisted workflow\n\nThis is a demonstration of retrieval and synthesis, not a patient-specific recommendation. The supplied cards are synthetic and are not clinical guidelines.\n\n### 1. Confirm the decision context\n\nVerify how blood pressure was measured, review the measurement record, clarify current medicines and adherence, and identify comorbidities or warning symptoms. Do not infer an individualized target from the limited prompt.\n\n### 2. Structure the lifestyle review\n\nDiscuss dietary pattern, sodium exposure, activity, weight goals when relevant, tobacco and alcohol exposure, sleep, and practical barriers. Convert any agreed change into a small measurable action rather than presenting a generic checklist as completed care.\n\n### 3. Apply safety boundaries\n\nEscalate urgent symptoms or markedly abnormal measurements according to local clinical policy. Changes to prescribed medication, potassium intake, exercise intensity, or fluid goals require patient-specific review when kidney, cardiovascular, pregnancy, frailty, or medication factors may alter risk.\n\n### 4. Define follow-up\n\nRecord baseline measurements, the agreed actions, adherence barriers, and a review point. At follow-up, compare measurements and tolerability, then decide whether further examination or treatment adjustment is needed.\n\n### Evidence limitation\n\nThe Research Agent may summarize admitted evidence, but the Consultation Agent must preserve uncertainty. Retrieval supports the workflow; it does not replace source verification or clinician judgment."
   },
   "developer": {
     "request_spec": {
       "items": [
         {
           "id": "RQ1",
-          "text": "说明高血压患者的生活方式管理方案",
+          "text": "Outline a safe lifestyle-review workflow",
           "required": true
         },
         {
           "id": "RQ2",
-          "text": "结合已检索资料说明指南依据",
+          "text": "Use and qualify the supplied synthetic evidence",
           "required": true
         }
       ]
     },
     "route": {
       "mode": "multi",
-      "reason": "指南检索与生活方式管理建议由 Research 和 Consultation Agent 协作"
+      "reason": "Evidence handling and consultation planning are independently useful workstreams."
     },
     "planner": {
       "subtasks": [
@@ -67,7 +67,7 @@
         {
           "name": "clinical_guideline",
           "status": "Retrieved",
-          "query": "高血压患者生活方式管理指南"
+          "query": "synthetic lifestyle review workflow"
         }
       ]
     },
@@ -76,65 +76,29 @@
       "required": true,
       "cards": [
         {
-          "evidence_id": "milvus-1",
-          "title": "hypertension",
-          "source": "生活方式建议数据库",
-          "section": "lifestyle",
-          "score": 0.8789716362953186,
-          "text_preview": "高血压生活方式建议\n\n一、饮食建议\n\n1. 低盐饮食\n   - 每日钠摄入<2g，约5g食盐\n   - 避免高盐食品：腌制品、酱菜、加工肉类\n\n2. 增加钾摄入\n   - 富钾食物：香蕉、土豆、豆类\n   - 每日推荐：3500-5000mg\n\n3. 控制饱和脂肪和胆固醇\n   - 减少红肉、动物内脏摄入\n   - 选择瘦肉、鱼类、豆制品\n\n4. 增加全谷物、蔬菜和水果\n   - 每日蔬菜：500g以上\n   - 每日水果：200-350g\n   - 全谷物占主食的1/3以上\n\n二、运动建议\n\n1. 有氧运动频率\n   - 每周至少150分钟中等强度有氧运动\n   - 或每周75分钟高强度有氧"
+          "evidence_id": "synthetic-guideline-1",
+          "title": "Measurement and context checklist",
+          "source": "Synthetic Guideline Fixture",
+          "section": "assessment",
+          "score": 0.91,
+          "text_preview": "SYNTHETIC EVIDENCE: confirm measurement technique, review trends, medicines, comorbidities, warning symptoms, and practical barriers before personalizing a plan."
         },
         {
-          "evidence_id": "milvus-23",
-          "title": "hypertension",
-          "source": "临床指南数据库",
-          "section": "clinical_guideline",
-          "score": 0.8037919402122498,
-          "text_preview": "血压：\n- 目标血压：140-150/90-100mmHg\n- 原因：过度降压影响胎盘灌注、胎儿发育\n\n重度妊娠期高血压或子痫前期：\n- 目标血压：<160/110mmHg（预防脑出血、抽搐）\n- 紧急情况：静脉降压药（硫酸镁、拉贝洛尔）\n\n产后：\n- 多数妊娠期高血压产后6周内自行恢复\n- 若持续升高，按一般高血压治疗\n\n9. 难治性高血压\n\n定义：使用≥3种降压药（包括利尿剂）足量治疗，血压仍≥140/90mmHg\n\n治疗目标：\n- <140/90mmHg（可能需要4-5种药物）\n\n策略：\n- 排查继发性高血压（肾动脉狭窄、原发性醛固酮增多症）\n- 评估依从性（药物是否规律服用）\n- 加用"
-        },
-        {
-          "evidence_id": "milvus-18",
-          "title": "hypertension",
-          "source": "临床指南数据库",
-          "section": "clinical_guideline",
-          "score": 0.8026987314224243,
-          "text_preview": "中国高血压防治指南（2023年修订版）- 完整版\n\n发布机构：中华医学会心血管病学分会\n发布年份：2023年\n指南类型：临床诊疗指南\n指南版本：最新修订版\n证据等级：A级（基于多项大型随机对照试验）\n\n【核心更新要点】\n- 诊断标准维持不变：≥140/90mmHg（与WHO、ESC标准一致）\n- 强调家庭血压监测的重要性\n- 细化特殊人群（老年人、糖尿病、肾病）的治疗目标\n- 推荐单片复方制剂提高依从性\n- 新增数字化管理建议\n\n一、诊断标准（核心内容）\n\n【基本诊断标准】\n所有成年人（≥18岁）统一标准：\n- 诊室血压：收缩压≥140mmHg 和/或 舒张压≥90mmHg\n- 测量要求：非同"
-        },
-        {
-          "evidence_id": "milvus-19",
-          "title": "hypertension",
-          "source": "临床指南数据库",
-          "section": "clinical_guideline",
-          "score": 0.7978799343109131,
-          "text_preview": "）\n\n高血压分级：\n- 1级高血压（轻度）：140-159/90-99mmHg\n- 2级高血压（中度）：160-179/100-109mmHg\n- 3级高血压（重度）：≥180/110mmHg\n- 单纯收缩期高血压：收缩压≥140mmHg 且 舒张压<90mmHg（老年人常见）\n\n【特殊说明】\n- 无论年龄、性别、种族，诊断标准相同\n- 老年人、糖尿病患者诊断标准不降低（治疗目标有差异，见后）\n- 青少年高血压参照年龄、性别、身高的百分位标准（<18岁）\n\n3. 诊断流程\n\n初步筛查：\n- 所有成年人每年至少测量1次血压\n- 高危人群（肥胖、家族史、糖尿病）每3-6个月测1次\n\n诊断流程：\n步"
-        },
-        {
-          "evidence_id": "milvus-21",
-          "title": "hypertension",
-          "source": "临床指南数据库",
-          "section": "clinical_guideline",
-          "score": 0.7676788568496704,
-          "text_preview": "0/90mmHg（耐受性好的患者）\n- 理想目标：<130/80mmHg（身体状况良好、无体位性低血压者）\n- 降压速度：比年轻人更缓慢，观察4-8周\n\n≥80岁（高龄老年人）：\n- 目标：<150/90mmHg（不推荐更严格控制）\n- 原因：过度降压增加跌倒、骨折、肾损伤风险\n- 特殊考虑：\n  * 若已达<140/90mmHg且耐受良好，可维持\n  * 衰弱、多重用药、认知障碍者，目标可放宽至<160/90mmHg\n\n老年人特殊监测：\n- 立位血压：每次随访测量，排除体位性低血压（立位血压下降≥20/10mmHg）\n- 肾功能：每3-6个月监测，避免过度降压导致肾灌注不足\n- 认知功能：关"
-        },
-        {
-          "evidence_id": "milvus-20",
-          "title": "hypertension",
-          "source": "临床指南数据库",
-          "section": "clinical_guideline",
-          "score": 0.7107159495353699,
-          "text_preview": "  * 易合并肾脏损害、视网膜病变\n- 筛查频率：每3个月测1次血压\n- 治疗目标：更严格（<130/80mmHg）\n\n合并慢性肾脏病（CKD）患者：\n- 诊断标准：相同（≥140/90mmHg）\n- 特点：\n  * 高血压加速肾功能恶化\n  * 易发生难治性高血压\n  * 需监测血钾（ACEI/ARB可致高钾血症）\n- 治疗目标：<130/80mmHg（减缓肾病进展）\n\n妊娠期高血压：\n- 诊断标准：≥140/90mmHg（妊娠20周后新发）\n- 分类：\n  * 妊娠期高血压：单纯血压升高\n  * 子痫前期：血压升高 + 蛋白尿\n  * 子痫：子痫前期 + 抽搐\n- 治疗目标：140-150"
+          "evidence_id": "synthetic-guideline-2",
+          "title": "Lifestyle review and follow-up",
+          "source": "Synthetic Guideline Fixture",
+          "section": "follow-up",
+          "score": 0.84,
+          "text_preview": "SYNTHETIC EVIDENCE: discuss feasible lifestyle actions, document a baseline and agreed goals, and reassess measurements, adherence, and tolerability at follow-up."
         }
       ],
       "retrieval": {
-        "query": "请结合相关指南说明高血压患者生活方式管理方案。 blood pressure management guideline lifestyle recommendations sleep stress home BP monitoring adherence comprehensive case analysis",
-        "collection": "clinical_guidelines",
-        "retrieved_count": 6,
+        "query": "synthetic lifestyle review workflow",
+        "collection": "synthetic_demo_guidelines",
+        "retrieved_count": 2,
         "admitted_evidence_ids": [
-          "milvus-1",
-          "milvus-23",
-          "milvus-18",
-          "milvus-19",
-          "milvus-21",
-          "milvus-20"
+          "synthetic-guideline-1",
+          "synthetic-guideline-2"
         ]
       }
     },
@@ -155,13 +119,13 @@
         "event": "Synthetic evidence retrieved"
       },
       {
-        "event": "Research Agent completed RQ1-RQ2"
+        "event": "Research and Consultation agents completed"
       },
       {
         "event": "Final answer generated"
       }
     ]
   },
-  "source_run_id": "15e4cfb1-6901-4cbd-ad54-4df0d4a62def",
-  "source_kind": "completed_real_agent_final_answer"
+  "source_run_id": "synthetic-demo-rag-001",
+  "source_kind": "synthetic_demo_fixture"
 }

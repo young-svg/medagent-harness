@@ -148,12 +148,12 @@ export const demoFixtures: DemoCaseFixture[] = [
         status: "AVAILABLE",
         required: true,
         cards: demoEvidenceCards,
-        retrieval: { query: "高血压患者生活方式管理指南", collection: "clinical_guidelines", retrieved_count: 6, admitted_evidence_ids: demoEvidenceCards.map((card) => card.evidence_id) },
+        retrieval: { query: "synthetic lifestyle review workflow", collection: "synthetic_demo_guidelines", retrieved_count: 2, admitted_evidence_ids: demoEvidenceCards.map((card) => card.evidence_id) },
       },
       trace: [
         ...commonTrace.slice(0, 3),
         { event_type: "tool_call", stage: "tool", label: "clinical_guideline called", payload: { name: "clinical_guideline" } },
-        { event_type: "tool_result", stage: "tool", label: "MedicalQA-DX evidence retrieved", payload: { name: "clinical_guideline", result: { count: 6 } } },
+        { event_type: "tool_result", stage: "tool", label: "Synthetic evidence retrieved", payload: { name: "clinical_guideline", result: { count: 2 } } },
         ...commonTrace.slice(3),
       ],
     },
@@ -241,7 +241,7 @@ const threeLayerDemoPresentation: Record<string, {
     direct_answer_title: "高血压生活方式管理与证据",
     direct_answer_sections: [
       { request_item_id: "RQ1", title: "生活方式管理", items: ["优先限盐，采用蔬菜水果、全谷物等健康膳食；结合自身情况规律运动、控制体重、戒烟限酒，并持续记录家庭血压。"] },
-      { request_item_id: "RQ2", title: "已检索到的依据", items: ["本地 MedicalQA-DX 知识库检索到高血压生活方式和临床指南条目；这些资料支持限盐、膳食调整、运动和体重管理，但个人目标仍需医生结合血压、肾功能与用药核定。"] },
+      { request_item_id: "RQ2", title: "已检索到的依据", items: ["合成证据卡用于演示检索、证据准入与来源标记；它们不是临床指南，不能替代真实来源核验或个体化临床判断。"] },
     ],
     plain_explanation: [
       "盐吃得多，身体更容易留住水分，血管里的压力也会增加；减少盐分、控制体重并规律活动，有助于血压更平稳。",
