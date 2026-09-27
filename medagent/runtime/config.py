@@ -19,7 +19,8 @@ class RuntimeConfig:
     planner_max_length_recoveries: int = 1
     worker_max_tokens: int = 8192
     worker_max_length_recoveries: int = 1
-    worker_max_infrastructure_retries: int = 1
+    worker_max_infrastructure_retries: int = 2
+    worker_infrastructure_retry_base_delay_seconds: float = 1.0
     synthesis_max_tokens: int = 8192
     synthesis_max_length_recoveries: int = 1
     llm_timeout_seconds: float = 60.0
@@ -35,8 +36,12 @@ class RuntimeConfig:
     retrieval_threshold: float = 0.63
 
     def __post_init__(self) -> None:
-        if self.worker_max_infrastructure_retries not in {0, 1}:
-            raise ValueError("worker_max_infrastructure_retries must be 0 or 1")
+        if not 0 <= self.worker_max_infrastructure_retries <= 3:
+            raise ValueError("worker_max_infrastructure_retries must be between 0 and 3")
+        if not 0 <= self.worker_infrastructure_retry_base_delay_seconds <= 30:
+            raise ValueError(
+                "worker_infrastructure_retry_base_delay_seconds must be between 0 and 30"
+            )
 
     @classmethod
     def from_env(cls) -> RuntimeConfig:
@@ -63,7 +68,10 @@ class RuntimeConfig:
                 os.getenv("MEDAGENT_WORKER_MAX_LENGTH_RECOVERIES", "1")
             ),
             worker_max_infrastructure_retries=int(
-                os.getenv("MEDAGENT_WORKER_MAX_INFRA_RETRIES", "1")
+                os.getenv("MEDAGENT_WORKER_MAX_INFRA_RETRIES", "2")
+            ),
+            worker_infrastructure_retry_base_delay_seconds=float(
+                os.getenv("MEDAGENT_WORKER_INFRA_RETRY_BASE_DELAY_SECONDS", "1")
             ),
             synthesis_max_tokens=int(
                 os.getenv("MEDAGENT_SYNTHESIS_MAX_TOKENS", "8192")

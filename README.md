@@ -55,7 +55,7 @@ See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure 
 | Retrieval | Optional RAG with query routing, evidence admission, and compact injection |
 | Memory | Bounded, process-local, session-scoped context injection |
 | Guardrails | Request coverage, Answer Contract, completion gate, and stable patching |
-| Reliability | Bounded infrastructure retry and worker protocol recovery |
+| Reliability | Bounded infrastructure retries with backoff and worker protocol recovery |
 | Observability | Structured execution traces with model events, tools, usage, latency, and recovery |
 | Evaluation | Reliability benchmark, quality comparison, and failure analysis |
 
@@ -63,7 +63,7 @@ See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure 
 
 Two bounded worker recovery paths are emphasized:
 
-1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors.
+1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors with at most two retries and exponential backoff.
 2. **Worker protocol recovery** handles non-empty semantic content that fails the required structured-output protocol.
 
 Protocol recovery is limited to one attempt. It does not rerun the Planner, replay tools, or trigger a quality retry, and its output must pass the same parser and completion gates as the original worker response. Stage-specific generation-length handling is also bounded and is documented in [Architecture](docs/ARCHITECTURE.md#8-reliability-control).

@@ -215,13 +215,17 @@ class AgentLoop:
         *,
         max_tokens: int = 8192,
         max_length_recoveries: int = 1,
-        max_infrastructure_retries: int = 1,
+        max_infrastructure_retries: int = 2,
+        infrastructure_retry_base_delay_seconds: float = 1.0,
     ) -> None:
         self.llm = llm
         self.tools = tools
         self.max_tool_calls = max_tool_calls
         self.generation_policy = GenerationPolicy(max_tokens, max_length_recoveries)
         self.max_infrastructure_retries = max_infrastructure_retries
+        self.infrastructure_retry_base_delay_seconds = (
+            infrastructure_retry_base_delay_seconds
+        )
 
     async def _attempt_protocol_recovery(
         self,
@@ -396,6 +400,9 @@ class AgentLoop:
                     ),
                     trace=trace,
                     max_infrastructure_retries=self.max_infrastructure_retries,
+                    infrastructure_retry_base_delay_seconds=(
+                        self.infrastructure_retry_base_delay_seconds
+                    ),
                     worker_id=agent.agent_id,
                     subtask_id=subtask.subtask_id,
                     provider_attempt_index_offset=provider_attempt_count,

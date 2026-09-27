@@ -27,7 +27,7 @@ Each required request item and clinical deliverable must be backed by a valid no
 
 ### Infrastructure retry
 
-Transient provider failures may receive a bounded retry. Retry counts remain visible and do not imply medical-quality improvement.
+Transient provider failures may receive at most two retries with exponential backoff. Retry scheduling, attempt counts, and outcomes remain visible and do not imply medical-quality improvement.
 
 ### Length recovery
 

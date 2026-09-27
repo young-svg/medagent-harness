@@ -111,7 +111,7 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 - **Problem:** Transient provider faults, truncated generations, and malformed structured output require different responses. Treating all three as a generic retry can replay work or alter semantics.
 - **Design:** Recovery is stage- and failure-specific, bounded, and observable.
 - **Runtime behavior:**
-  1. **Infrastructure retry:** a worker retries at most once for classified transient transport, rate-limit, or server failures.
+  1. **Infrastructure retry:** a worker retries at most twice for classified transient transport, rate-limit, or server failures, with one- and two-second backoff by default. Attempt count, delay, and error type remain visible in the trace.
   2. **Length completion recovery:** a stage can make at most one bounded continuation attempt after an unusable length-truncated response.
   3. **Worker protocol recovery:** after non-empty semantic content with `finish_reason=stop` fails parsing, one temperature-zero call receives only the malformed output, allowed request IDs, and required schema.
 - **Failure handling:** Protocol recovery has no tools, no Planner rerun, no tool replay, no full case or session reinjection, and no quality-triggered retry. Repaired output must pass the strict parser and the same downstream completion gates; a failed repair terminates that worker path.

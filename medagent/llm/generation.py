@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
@@ -117,11 +118,17 @@ async def run_with_length_recovery(
     response_format: dict[str, Any] | None = None,
     parent_event_id: str | None = None,
     max_infrastructure_retries: int = 0,
+    infrastructure_retry_base_delay_seconds: float = 0.0,
     worker_id: str | None = None,
     subtask_id: str | None = None,
     provider_attempt_index_offset: int = 0,
 ) -> GenerationResult:
     """Run one generation plus at most one same-input recovery after truncation."""
+
+    if max_infrastructure_retries < 0:
+        raise ValueError("max_infrastructure_retries must be non-negative")
+    if infrastructure_retry_base_delay_seconds < 0:
+        raise ValueError("infrastructure_retry_base_delay_seconds must be non-negative")
 
     started = perf_counter()
     usage = _empty_usage()
@@ -219,6 +226,26 @@ async def run_with_length_recovery(
             if retryable and infrastructure_retry_count < max_infrastructure_retries:
                 infrastructure_retry_count += 1
                 pending_infrastructure_retry = True
+                delay_seconds = infrastructure_retry_base_delay_seconds * (
+                    2 ** (infrastructure_retry_count - 1)
+                )
+                if trace is not None and worker_id is not None and subtask_id is not None:
+                    trace.record(
+                        "worker_infrastructure_retry_scheduled",
+                        {
+                            "worker_id": worker_id,
+                            "subtask_id": subtask_id,
+                            "retry_index": infrastructure_retry_count,
+                            "max_retries": max_infrastructure_retries,
+                            "delay_seconds": delay_seconds,
+                            "error_type": type(error).__name__,
+                        },
+                        stage=stage,
+                        agent=agent,
+                        parent_event_id=parent_event_id,
+                    )
+                if delay_seconds:
+                    await asyncio.sleep(delay_seconds)
                 continue
             for name, value in (
                 ("infrastructure_retry_count", infrastructure_retry_count),

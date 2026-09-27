@@ -118,6 +118,14 @@ def worker_requests(llm: FailureInjectingLLM) -> list[dict[str, Any]]:
     return [request for request in llm.requests if request["response_format"] is None]
 
 
+def one_retry_config(tmp_path: Any) -> RuntimeConfig:
+    return RuntimeConfig(
+        trace_dir=str(tmp_path),
+        worker_max_infrastructure_retries=1,
+        worker_infrastructure_retry_base_delay_seconds=0,
+    )
+
+
 @async_test
 async def test_worker_infrastructure_retry_recovers_and_completes(
     tmp_path, monkeypatch: pytest.MonkeyPatch
@@ -132,7 +140,7 @@ async def test_worker_infrastructure_retry_recovers_and_completes(
             "Synthesis output",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "retry-ok")
     await engine.close()
@@ -164,6 +172,50 @@ async def test_worker_infrastructure_retry_recovers_and_completes(
 
 
 @async_test
+async def test_default_worker_retry_recovers_after_two_connect_errors_with_backoff(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    patch_contract(monkeypatch, contract())
+    delays: list[float] = []
+
+    async def record_delay(seconds: float) -> None:
+        delays.append(seconds)
+
+    monkeypatch.setattr("medagent.llm.generation.asyncio.sleep", record_delay)
+    llm = FailureInjectingLLM(
+        [
+            two_deliverable_plan(),
+            "Diagnosis draft",
+            httpx.ConnectError("first temporary connect failure"),
+            httpx.ConnectError("second temporary connect failure"),
+            "Treatment draft",
+            "Synthesis output",
+        ]
+    )
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+
+    result = await engine.analyze(
+        "Synthetic case", "diagnosis and treatment", "retry-twice-ok"
+    )
+    await engine.close()
+    workers = result["presentation"]["execution_summary"]["workers"]
+    events = read_trace(tmp_path / result["run_id"])
+    scheduled = [
+        event["payload"]
+        for event in events
+        if event["event_type"] == "worker_infrastructure_retry_scheduled"
+    ]
+
+    assert result["status"] == "completed"
+    assert workers[1]["provider_attempt_count"] == 3
+    assert workers[1]["infrastructure_retry_count"] == 2
+    assert delays == [1.0, 2.0]
+    assert [item["retry_index"] for item in scheduled] == [1, 2]
+    assert [item["delay_seconds"] for item in scheduled] == [1.0, 2.0]
+    assert all(item["max_retries"] == 2 for item in scheduled)
+
+
+@async_test
 async def test_worker_infrastructure_retry_exhaustion_is_incomplete(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -176,7 +228,7 @@ async def test_worker_infrastructure_retry_exhaustion_is_incomplete(
             httpx.ConnectError("second temporary failure"),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "retry-fail")
     await engine.close()
@@ -212,7 +264,7 @@ async def test_duplicate_required_coverage_allows_completion(
             "Duplicate coverage succeeds",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "duplicate")
     await engine.close()
@@ -237,7 +289,7 @@ async def test_optional_deliverable_failure_does_not_block_completion(
             httpx.ConnectError("failure two"),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "optional")
     await engine.close()
@@ -259,7 +311,7 @@ async def test_extra_worker_text_cannot_claim_unassigned_coverage(
             httpx.ConnectError("failure two"),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "extra-text")
     await engine.close()
@@ -332,7 +384,7 @@ async def test_retry_after_tool_does_not_repeat_tool_side_effect(tmp_path) -> No
             "Tool-aware answer",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(one_retry_config(tmp_path), llm=llm)
 
     result = await engine.analyze("Synthetic case", "Assess safely", "tool-safe")
     await engine.close()
@@ -372,5 +424,20 @@ def test_infrastructure_retry_classification(error: BaseException, expected: boo
 
 
 def test_worker_retry_config_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("MEDAGENT_WORKER_MAX_INFRA_RETRIES", "1")
-    assert RuntimeConfig.from_env().worker_max_infrastructure_retries == 1
+    monkeypatch.setenv("MEDAGENT_WORKER_MAX_INFRA_RETRIES", "2")
+    monkeypatch.setenv("MEDAGENT_WORKER_INFRA_RETRY_BASE_DELAY_SECONDS", "1.5")
+    config = RuntimeConfig.from_env()
+    assert config.worker_max_infrastructure_retries == 2
+    assert config.worker_infrastructure_retry_base_delay_seconds == 1.5
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"worker_max_infrastructure_retries": 4},
+        {"worker_infrastructure_retry_base_delay_seconds": -0.1},
+    ],
+)
+def test_worker_retry_config_rejects_unbounded_values(kwargs: dict[str, Any]) -> None:
+    with pytest.raises(ValueError):
+        RuntimeConfig(**kwargs)

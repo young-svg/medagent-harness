@@ -196,6 +196,9 @@ class NativeMedAgentEngine:
                 max_tokens=self.config.worker_max_tokens,
                 max_length_recoveries=self.config.worker_max_length_recoveries,
                 max_infrastructure_retries=self.config.worker_max_infrastructure_retries,
+                infrastructure_retry_base_delay_seconds=(
+                    self.config.worker_infrastructure_retry_base_delay_seconds
+                ),
             )
             tasks = [
                 asyncio.wait_for(
