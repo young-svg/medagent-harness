@@ -178,4 +178,8 @@ This repository does not distribute patient records, benchmark case text, candid
 
 ## License
 
-The repository currently includes an [MIT License](LICENSE). Before public release, the maintainer must confirm ownership and relicensing rights for all included code and assets, plus any required third-party attribution.
+This repository is provided for public viewing and evaluation.
+
+No open-source license is granted at this time.
+
+Third-party components remain subject to their respective licenses.

@@ -20,7 +20,7 @@ All retained tracked files fall into these public project groups:
 - `eval/README.md`, `eval/schema.json`, `eval/benchmark/`, `eval/retrieval/`, and `eval/routing/` — reusable, data-free evaluation utilities;
 - `scripts/README.md` — policy for future public helper scripts;
 - `docs/` — release architecture, design, benchmark, reliability, failure, demo, and cleanup documentation;
-- `README.md`, `LICENSE` — public project overview and MIT license.
+- `README.md` — public project overview and public viewing/evaluation terms.
 
 ## B. Reorganized or rewritten
 
@@ -39,7 +39,7 @@ All retained tracked files fall into these public project groups:
 - `eval/run_native_real_validation.py`, an environment-specific benchmark runner;
 - `scripts/run_native_medicalqa_smoke.py`, a local private-corpus smoke runner;
 - `FINAL_PUBLIC_RUNTIME_REPORT.md`, an internal handoff report containing a local path;
-- `LICENSE_PENDING.md`, superseded by the MIT license.
+- `LICENSE_PENDING.md`, removed after release terms were consolidated in the README.
 
 ## Privacy and release checks
 
