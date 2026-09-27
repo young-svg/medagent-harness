@@ -8,24 +8,39 @@ MedAgent Harness is a centralized planner-worker runtime for traceable clinical 
 
 ```mermaid
 flowchart TB
-    REQUEST["User Request"]
-    CONTEXT["Context Engineering<br/>RequestSpec · Session Memory · Stage-aware Context"]
-    HARNESS["Agent Harness Runtime<br/>Planner · Complexity Routing · State Management · Agent Dispatch"]
-    AGENTS["Multi-Agent Layer<br/>Diagnostic Agent · Consultation Agent"]
-    CAPABILITIES["Capability Layer<br/>Tool Calling · Optional Retrieval / RAG · Evidence Injection"]
-    RELIABILITY["Reliability Layer<br/>Answer Contract · Completion Gate · Infrastructure Retry · Protocol Recovery"]
-    OUTPUT["Output<br/>Final Answer · Presentation Layer"]
-    REQUEST --> CONTEXT --> HARNESS --> AGENTS --> CAPABILITIES --> RELIABILITY --> OUTPUT
+    subgraph CONTROL["INTAKE & CONTROL"]
+        direction LR
+        REQUEST(["User Request"])
+        CONTEXT["Context Engineering<br/>RequestSpec · Session Memory<br/>Stage-aware Context"]
+        HARNESS[["AGENT HARNESS RUNTIME<br/>CORE CONTROL PLANE<br/><br/>Planner · Complexity Routing<br/>State Management · Agent Dispatch"]]
 
-    subgraph OBS["Observability & Evaluation — Cross-cutting"]
+        REQUEST --> CONTEXT --> HARNESS
+    end
+
+    subgraph EXECUTION["EXECUTION & ASSURANCE"]
+        direction LR
+        AGENTS["Multi-Agent Layer<br/>Diagnostic Agent · Consultation Agent"]
+        CAPABILITIES["Capability Layer<br/>Tool Calling · Optional Retrieval / RAG<br/>Evidence Injection"]
+        RELIABILITY["Reliability Layer<br/>Answer Contract · Completion Gate<br/>Infrastructure Retry · Protocol Recovery"]
+        OUTPUT(["Output<br/>Final Answer · Presentation Layer"])
+
+        AGENTS --> CAPABILITIES --> RELIABILITY --> OUTPUT
+    end
+
+    CONTROL --> EXECUTION
+
+    subgraph OBS["OBSERVABILITY & EVALUATION · CROSS-CUTTING"]
         direction LR
         TRACE["Trace"] ~~~ USAGE["Usage"] ~~~ LATENCY["Latency"] ~~~ BENCHMARK["Benchmark"]
     end
 
-    OUTPUT -.->|cross-cutting telemetry| OBS
+    EXECUTION -.->|runtime signals and outcomes| OBS
 
-    classDef core fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827
+    classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
     class HARNESS core
+    style CONTROL fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style EXECUTION fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
+    style OBS fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
 ```
 
 For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths still pass through the guardrail and presentation stages.

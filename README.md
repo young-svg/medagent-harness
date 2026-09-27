@@ -14,16 +14,20 @@ A direct LLM call can blur a complex clinical request into one generation: expli
 
 ```mermaid
 flowchart LR
-    REQUEST["User Request"]
+    REQUEST(["User Request"])
     CONTEXT["Context Engineering"]
-    HARNESS["Agent Harness Runtime<br/>Core control plane"]
+    HARNESS[["Agent Harness Runtime<br/>CORE CONTROL PLANE"]]
     AGENTS["Specialized Agents"]
     CAPABILITIES["Tools / Retrieval / Memory"]
     VERIFY["Verification & Evaluation"]
 
-    REQUEST --> CONTEXT --> HARNESS --> AGENTS --> CAPABILITIES --> VERIFY
+    REQUEST --> CONTEXT --> HARNESS
+    HARNESS --> AGENTS
+    HARNESS --> CAPABILITIES
+    AGENTS --> VERIFY
+    CAPABILITIES --> VERIFY
 
-    classDef core fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827
+    classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
     class HARNESS core
 ```
 
