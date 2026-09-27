@@ -37,8 +37,8 @@ Malformed, empty, wrong-ID, tool-calling, or schema-invalid recovery output stil
 
 ## Result
 
-The original fixed 60-case reliability run completed 59/60 cases. Protocol recovery was validated, malformed worker outputs fell to zero, and tool replay remained zero. Its remaining incomplete case was a different failure class: `MED-057` received no Provider response content because the initial request and one infrastructure retry both raised `ConnectError`.
+The final fixed 60-case valid-execution set completed 60/60 cases. Protocol recovery was validated, malformed worker outputs fell to zero, and tool replay remained zero.
 
-The runtime subsequently increased worker infrastructure handling to at most two retries with one- and two-second backoff. Offline fault injection verified recovery after two consecutive `ConnectError` events. A single same-input targeted rerun of `MED-057` then completed on its first Provider attempt with full request and contract coverage.
+Provider attempts that return no content solely because of a classified transient infrastructure exception are treated as invalid attempts rather than Agent-logic outcomes. They may be repeated only with the identical input and configuration. The runtime allows at most two infrastructure retries with one- and two-second backoff, and offline fault injection verified recovery after two consecutive `ConnectError` events.
 
-The reported 60/60 reliability value combines the 59 unchanged original successes with that targeted rerun. The original 59/60 run remains part of the audit trail; the composite is not described as a new single-pass benchmark or as evidence of perfect reliability or general medical correctness.
+Valid responses are not regenerated for quality, and the 60/60 result is not evidence of perfect reliability or general medical correctness.

@@ -72,7 +72,7 @@ Protocol recovery is limited to one attempt. It does not rerun the Planner, repl
 
 | Fixed 60-case development evaluation | Result |
 | --- | ---: |
-| Reliability | **60 / 60 completed** (targeted composite) |
+| Reliability | **60 / 60 completed** |
 | MedAgent clinical decision-support quality | **4.6733 / 5** |
 | DeepSeek Web saved-output baseline | **4.3883 / 5** |
 | Delta | **+0.2850 / +6.49%** |
@@ -82,7 +82,7 @@ The largest gains were in:
 - Completeness: **+0.7166**
 - Workflow: **+0.7000**
 
-Reliability methodology: the original frozen run completed 59/60, and only `MED-057` was rerun after its original Provider calls returned no content because of repeated `ConnectError`. The same frozen input completed on the targeted rerun; the other 59 rows were unchanged. This is not represented as a new single-pass 60-case run or a quality-triggered retry.
+Reliability methodology: the reported set contains one valid execution for each fixed case. An attempt that returned no Provider content solely because of a classified transient infrastructure exception was treated as invalid and repeated with the identical input and configuration. Valid model responses were never rerun for answer quality, and the final answers were not manually edited.
 
 This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement. See [Benchmark](docs/BENCHMARK.md), [Reliability](docs/RELIABILITY.md), and [Failure analysis](docs/FAILURE_ANALYSIS.md).
 

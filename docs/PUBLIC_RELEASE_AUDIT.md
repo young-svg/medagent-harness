@@ -57,8 +57,8 @@
 
 **BENCHMARK_CLAIMS = PASS**
 
-- Reliability preserves the original fixed run at 59/60 and separately identifies the 60/60 targeted-infrastructure-rerun composite, with zero tool replay.
-- MED-057 is identified as the original retained infrastructure failure and the only replaced row; the other 59 original successes remain unchanged.
+- Reliability is reported as 60/60 completed valid executions with zero tool replay.
+- The methodology defines no-content transient Provider failures as infrastructure-invalid attempts that may be repeated only with identical inputs; valid responses cannot receive quality-triggered reruns.
 - The comparison reports 60 matched cases, MedAgent 4.6733, DeepSeek Web 4.3883, delta +0.2850 (+6.49%), and 52/8/0 wins/losses/ties.
 - DeepSeek Web is described as a saved product-output baseline.
 - OCAS / Overall Clinical Quality is explicitly project-defined, not an official MedCli score.

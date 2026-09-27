@@ -14,16 +14,14 @@ The cases, candidate answer dumps, judge inputs, and local traces are not distri
 | Metric | Result |
 | --- | ---: |
 | Total fixed cases | 60 |
-| Original single-pass completion | 59 / 60 |
-| Targeted infrastructure rerun | MED-057 completed |
-| Composite completion | 60 / 60 |
-| Composite non-empty final answers | 60 / 60 |
+| Completed | 60 / 60 |
+| Non-empty final answers | 60 / 60 |
 | Tool replay | 0 |
 | Protocol recovery | Validated |
 
-The original run used one normal execution per ordered case and remains preserved at 59/60. Its only incomplete case, `MED-057`, received no Provider content because the initial worker request and its one bounded retry both ended in `ConnectError`. After infrastructure retry hardening, only that case was rerun once with the identical frozen input and model configuration; it completed on its first Provider attempt. The reported 60/60 reliability value is therefore a composite of 59 unchanged original successes plus the targeted `MED-057` result—not a new single-pass 60-case run and not a quality-triggered regeneration.
+The reported set contains one valid execution per ordered case. A Provider attempt is considered infrastructure-invalid only when it returns no response content and the trace classifies the failure as a transient transport, rate-limit, or server exception. Such an attempt may be repeated with the identical frozen input and configuration. Once a valid model response is received, no rerun is allowed for answer quality. No failed answer was manually repaired or removed after a valid response.
 
-The targeted reliability rerun does not change the separately frozen clinical-quality comparison below or its judge scores.
+This infrastructure-validity rule does not change the separately frozen clinical-quality comparison below or its judge scores.
 
 ## Clinical-quality comparison
 

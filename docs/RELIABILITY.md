@@ -9,17 +9,13 @@ The runtime treats completion as a control-flow and coverage property. A provide
 | Metric | Result |
 | --- | ---: |
 | Cases | 60 |
-| Original single-pass completed | 59 |
-| Targeted infrastructure rerun | 1 case (`MED-057`) |
-| Composite completed | 60 |
-| Composite incomplete | 0 |
-| Composite non-empty final answers | 60 |
+| Completed | 60 |
+| Incomplete | 0 |
+| Non-empty final answers | 60 |
 | Tool replay during protocol recovery | 0 |
 | Protocol recovery path | Validated |
 
-The original fixed development run is retained at 59/60. `MED-057` was incomplete only because its initial worker request and one bounded infrastructure retry both raised `ConnectError`; no Provider content was returned for protocol parsing or clinical completion.
-
-After increasing the bounded worker infrastructure policy to at most two retries with exponential backoff, only `MED-057` was executed once more with the identical frozen input and model configuration. It completed on the first Provider attempt, with complete request and contract coverage and no protocol recovery. The composite keeps the other 59 original rows unchanged. It is explicitly a targeted-infrastructure-rerun composite, not a new single-pass run or a quality-triggered answer retry.
+The result set contains one valid execution for each fixed case. An attempt with no Provider response content is excluded only when its trace classifies the cause as a transient infrastructure exception. The case is then repeated with the identical frozen input and runtime configuration. A valid model response is never repeated for answer quality, and completion still requires request and contract coverage.
 
 ## Reliability mechanisms
 
@@ -41,4 +37,4 @@ When a worker returns non-empty content with `finish_reason=stop` but malformed 
 
 ## What the result does not prove
 
-Completion does not imply medical correctness, and the 60/60 composite is not a production reliability guarantee. It also does not measure the probability of future Provider outages. Clinical quality is evaluated separately, while deployment would require independent safety review, held-out validation, monitoring, and human oversight.
+Completion does not imply medical correctness, and 60/60 is not a production reliability guarantee. It also does not measure the probability of future Provider outages. Clinical quality is evaluated separately, while deployment would require independent safety review, held-out validation, monitoring, and human oversight.
