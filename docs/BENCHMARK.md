@@ -14,12 +14,16 @@ The cases, candidate answer dumps, judge inputs, and local traces are not distri
 | Metric | Result |
 | --- | ---: |
 | Total fixed cases | 60 |
-| Completed | 59 |
-| Non-empty final answers | 59 |
+| Original single-pass completion | 59 / 60 |
+| Targeted infrastructure rerun | MED-057 completed |
+| Composite completion | 60 / 60 |
+| Composite non-empty final answers | 60 / 60 |
 | Tool replay | 0 |
 | Protocol recovery | Validated |
 
-The run used one normal execution per ordered case. It retained bounded infrastructure, length, and structured-output recovery; it did not use quality retries or delete failed cases.
+The original run used one normal execution per ordered case and remains preserved at 59/60. Its only incomplete case, `MED-057`, received no Provider content because the initial worker request and its one bounded retry both ended in `ConnectError`. After infrastructure retry hardening, only that case was rerun once with the identical frozen input and model configuration; it completed on its first Provider attempt. The reported 60/60 reliability value is therefore a composite of 59 unchanged original successes plus the targeted `MED-057` result—not a new single-pass 60-case run and not a quality-triggered regeneration.
+
+The targeted reliability rerun does not change the separately frozen clinical-quality comparison below or its judge scores.
 
 ## Clinical-quality comparison
 

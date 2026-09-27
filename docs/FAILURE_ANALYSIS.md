@@ -37,6 +37,8 @@ Malformed, empty, wrong-ID, tool-calling, or schema-invalid recovery output stil
 
 ## Result
 
-The fixed 60-case reliability benchmark completed 59/60 cases. Protocol recovery was validated, and tool replay remained zero.
+The original fixed 60-case reliability run completed 59/60 cases. Protocol recovery was validated, malformed worker outputs fell to zero, and tool replay remained zero. Its remaining incomplete case was a different failure class: `MED-057` received no Provider response content because the initial request and one infrastructure retry both raised `ConnectError`.
 
-The result demonstrates that the recovery path is bounded and useful; it does not establish perfect reliability or general medical correctness.
+The runtime subsequently increased worker infrastructure handling to at most two retries with one- and two-second backoff. Offline fault injection verified recovery after two consecutive `ConnectError` events. A single same-input targeted rerun of `MED-057` then completed on its first Provider attempt with full request and contract coverage.
+
+The reported 60/60 reliability value combines the 59 unchanged original successes with that targeted rerun. The original 59/60 run remains part of the audit trail; the composite is not described as a new single-pass benchmark or as evidence of perfect reliability or general medical correctness.
