@@ -279,12 +279,6 @@ function memoryFrom(execution: Record<string, unknown>): MemoryInfo | null {
   const memory = objectValue(execution.memory);
   if (!Object.keys(memory).length) return null;
   const historyInjected = stringArray(memory.history_injected);
-  const storedFacts = Array.isArray(memory.stored_facts)
-    ? memory.stored_facts.map(objectValue).flatMap((fact) => {
-      if (typeof fact.key !== "string" || typeof fact.value !== "string") return [];
-      return [{ key: fact.key, value: fact.value }];
-    })
-    : [];
   return {
     sessionId: typeof memory.session_id === "string" ? memory.session_id : "demo-session",
     historyInjected,
@@ -292,7 +286,6 @@ function memoryFrom(execution: Record<string, unknown>): MemoryInfo | null {
       typeof memory.history_injected_count === "number"
         ? memory.history_injected_count
         : historyInjected.length,
-    storedFacts,
     newSessionHistoryCount:
       typeof memory.new_session_history_count === "number"
         ? memory.new_session_history_count

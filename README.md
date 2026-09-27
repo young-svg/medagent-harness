@@ -14,14 +14,15 @@ A direct LLM call can blur a complex clinical request into one generation: expli
 
 ```mermaid
 flowchart LR
-    REQUEST(["User Request"])
-    CONTEXT["Context Engineering"]
-    HARNESS[["Agent Harness Runtime<br/>CORE CONTROL PLANE"]]
+    CONTEXT["Context Management<br/>User Request · RequestSpec · Stage-aware"]
+    MEMORY["Session Memory<br/>Bounded · Isolated"]
+    HARNESS[["Agent Harness Runtime<br/>Plan · Route · State · Dispatch"]]
     AGENTS["Specialized Agents"]
-    CAPABILITIES["Tools / Retrieval / Memory"]
-    VERIFY["Verification & Evaluation"]
+    CAPABILITIES["Tools & RAG<br/>Tool Policy · Retrieval · Evidence"]
+    VERIFY["Verification & Observability<br/>Gates · Recovery · Trace · Eval"]
 
-    REQUEST --> CONTEXT --> HARNESS
+    CONTEXT --> HARNESS
+    MEMORY --> HARNESS
     HARNESS --> AGENTS
     HARNESS --> CAPABILITIES
     AGENTS --> VERIFY
@@ -38,7 +39,7 @@ The harness constructs context according to execution stage; it does not reuse o
 - `RequestSpec` preserves the user's explicit deliverables, while `AnswerContract` identifies required clinical coverage.
 - The Planner receives task-level context; workers receive role-specific assignments, the current request, bounded session context, and admitted evidence only when needed.
 - Tools and optional retrieval add evidence through the controlled worker loop.
-- Session Memory provides bounded state from the current session to Planner and worker execution.
+- Session Memory provides bounded, process-local conversation context from the current session to Planner and worker execution; it is not a persistent fact store.
 - Protocol recovery receives only the malformed output, assigned request IDs, and required response schema. It repairs serialization rather than redoing clinical reasoning or reinjecting the full case.
 
 See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure model.

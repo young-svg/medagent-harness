@@ -4,7 +4,7 @@
 
 The GitHub Pages frontend is a fixture-only React/Vite showcase. `App.tsx` imports the four cases from `demoData.ts`, selects the Multi-Agent case on first render, and passes the selected fixture through `presentationAdapter.ts` into the existing answer and developer-inspection components.
 
-Changing the case selector performs an in-memory lookup and rerenders the chosen fixture. It does not submit the case, start a runtime, or invoke a model. The developer view exposes the fixture's RequestSpec, Planner route, specialized workers, tool/evidence state, execution trace, and session-memory representation.
+Changing the case selector performs an in-memory lookup and rerenders the chosen fixture. It does not submit the case, start a runtime, or invoke a model. The developer view exposes the fixture's RequestSpec, Planner route, specialized workers, tool/evidence state, execution trace, and session-context representation. The Memory case is a precomputed two-turn timeline; it does not perform a live memory write, extract structured patient facts, or persist a patient record.
 
 ## Data Source
 

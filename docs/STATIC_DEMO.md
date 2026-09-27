@@ -9,7 +9,7 @@ The static demo is an Agent Engineering portfolio showcase published through Git
 - Four fixed scenarios covering single-agent, multi-agent, optional retrieval, and session-memory presentation.
 - Multi-agent visualization with Planner route, worker ownership, and execution trace.
 - Tool state and synthetic evidence-card display.
-- Session-scoped memory continuity represented by local fixture data.
+- A precomputed two-turn timeline representing bounded, process-local session context without patient-record persistence.
 - Direct-answer, plain-language, clinical-detail, and developer inspection views.
 
 ## Data Flow
@@ -29,6 +29,7 @@ Case switching is an in-browser data selection. No case data leaves the page.
 - No live inference or provider call.
 - No API keys or external retrieval.
 - No real-time Agent execution.
+- No live memory write, structured fact extraction, or persistent patient record.
 - No clinical use; the cases and evidence cards are synthetic showcase fixtures.
 
 For implementation evidence, see [Static Demo Audit](STATIC_DEMO_AUDIT.md).

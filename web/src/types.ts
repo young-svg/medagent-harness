@@ -66,7 +66,6 @@ export type MemoryInfo = {
   sessionId: string;
   historyInjected: string[];
   historyInjectedCount: number;
-  storedFacts: Array<{ key: string; value: string }>;
   newSessionHistoryCount: number;
 };
 

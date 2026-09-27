@@ -58,6 +58,23 @@ textarea[readonly] { cursor: default; color: #3e4550; background: #fff; }
 .primary-button:disabled { cursor: not-allowed; border-color: #bbc8e4; background: #bbc8e4; }
 .secondary-button { border: 1px solid #dfe2e6; color: #646a73; background: #fff; }
 
+.memory-turn-flow { display: grid; grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.memory-turn-card { padding: 20px; border: 1px solid #dfe3ea; border-radius: 14px; background: #fff; }
+.memory-turn-current { border-color: #a9c2f7; background: #f8faff; }
+.memory-turn-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.memory-turn-heading span { color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.memory-turn-heading small { color: #8a9099; font-size: 11px; }
+.memory-turn-card h3 { margin: 0 0 9px; color: #282c32; font-size: 17px; }
+.memory-turn-card > p { margin: 0; color: #626975; font-size: 14px; line-height: 1.65; }
+.memory-turn-card blockquote { margin: 14px 0 0; padding: 12px 14px; border-left: 3px solid #8fb0f4; color: #354052; background: #f5f8ff; font-size: 14px; line-height: 1.6; }
+.memory-turn-card .history-injected { display: inline-flex; padding: 5px 8px; border-radius: 6px; color: #315da9; background: #eaf1ff; font-size: 11px; font-weight: 700; }
+.memory-flow-bridge { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.memory-flow-arrow { margin-bottom: 10px; color: #2563eb; font-size: 30px; line-height: 1; }
+.memory-flow-bridge strong { color: #344156; font-size: 13px; }
+.memory-flow-bridge p { margin: 5px 0 2px; color: #5e6b80; font-size: 12px; line-height: 1.45; }
+.memory-flow-bridge small { color: #969ca6; font-size: 11px; }
+.memory-fixture-disclosure { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border: 1px solid #e2e5ea; border-radius: 9px; color: #737a85; background: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-align: center; }
+
 .results { padding: 60px 0 22px; }
 .answer-card { margin-bottom: 12px; padding: 24px 27px 27px; border: 1px solid #e5e7ea; border-radius: 15px; background: #fff; }
 .direct-card { position: relative; padding: 30px 32px 32px; border-color: #cbdafb; border-left: 4px solid #2563eb; background: linear-gradient(135deg, #f5f8ff 0%, #fff 58%); box-shadow: 0 10px 28px rgba(37, 99, 235, .07); }
@@ -172,6 +189,12 @@ textarea[readonly] { cursor: default; color: #3e4550; background: #fff; }
 .memory-facts dt { color: #9297a0; font-size: 12px; text-transform: uppercase; }
 .memory-facts dd { margin: 4px 0 0; color: #354052; font-size: 13px; font-weight: 600; }
 .memory-history { margin: 0; padding: 13px 13px 13px 32px; border-radius: 9px; color: #666d78; background: #eef3ff; font-size: 12px; line-height: 1.65; }
+.memory-boundary { padding: 14px 16px; border: 1px solid #dce6fb; border-radius: 10px; background: #f7faff; }
+.memory-boundary h4 { margin: 0 0 8px; color: #4d5c72; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; }
+.memory-boundary p { margin: 0; color: #586579; font-size: 13px; line-height: 1.55; }
+.memory-boundary code { padding: 1px 4px; border-radius: 4px; color: #315da9; background: #e7efff; font-size: 12px; }
+.memory-boundary ul { display: grid; gap: 5px; margin: 10px 0 0; padding-left: 20px; color: #667185; font-size: 12px; line-height: 1.55; }
+.memory-demo-note { margin: 10px 0 0; color: #8a9099; font-size: 11px; font-weight: 600; text-align: right; }
 .stored-context { padding: 14px 16px; border: 1px solid #dce6fb; border-radius: 10px; background: #f7faff; }
 .stored-context h4 { margin: 0 0 9px; color: #4d5c72; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; }
 .stored-context ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; color: #465166; font-size: 13px; line-height: 1.55; }
@@ -192,6 +215,8 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .demo-picker { width: 100%; }
   .demo-picker select { width: 100%; min-width: 0; max-width: 100%; }
   .input-grid, .developer-panel { grid-template-columns: 1fr; }
+  .memory-turn-flow { grid-template-columns: 1fr; }
+  .memory-flow-arrow { margin: 2px 0 8px; transform: rotate(90deg); }
   .field-help { min-height: 0; }
   textarea, textarea.question-input { min-height: 155px; }
   .answer-card { padding: 22px; }

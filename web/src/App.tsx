@@ -22,6 +22,7 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState("Static fixture loaded");
   const [runId, setRunId] = useState(defaultDemo.response.run_id);
   const [selectedDemo, setSelectedDemo] = useState(defaultDemo.id);
+  const selectedFixture = demoCases.find((item) => item.id === selectedDemo) ?? defaultDemo;
 
   function loadDemo(demoId: string) {
     const demo = demoCases.find((item) => item.id === demoId);
@@ -110,18 +111,49 @@ export default function App() {
           </label>
         </div>
 
-        <div className="input-grid">
-          <label>
-            <span>Synthetic case context</span>
-            <small className="field-help">Read-only local fixture; no patient record is submitted.</small>
-            <textarea value={description} readOnly />
-          </label>
-          <label>
-            <span>User request</span>
-            <small className="field-help">The request drives the displayed plan, worker ownership, and answer contract.</small>
-            <textarea className="question-input" value={question} readOnly />
-          </label>
-        </div>
+        {selectedFixture.memory_demo ? (
+          <div className="memory-turn-flow" aria-label="Precomputed same-session memory timeline">
+            <article className="memory-turn-card">
+              <div className="memory-turn-heading"><span>TURN 1</span><small>same session</small></div>
+              <h3>Initial request</h3>
+              <p>{description}</p>
+              <blockquote>{selectedFixture.memory_demo.first_turn_request}</blockquote>
+            </article>
+
+            <div className="memory-flow-bridge" aria-label="Bounded conversation memory write">
+              <span className="memory-flow-arrow" aria-hidden="true">→</span>
+              <strong>Bounded memory write</strong>
+              <p>{selectedFixture.memory_demo.buffer_summary}</p>
+              <small>Conversation buffer only</small>
+            </div>
+
+            <article className="memory-turn-card memory-turn-current">
+              <div className="memory-turn-heading"><span>TURN 2</span><small>same session</small></div>
+              <h3>Follow-up request</h3>
+              <p className="history-injected">
+                History injected · {selectedFixture.memory_context?.history_injected_count ?? 0} messages
+              </p>
+              <blockquote>{question}</blockquote>
+            </article>
+
+            <p className="memory-fixture-disclosure">
+              PRECOMPUTED FIXTURE · No live storage · No patient record persisted
+            </p>
+          </div>
+        ) : (
+          <div className="input-grid">
+            <label>
+              <span>Synthetic case context</span>
+              <small className="field-help">Read-only local fixture; no patient record is submitted.</small>
+              <textarea value={description} readOnly />
+            </label>
+            <label>
+              <span>User request</span>
+              <small className="field-help">The request drives the displayed plan, worker ownership, and answer contract.</small>
+              <textarea className="question-input" value={question} readOnly />
+            </label>
+          </div>
+        )}
 
         <div className="input-actions">
           <button className="secondary-button" type="button" onClick={() => loadDemo(DEFAULT_DEMO_ID)}>

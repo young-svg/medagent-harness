@@ -9,9 +9,11 @@ The repository includes four local fixtures that demonstrate orchestration behav
 | Single Agent | One specialist covers a bounded, internally dependent request |
 | Multi Agent | Diagnostic and Consultation agents own separate request items |
 | RAG | Research and Consultation agents use synthetic admitted evidence cards |
-| Memory | A follow-up request receives bounded same-session synthetic context |
+| Memory | A precomputed two-turn timeline shows bounded same-session conversation context injected into a follow-up |
 
 Fixtures live in `examples/demo_cases/` and are loaded by the frontend as static presentation data. Selecting a demo does not call a model, external retrieval service, or API.
+
+The Memory fixture is an illustration, not a live memory write. It does not persist a patient record, extract structured clinical facts, or survive a process restart.
 
 ## Run the showcase
 
@@ -29,7 +31,7 @@ Open the local Vite URL, select a demo, and inspect:
 - routing and worker ownership;
 - tool and evidence state;
 - the observable event summary;
-- same-session memory metadata in the memory example.
+- the precomputed Turn 1 → bounded memory write → Turn 2 timeline and its explicit runtime boundaries.
 
 ## Fixture rules
 

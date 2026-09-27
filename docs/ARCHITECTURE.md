@@ -8,39 +8,47 @@ MedAgent Harness is a centralized planner-worker runtime for traceable clinical 
 
 ```mermaid
 flowchart TB
-    subgraph CONTROL["INTAKE & CONTROL"]
+    subgraph PIPELINE["AGENT HARNESS EXECUTION"]
         direction LR
-        REQUEST(["User Request"])
-        CONTEXT["Context Engineering<br/>RequestSpec · Session Memory<br/>Stage-aware Context"]
+
+        subgraph CONTEXT_LAYER["CONTEXT MANAGEMENT"]
+            direction TB
+            REQUEST(["User Request"])
+            CONTEXT["RequestSpec<br/>Stage-aware Context"]
+            MEMORY["Session Memory<br/>Bounded · Session-isolated<br/>Process-local"]
+
+            REQUEST --> CONTEXT
+            MEMORY --> CONTEXT
+        end
+
         HARNESS[["AGENT HARNESS RUNTIME<br/>CORE CONTROL PLANE<br/><br/>Planner · Complexity Routing<br/>State Management · Agent Dispatch"]]
 
-        REQUEST --> CONTEXT --> HARNESS
-    end
+        subgraph EXECUTION_LAYER["AGENTS & CAPABILITIES"]
+            direction TB
+            AGENTS["Specialized Agents<br/>Diagnostic · Consultation"]
+            CAPABILITIES["Tools & RAG<br/>Tool Policy · Optional Retrieval<br/>Evidence Injection"]
 
-    subgraph EXECUTION["EXECUTION & ASSURANCE"]
-        direction LR
-        AGENTS["Multi-Agent Layer<br/>Diagnostic Agent · Consultation Agent"]
-        CAPABILITIES["Capability Layer<br/>Tool Calling · Optional Retrieval / RAG<br/>Evidence Injection"]
-        RELIABILITY["Reliability Layer<br/>Answer Contract · Completion Gate<br/>Infrastructure Retry · Protocol Recovery"]
+            AGENTS --> CAPABILITIES
+        end
+
         OUTPUT(["Output<br/>Final Answer · Presentation Layer"])
 
-        AGENTS --> CAPABILITIES --> RELIABILITY --> OUTPUT
+        CONTEXT_LAYER --> HARNESS --> EXECUTION_LAYER --> OUTPUT
     end
 
-    CONTROL --> EXECUTION
-
-    subgraph OBS["OBSERVABILITY & EVALUATION · CROSS-CUTTING"]
+    subgraph ASSURANCE["VERIFICATION, RECOVERY & OBSERVABILITY · CROSS-CUTTING"]
         direction LR
-        TRACE["Trace"] ~~~ USAGE["Usage"] ~~~ LATENCY["Latency"] ~~~ BENCHMARK["Benchmark"]
+        VERIFY["Answer Contract<br/>Completion Gate"] ~~~ RECOVERY["Infrastructure Retry<br/>Protocol Recovery"] ~~~ OBS["Trace · Usage · Latency<br/>Benchmark"]
     end
 
-    EXECUTION -.->|runtime signals and outcomes| OBS
+    PIPELINE -.->|control signals and outcomes| ASSURANCE
 
     classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
     class HARNESS core
-    style CONTROL fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
-    style EXECUTION fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
-    style OBS fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style PIPELINE fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
+    style CONTEXT_LAYER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style EXECUTION_LAYER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style ASSURANCE fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
 ```
 
 For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths still pass through the guardrail and presentation stages.
@@ -81,7 +89,7 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 
 - **Problem:** Follow-up requests need relevant prior turns without mixing users or treating stale context as authoritative.
 - **Design:** `SessionMemory` is bounded, process-local, and keyed by `session_id`. It is session-scoped state, not persistent cross-session storage.
-- **Runtime behavior:** Recent messages from the same session are injected into Planner and worker context. The current request is appended last and explicitly takes precedence. Successful final responses add one user and one assistant message to the session.
+- **Runtime behavior:** Recent messages from the same session are injected into Planner and worker context. The current request is appended last and explicitly takes precedence. Successful final responses add one user and one assistant message to the session. The current implementation stores recent conversation messages; it does not extract structured patient facts or persist patient records.
 - **Failure handling:** Memory can be disabled, cleared per session, and never crosses session IDs. The recent-message limit prevents unbounded accumulation; process restart intentionally clears the state.
 
 ## 6. Worker Responses and Completion Gates

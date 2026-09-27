@@ -25,13 +25,6 @@ const toolNames: Record<string, string> = {
   disease_code: "Disease classification lookup",
 };
 
-function memoryFactText(key: string, value: string): string {
-  if (key === "attack_frequency") return `${value}偏头痛发作`;
-  if (key === "associated_symptoms") return `伴${value}`;
-  if (key === "current_focus") return `当前关注：${value}`;
-  return value;
-}
-
 export function DeveloperPanel({ presentation, isDemo = false }: Props) {
   const evidenceStatus = presentation.evidenceState.status;
   return (
@@ -135,22 +128,26 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
         <section className="developer-card memory-card">
           <div className="developer-card-title">
             <span>05</span>
-            <div><h3>Memory Continuity</h3><p>Session Memory · 会话上下文</p></div>
+            <div><h3>Memory Continuity</h3><p>Bounded Session Context · 有界会话上下文</p></div>
           </div>
-          <p className="memory-scope">Session-scoped memory · 仅用于当前会话</p>
+          <p className="memory-scope">Same-session only · Process-local · Clears on restart</p>
           <dl className="memory-facts">
             <div><dt>Session</dt><dd>{presentation.memory.sessionId}</dd></div>
-            <div><dt>History injected</dt><dd>{presentation.memory.historyInjectedCount ?? presentation.memory.historyInjected.length} messages</dd></div>
+            <div><dt>Prior messages</dt><dd>{presentation.memory.historyInjectedCount ?? presentation.memory.historyInjected.length} injected</dd></div>
             <div><dt>New session</dt><dd>{presentation.memory.newSessionHistoryCount ?? 0} messages</dd></div>
           </dl>
-          <div className="stored-context">
-            <h4>Stored context</h4>
+          <div className="memory-boundary">
+            <h4>What the runtime remembers</h4>
+            <p>Recent user and assistant messages associated with the same <code>session_id</code>.</p>
             <ul>
-              {(presentation.memory.storedFacts || []).map((fact) => (
-                <li key={fact.key}>{memoryFactText(fact.key, fact.value)}</li>
-              ))}
+              <li>Conversation buffer, not a patient record or structured fact store</li>
+              <li>No database persistence or cross-restart recovery</li>
+              <li>Current input remains authoritative over prior context</li>
             </ul>
           </div>
+          {isDemo && (
+            <p className="memory-demo-note">Precomputed fixture · No live memory write · Synthetic data only</p>
+          )}
         </section>
       )}
     </div>

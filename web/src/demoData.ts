@@ -7,10 +7,13 @@ type DemoCaseFixture = {
   label: string;
   question: string;
   case_context: string;
+  memory_demo?: {
+    first_turn_request: string;
+    buffer_summary: string;
+  };
   memory_context?: {
     session_id: string;
     history_injected_count: number;
-    stored_facts: Array<{ key: string; value: string }>;
     new_session_history_count: number;
   };
   presentation: {
@@ -161,16 +164,15 @@ export const demoFixtures: DemoCaseFixture[] = [
   {
     id: "demo-04-memory-followup",
     label: "04 · 连续诊疗分析（Memory）",
-    case_context: "第一轮（同一 demo session）：35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。用户咨询：请分析是否需要预防治疗，并记录需要持续关注的信息。Session Memory 保存了发作频率、伴随症状和当前关注方向。\n\n第二轮：用户基于同一会话继续追问预防治疗方案。",
+    case_context: "35岁女性，反复偏头痛，每月约发作6次，伴恶心、畏光，无新发神经功能缺损。",
     question: "结合之前信息，进一步讨论预防治疗方案。",
+    memory_demo: {
+      first_turn_request: "请分析是否需要预防治疗，并说明后续需要持续关注的信息。",
+      buffer_summary: "1 user message + 1 assistant response",
+    },
     memory_context: {
       session_id: "demo-memory-session",
       history_injected_count: 2,
-      stored_facts: [
-        { key: "attack_frequency", value: "每月约6次" },
-        { key: "associated_symptoms", value: "恶心、畏光" },
-        { key: "current_focus", value: "预防治疗评估" },
-      ],
       new_session_history_count: 0,
     },
     presentation: {
