@@ -17,6 +17,8 @@ The runtime treats completion as a control-flow and coverage property. A provide
 
 This was a fixed development reliability benchmark. No failed case was removed, and no quality-triggered rerun was used.
 
+The single incomplete case was MED-057. Its Agent final answer was empty and remained in the reported denominator; it was not regenerated or deleted.
+
 ## Reliability mechanisms
 
 ### Request and contract coverage

@@ -23,7 +23,7 @@ The run used one normal execution per ordered case. It retained bounded infrastr
 
 ## Clinical-quality comparison
 
-All 60 cases were matched one-to-one. Candidate answers were frozen before evaluation and were not edited or regenerated. The rubric asked which answer was more useful and reliable for clinical decision support, using medical correctness, completeness, clinical workflow, and safety/uncertainty handling. Writing style and answer length were explicitly excluded as winning criteria.
+All 60 cases were matched one-to-one. DeepSeek Web served as a baseline of saved product outputs collected before evaluation. Candidate answers were frozen before evaluation and were not edited or regenerated. The rubric asked which answer was more useful and reliable for clinical decision support, using medical correctness, completeness, clinical workflow, and safety/uncertainty handling. Writing style and answer length were explicitly excluded as winning criteria.
 
 | Metric | MedAgent | DeepSeek Web | Delta |
 | --- | ---: | ---: | ---: |
@@ -41,11 +41,12 @@ Winner counts:
 | DeepSeek Web | 8 |
 | Tie | 0 |
 
-MedAgent's Overall Clinical Agent Score (OCAS) was 4.6733 versus 4.3883 for DeepSeek Web, a difference of +0.2850 (+6.49%). The main observed advantages were requirement coverage, structured clinical workflow, and safety-aware reasoning.
+MedAgent's Overall Clinical Agent Score (OCAS) was 4.6733 versus 4.3883 for DeepSeek Web, a difference of +0.2850 (+6.49%). In this repository, OCAS / Overall Clinical Quality is a project-defined composite evaluation criterion; it is not presented as an official MedCli score or as an independently standardized clinical metric. The main observed advantages were requirement coverage, structured clinical workflow, and safety-aware reasoning.
 
 ## Interpretation limits
 
 - This is a fixed development benchmark, not an unseen test set.
+- It is not an independent clinical trial or clinical validation.
 - The sample is too small and narrow for claims of general medical superiority.
 - Model-judge scores can contain calibration and position bias.
 - The comparison measures the complete systems on these cases, not isolated model intelligence.

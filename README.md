@@ -6,6 +6,14 @@ A multi-agent medical decision-support system that improves complex clinical rea
 
 MedAgent Harness is an engineering project for traceable clinical-domain workflows. It is not a medical device and does not replace qualified clinical judgment.
 
+At a glance:
+
+- **Flow:** request understanding -> complexity routing -> specialized workers -> verification.
+- **Reliability control:** one bounded protocol-recovery attempt can repair malformed worker serialization without rerunning planning or replaying tools.
+- **Fixed development benchmark:** 59/60 completed; tool replay remained zero.
+- **Fixed comparison set:** overall clinical decision-support quality was 4.6733 for MedAgent and 4.3883 for the saved DeepSeek Web baseline.
+- **Quick start:** `pip install -e ".[dev]"` then `medagent run examples/synthetic_case_1.json`.
+
 ## Why this project
 
 Complex clinical questions often hide several deliverables inside one prompt: identify the likely diagnosis, explain the evidence, compare alternatives, recommend tests, propose treatment, and define follow-up. MedAgent turns those requirements into an explicit execution contract and checks that the final response covers them.
@@ -90,6 +98,10 @@ medagent serve
 
 Without an external model endpoint, the project uses its deterministic local client for workflow smoke tests. Copy `.env.example` only when configuring an OpenAI-compatible endpoint; never commit `.env`.
 
+### Optional RAG
+
+Retrieval is optional and defaults to an offline-safe mode. Real Milvus retrieval requires the `retrieval` extra plus a corpus supplied and governed by the user. This repository does not distribute a local medical knowledge base or raw guideline corpus, and the synthetic RAG demo is not presented as a verified authoritative guideline database.
+
 ### API
 
 ```bash
@@ -139,6 +151,15 @@ The comparison used 60 matched clinical cases and a fixed clinical decision-supp
 
 On this fixed benchmark, MedAgent achieved higher overall clinical decision-support quality, mainly through better requirement coverage, a more structured clinical workflow, and safety-aware reasoning. The result is benchmark-specific and does not support broad claims about general medical ability. See [Benchmark](docs/BENCHMARK.md).
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Design](docs/DESIGN.md)
+- [Benchmark](docs/BENCHMARK.md)
+- [Reliability](docs/RELIABILITY.md)
+- [Failure analysis](docs/FAILURE_ANALYSIS.md)
+- [Demo guide](docs/DEMO.md)
+
 ## Validation
 
 ```bash
@@ -158,4 +179,4 @@ This repository does not distribute patient records, benchmark case text, candid
 
 ## License
 
-Released under the [MIT License](LICENSE).
+The repository currently includes an [MIT License](LICENSE). Before public release, the maintainer must confirm ownership and relicensing rights for all included code and assets, plus any required third-party attribution.
