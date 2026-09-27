@@ -13,47 +13,21 @@ A direct LLM call can blur a complex clinical request into one generation: expli
 ## Architecture
 
 ```mermaid
-flowchart TB
-    INPUT["Clinical Case + User Request"]
-    CONTEXT["Context Engineering<br/>RequestSpec · AnswerContract · Stage-aware Context"]
-    PLAN["Planning & Routing<br/>Task Decomposition · Complexity Router"]
-    HARNESS["Agent Harness / Runtime<br/>Coordinator · AgentLoop · State · Dispatch"]
+flowchart LR
+    REQUEST["User Request"]
+    CONTEXT["Context Engineering"]
+    HARNESS["Agent Harness Runtime<br/>Core control plane"]
+    AGENTS["Specialized Agents"]
+    CAPABILITIES["Tools / Retrieval / Memory"]
+    VERIFY["Verification & Evaluation"]
 
-    subgraph ORCHESTRATION["Multi-Agent Orchestration"]
-        WORKERS["Specialized Agents<br/>Diagnostic · Consultation · Research"]
-    end
+    REQUEST --> CONTEXT --> HARNESS --> AGENTS --> CAPABILITIES --> VERIFY
 
-    subgraph CAPABILITIES["Runtime Capabilities"]
-        TOOL["Tool Use<br/>Function Calling"]
-        RAG["Optional RAG<br/>Evidence Retrieval"]
-    end
-
-    VERIFY["Guardrails & Verification<br/>Request Coverage · Answer Contract · Completion Gate"]
-    OUTPUT["Final Response<br/>Direct Answer · Clinical Detail · Review Views"]
-    MEMORY["Session Memory<br/>Bounded · Process-local · Session-scoped"]
-    RELIABILITY["Reliability Control<br/>Infrastructure Retry · Protocol Recovery"]
-    OBS["Observability & Evaluation<br/>Trace · Usage · Latency · Failure Analysis · Benchmark"]
-
-    INPUT --> CONTEXT
-    CONTEXT --> PLAN
-    PLAN --> HARNESS
-    HARNESS --> WORKERS
-    WORKERS <--> TOOL
-    WORKERS <--> RAG
-    WORKERS --> VERIFY
-    VERIFY --> OUTPUT
-
-    MEMORY --> CONTEXT
-    MEMORY --> HARNESS
-    OUTPUT -.->|updates session| MEMORY
-
-    RELIABILITY -.->|protects execution| HARNESS
-    RELIABILITY -.->|repairs worker protocol| WORKERS
-
-    HARNESS -.->|runtime events| OBS
-    WORKERS -.->|worker and tool events| OBS
-    VERIFY -.->|coverage metrics| OBS
+    classDef core fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827
+    class HARNESS core
 ```
+
+The core contribution is an agent harness around LLMs, providing context construction, planning, orchestration, tool execution, verification, recovery and observability.
 
 The harness constructs context according to execution stage; it does not reuse one oversized prompt everywhere:
 

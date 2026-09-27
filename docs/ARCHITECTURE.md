@@ -8,62 +8,24 @@ MedAgent Harness is a centralized planner-worker runtime for traceable clinical 
 
 ```mermaid
 flowchart TB
-    REQUEST["Clinical Case + User Request"]
-    CONTEXT["Context Construction<br/>RequestSpec · AnswerContract · Evidence Ledger"]
-    PROFILE["Complexity & Response Profile"]
-    PLANNER["Planner<br/>Task Decomposition · Ownership"]
-    ROUTER["Complexity Router<br/>Single / Multi Route"]
+    REQUEST["User Request"]
+    CONTEXT["Context Engineering<br/>RequestSpec · Session Memory · Stage-aware Context"]
+    HARNESS["Agent Harness Runtime<br/>Planner · Complexity Routing · State Management · Agent Dispatch"]
+    AGENTS["Multi-Agent Layer<br/>Diagnostic Agent · Consultation Agent"]
+    CAPABILITIES["Capability Layer<br/>Tool Calling · Optional Retrieval / RAG · Evidence Injection"]
+    RELIABILITY["Reliability Layer<br/>Answer Contract · Completion Gate · Infrastructure Retry · Protocol Recovery"]
+    OUTPUT["Output<br/>Final Answer · Presentation Layer"]
+    REQUEST --> CONTEXT --> HARNESS --> AGENTS --> CAPABILITIES --> RELIABILITY --> OUTPUT
 
-    subgraph RUNTIME["Agent Harness / Runtime"]
-        DISPATCH["Bounded Dispatch"]
-        WORKERS["Specialized Workers<br/>Diagnostic · Consultation · Research"]
-        TOOL_LOOP["Controlled Tool Loop<br/>Schema Filter · Call Budget"]
-        RESPONSE["WorkerResponse Parsing<br/>Request-item Answers"]
-
-        DISPATCH --> WORKERS
-        WORKERS <--> TOOL_LOOP
-        WORKERS --> RESPONSE
+    subgraph OBS["Observability & Evaluation — Cross-cutting"]
+        direction LR
+        TRACE["Trace"] ~~~ USAGE["Usage"] ~~~ LATENCY["Latency"] ~~~ BENCHMARK["Benchmark"]
     end
 
-    RETRIEVAL["Optional RAG<br/>Query Routing · Evidence Admission"]
-    GATE["Completion Gate<br/>RequestSpec Coverage + AnswerContract Coverage"]
-    INCOMPLETE["Explicit Incomplete Result"]
-    SYNTHESIS["Synthesis<br/>Multiple Successful Workers"]
-    GUARDRAIL["Guardrail<br/>Contract Check · Stable Patch"]
-    PRESENTATION["Presentation<br/>Patient · Clinical · Developer Views"]
-    FINAL["Final Response"]
+    OUTPUT -.->|cross-cutting telemetry| OBS
 
-    MEMORY["Session Memory<br/>Bounded · Process-local · Session-isolated"]
-    RELIABILITY["Reliability Control<br/>Infrastructure · Length · Protocol"]
-    TRACE["Observability<br/>Events · Usage · Latency · Recovery"]
-
-    REQUEST --> CONTEXT
-    CONTEXT --> PROFILE
-    PROFILE --> PLANNER
-    PLANNER --> ROUTER
-    ROUTER --> DISPATCH
-    TOOL_LOOP <--> RETRIEVAL
-    RESPONSE --> GATE
-    GATE -->|complete| SYNTHESIS
-    GATE -->|incomplete| INCOMPLETE
-    SYNTHESIS --> GUARDRAIL
-    GUARDRAIL --> PRESENTATION
-    PRESENTATION --> FINAL
-
-    MEMORY -.->|bounded context| PLANNER
-    MEMORY -.->|bounded context| WORKERS
-    FINAL -.->|session update| MEMORY
-
-    RELIABILITY -.->|bounded execution| PLANNER
-    RELIABILITY -.->|retry and repair| WORKERS
-
-    REQUEST -.->|request event| TRACE
-    PLANNER -.->|plan event| TRACE
-    WORKERS -.->|model and worker events| TRACE
-    TOOL_LOOP -.->|tool and retrieval events| TRACE
-    GATE -.->|coverage metrics| TRACE
-    RELIABILITY -.->|recovery events| TRACE
-    FINAL -.->|output and run status| TRACE
+    classDef core fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827
+    class HARNESS core
 ```
 
 For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths still pass through the guardrail and presentation stages.
