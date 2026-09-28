@@ -1,14 +1,14 @@
 # MedAgent Harness
 
-A native multi-agent clinical decision-support harness with context engineering, planning, agent orchestration, tool and retrieval loops, session memory, verification, reliability control, observability, and evaluation.
+MedAgent Harness is a native multi-agent runtime for clinical decision-support workflows. Rather than training a new foundation model, it controls how LLM agents execute a request: structuring requirements, planning and routing work, constructing bounded context, running specialized workers and tools, optionally retrieving evidence, verifying completion, recovering from bounded failures, and recording traces.
 
-MedAgent Harness is an agent-runtime engineering project for traceable clinical-domain workflows. It is not a medical device, does not replace qualified clinical judgment, and does not guarantee a diagnosis.
+Built as an agent-engineering portfolio project, it is not a medical device, does not replace qualified clinical judgment, and does not guarantee a diagnosis.
 
 ## Why MedAgent Harness?
 
-A direct LLM call can blur a complex clinical request into one generation: explicit deliverables may be dropped, tools may be invoked without clear bounds, and failures are difficult to inspect. MedAgent turns the request into an execution contract, decomposes and routes the work, gives specialized agents bounded context and capabilities, and verifies completion before returning an answer.
+Direct LLM generation can miss explicit deliverables in a complex request. Tools, context, and multi-step execution also become difficult to bound, while failures are hard to locate and recover.
 
-**The core contribution is the harness around the LLM rather than a new foundation model.** The harness owns request structuring, routing, planning, worker dispatch, tool execution, context construction, state handling, verification, recovery, and tracing.
+**The core contribution is the Harness control layer:** it converts each user request into an explicit execution contract and controls the Agent lifecycle from planning and stage-aware context construction through worker dispatch, tool execution, verification, recovery, and tracing.
 
 ## Architecture
 
@@ -32,15 +32,16 @@ flowchart LR
     class HARNESS core
 ```
 
-The core contribution is an agent harness around LLMs, providing context construction, planning, orchestration, tool execution, verification, recovery and observability.
+## How One Request Runs
 
-The harness constructs context according to execution stage; it does not reuse one oversized prompt everywhere:
+**User Request → RequestSpec + AnswerContract → Planner / Router → Specialized Worker(s) → Tools / optional RAG / bounded session context when needed → Request Coverage + Answer Contract completion gates → Final Answer + Execution Trace**
 
-- `RequestSpec` preserves the user's explicit deliverables, while `AnswerContract` identifies required clinical coverage.
-- The Planner receives task-level context; workers receive role-specific assignments, the current request, bounded session context, and admitted evidence only when needed.
-- Tools and optional retrieval add evidence through the controlled worker loop.
-- Session Memory provides bounded, process-local conversation context from the current session to Planner and worker execution; it is not a persistent fact store.
-- Protocol recovery receives only the malformed output, assigned request IDs, and required response schema. It repairs serialization rather than redoing clinical reasoning or reinjecting the full case.
+- `RequestSpec` preserves the user's explicit requirements and deliverables.
+- `AnswerContract` defines the clinical dimensions the final answer must cover.
+- The Planner decomposes and routes work according to request complexity.
+- Each worker receives role-relevant, stage-aware bounded context rather than one shared oversized prompt.
+- Tools and optional RAG inject evidence only through the controlled worker loop; session memory remains bounded, process-local, and session-scoped.
+- Final output must pass request-coverage and Answer Contract completion gates, with execution recorded in a structured trace.
 
 See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure model.
 
@@ -66,7 +67,9 @@ Two bounded worker recovery paths are emphasized:
 1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors with at most two retries and exponential backoff.
 2. **Worker protocol recovery** handles non-empty semantic content that fails the required structured-output protocol.
 
-Protocol recovery is limited to one attempt. It does not rerun the Planner, replay tools, or trigger a quality retry, and its output must pass the same parser and completion gates as the original worker response. Stage-specific generation-length handling is also bounded and is documented in [Architecture](docs/ARCHITECTURE.md#8-reliability-control).
+Protocol recovery is limited to one serialization-repair attempt. It does not rerun the Planner, replay tools, or trigger a quality retry. Its output must pass the same parser, request-coverage gate, and Answer Contract gate as the original worker response. Stage-specific generation-length handling is also bounded and is documented in [Architecture](docs/ARCHITECTURE.md#8-reliability-control).
+
+This mechanism was introduced after failure analysis of an early 20-case run: two incomplete cases contained clinically relevant worker content but failed at the structured-response boundary. The root cause was malformed serialization and parser rejection—not medical reasoning, planning, or network failure—so the fix targeted bounded serialization recovery without rerunning planning, tools, or clinical reasoning. The final fixed 60-case valid-execution set completed 60/60; this is not a claim of perfect reliability. See [Failure analysis](docs/FAILURE_ANALYSIS.md) for details.
 
 ## Evaluation
 
@@ -82,23 +85,32 @@ The largest gains were in:
 - Completeness: **+0.7166**
 - Workflow: **+0.7000**
 
-MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. The comparison therefore focuses on complete-system behavior under different orchestration, context-management, and execution pipelines rather than differences in foundation-model scale or family. Because DeepSeek Web's internal configuration is not observable, this is not a strict component-level causal ablation, and the **+6.49%** delta is not attributed solely to the Harness.
+MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. This is a paired complete-system comparison of different orchestration, context-management, and execution pipelines rather than foundation-model scale or family. Because DeepSeek Web's internal configuration is not observable, this is not a strict component-level causal ablation, and the **+6.49%** delta is not attributed solely to the Harness.
 
-Reliability methodology: the reported set contains one valid execution for each fixed case. An attempt that returned no Provider content solely because of a classified transient infrastructure exception was treated as invalid and repeated with the identical input and configuration. Valid model responses were never rerun for answer quality, and the final answers were not manually edited.
+Runs followed a frozen validity policy: valid model responses were never regenerated for answer quality or manually edited; detailed methodology is documented in [Benchmark](docs/BENCHMARK.md) and [Reliability](docs/RELIABILITY.md).
 
-This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement. See [Benchmark](docs/BENCHMARK.md), [Reliability](docs/RELIABILITY.md), and [Failure analysis](docs/FAILURE_ANALYSIS.md).
+This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement.
 
-## Interactive Demo
-
-A static frontend showcase is available:
+## Demo
 
 [MedAgent Showcase Demo](https://young-svg.github.io/medagent-harness/)
 
-- Loads bundled local fixtures.
-- Requires no backend or API keys.
-- Makes no API or external inference calls.
+The frontend presents four bundled synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory.
 
-This page demonstrates the Agent workflow and UI presentation only. It is an engineering portfolio showcase, not an online medical service.
+- Fixture-only; no backend required.
+- No API keys.
+- No external inference calls.
+- Engineering portfolio showcase, not an online medical service.
+
+### Run the showcase locally
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+See the [Static demo](docs/STATIC_DEMO.md), [Static demo audit](docs/STATIC_DEMO_AUDIT.md), and [Demo guide](docs/DEMO.md).
 
 ## Quick Start
 
@@ -118,18 +130,6 @@ Without an external model endpoint, the harness uses its deterministic local cli
 ### Optional RAG / Retrieval
 
 Retrieval is an optional runtime capability, not a requirement for the base harness. Real Milvus retrieval requires the `retrieval` extra and a corpus the user is authorized to use and govern. This repository does not distribute a local medical knowledge base or raw guideline corpus, and it does not present the synthetic RAG fixtures as an authoritative guideline database.
-
-## Demo
-
-Run the same fixture-only showcase locally:
-
-```bash
-cd web
-npm ci
-npm run dev
-```
-
-The frontend presents four synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory. It loads only local fixtures and does not call the backend. See the [Static demo](docs/STATIC_DEMO.md), [Static demo audit](docs/STATIC_DEMO_AUDIT.md), and [Demo guide](docs/DEMO.md).
 
 ## Documentation
 
