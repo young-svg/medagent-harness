@@ -82,6 +82,8 @@ The largest gains were in:
 - Completeness: **+0.7166**
 - Workflow: **+0.7000**
 
+MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. The comparison therefore focuses on complete-system behavior under different orchestration, context-management, and execution pipelines rather than differences in foundation-model scale or family. Because DeepSeek Web's internal configuration is not observable, this is not a strict component-level causal ablation, and the **+6.49%** delta is not attributed solely to the Harness.
+
 Reliability methodology: the reported set contains one valid execution for each fixed case. An attempt that returned no Provider content solely because of a classified transient infrastructure exception was treated as invalid and repeated with the identical input and configuration. Valid model responses were never rerun for answer quality, and the final answers were not manually edited.
 
 This comparison measures clinical decision-support quality on a fixed 60-case development evaluation set. It is not an unseen test, independent clinical validation, or evidence of general medical intelligence. Retrieval is optional and is not claimed as the primary source of the reported improvement. See [Benchmark](docs/BENCHMARK.md), [Reliability](docs/RELIABILITY.md), and [Failure analysis](docs/FAILURE_ANALYSIS.md).

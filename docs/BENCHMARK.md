@@ -27,6 +27,10 @@ This infrastructure-validity rule does not change the separately frozen clinical
 
 All 60 cases were matched one-to-one. DeepSeek Web served as a baseline of saved product outputs collected before evaluation. Candidate answers were frozen before evaluation and were not edited or regenerated. The rubric asked which answer was more useful and reliable for clinical decision support, using medical correctness, completeness, clinical workflow, and safety/uncertainty handling. Writing style and answer length were explicitly excluded as winning criteria.
 
+### Model control / system-comparison scope
+
+Both MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. This removes foundation-model identity as the primary difference between the evaluated systems and makes the fixed paired 60-case comparison more informative about system-level orchestration, context handling, execution control, and verification. However, DeepSeek Web is a closed product surface: its system prompts, serving parameters, context policies, routing, search/tool behavior, and other internal controls are not observable. The benchmark is therefore reported as a paired complete-system comparison, not a strict causal ablation of individual Harness components, and the observed **+6.49%** delta is not attributed solely to the Harness.
+
 | Metric | MedAgent | DeepSeek Web | Delta |
 | --- | ---: | ---: | ---: |
 | Overall Clinical Quality | 4.6733 | 4.3883 | +0.2850 |
@@ -51,7 +55,6 @@ MedAgent's Overall Clinical Agent Score (OCAS) was 4.6733 versus 4.3883 for Deep
 - It is not an independent clinical trial or clinical validation.
 - The sample is too small and narrow for claims of general medical superiority.
 - Model-judge scores can contain calibration and position bias.
-- The comparison measures the complete systems on these cases, not isolated model intelligence.
 - The results should be reproduced on independently governed held-out data before deployment decisions.
 
 The supported conclusion is: **MedAgent achieved higher overall clinical decision-support quality on this fixed 60-case comparison.**

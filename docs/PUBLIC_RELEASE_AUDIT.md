@@ -61,6 +61,7 @@
 - The methodology defines no-content transient Provider failures as infrastructure-invalid attempts that may be repeated only with identical inputs; valid responses cannot receive quality-triggered reruns.
 - The comparison reports 60 matched cases, MedAgent 4.6733, DeepSeek Web 4.3883, delta +0.2850 (+6.49%), and 52/8/0 wins/losses/ties.
 - DeepSeek Web is described as a saved product-output baseline.
+- Both systems are documented as using the same underlying DeepSeek model; the result is framed as a paired complete-system comparison, not a strict component-level causal ablation or proof that the +6.49% delta is solely caused by the Harness.
 - OCAS / Overall Clinical Quality is explicitly project-defined, not an official MedCli score.
 - The wording is limited to higher clinical decision-support quality on this fixed evaluation set and disclaims independent clinical validation.
 
