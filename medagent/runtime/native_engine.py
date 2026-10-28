@@ -81,7 +81,10 @@ class NativeMedAgentEngine:
         self.retrieval_mode = (
             self.config.retrieval_mode if retrieval_backend is None else "injected"
         )
-        self.memory = memory or SessionMemory()
+        self.memory = (
+            memory if memory is not None
+            else SessionMemory(token_budget=self.config.memory_token_budget)
+        )
         self.skills = load_public_skills()
         self._closed = False
 
@@ -124,7 +127,9 @@ class NativeMedAgentEngine:
             )
             current_context = {"description": description, "question": question}
             current_input = f"{description}\nQuestion: {question}"
-            memory_context = self.memory.context(session_id, current_input)
+            memory_context, memory_metadata = self.memory.context_with_metadata(
+                session_id, current_input
+            )
             injected_memory = memory_context[:-1]
             trace.record(
                 "memory_read",
@@ -132,6 +137,7 @@ class NativeMedAgentEngine:
                     "injected_messages": injected_memory,
                     "current_input": memory_context[-1],
                     "long_term_memory": "excluded",
+                    **memory_metadata,
                 },
                 stage="memory",
             )
@@ -396,10 +402,15 @@ class NativeMedAgentEngine:
                 )
 
             if status == "completed":
-                self.memory.add(session_id, "user", f"{description}\nQuestion: {question}")
-                self.memory.add(session_id, "assistant", final_answer)
+                user_added = self.memory.add(session_id, "user", current_input)
+                assistant_added = self.memory.add(session_id, "assistant", final_answer)
                 trace.record(
-                    "memory_write", {"session_id": session_id, "messages_added": 2}, stage="memory"
+                    "memory_write",
+                    {
+                        "session_id": session_id,
+                        "messages_added": int(user_added) + int(assistant_added),
+                    },
+                    stage="memory",
                 )
             trace.record("final_answer", {"answer": final_answer}, stage="output")
             trace.finish(status)
