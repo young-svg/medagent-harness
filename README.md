@@ -128,7 +128,7 @@ For a compact dependency-plan example and operating limits, see
 
 Two bounded worker recovery paths are emphasized:
 
-1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors with at most two retries and exponential backoff.
+1. **Infrastructure retry** handles transient provider or network failures such as transport errors, rate limits, and server errors with at most two retries by default and exponential backoff (configurable from zero to three).
 2. **Worker protocol recovery** handles non-empty semantic content that fails the required structured-output protocol.
 
 Protocol recovery is limited to one serialization-repair attempt. It does not rerun the Planner, replay tools, or trigger a quality retry. Its output must pass the same parser, request-coverage gate, and Answer Contract gate as the original worker response. Stage-specific generation-length handling is also bounded and is documented in [Architecture](docs/ARCHITECTURE.md#8-reliability-control).
@@ -427,7 +427,15 @@ CI runs offline and does not require a model endpoint, vector database, patient 
 
 ## Public-release Data Policy
 
-This repository does not distribute patient records, benchmark case text, candidate-answer dumps, private medical corpora, vector databases, model weights, credentials, or local traces. Demo inputs and evidence cards are synthetic fixtures.
+The current release tree does not include patient records, benchmark case dumps,
+private corpora, vector databases, model weights, credentials or raw local traces.
+Demo inputs and evidence cards are labeled synthetic fixtures. These labels are
+not an independent provenance or redistribution-rights audit.
+
+Git history was not rewritten: ancestors retain older traces and evaluation
+excerpts excluded from the current tree. Owner confirmation of publication rights
+must cover that history as well. See the current scope and outstanding decisions
+in [Public release audit](docs/PUBLIC_RELEASE_AUDIT.md).
 
 ## License
 

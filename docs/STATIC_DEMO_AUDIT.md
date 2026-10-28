@@ -12,7 +12,9 @@ Changing the case selector performs an in-memory lookup and rerenders the chosen
 - `web/src/demoFinalAnswers.json` contains fixed answer content.
 - `web/src/demoEvidenceCards.json` contains synthetic retrieval evidence cards.
 - `web/src/presentationAdapter.ts` converts fixture-shaped responses into view models.
-- No patient records, provider responses, API keys, or remote datasets are loaded.
+- No live provider response, remote patient record, API key or remote dataset is
+  fetched by the static app. This network boundary does not establish authorship
+  or redistribution rights for the prewritten bundled case/answer text.
 
 ## Network Dependency
 

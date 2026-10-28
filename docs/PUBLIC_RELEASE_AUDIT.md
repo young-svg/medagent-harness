@@ -1,5 +1,75 @@
 # Public Release Audit
 
+## Current review: integration at `aba3dec` (2026-10-28)
+
+**TECHNICAL_CHECKS_PASSED; PUBLICATION_AUTHORIZATION_PENDING**
+
+This section supersedes unconditional release, privacy and license conclusions in
+the historical snapshot below. This is a repository-evidence review, not legal
+clearance or a complete privacy/provenance certification.
+
+### Scope and secret/path findings
+
+- Reviewed the 148 tracked files at `aba3dec`, manifests, declared fixtures and
+  selected reachable Git-history artifacts. No historical untracked directory was
+  inspected, and no raw local run was imported or published.
+- `LICENSE_PENDING.md` and `docs/SECRET_AND_PATH_SCAN.md` are absent from this
+  release tree. Their historical `main` versions were read from Git only; they
+  were not restored. The old scan included an integration Trace fixture, whereas
+  the current release tree contains no tracked JSONL Trace, runtime log, database,
+  model weight or captured evaluation-output directory.
+- Pattern checks found no credential-shaped key/private key or patient-identity
+  field requiring disclosure. Three assignment candidates are explicit test-only
+  redaction fixtures in `tests/test_runtime_claims.py`, not verified credentials.
+- The path search excluded URL substrings. Its Windows-path candidate is the
+  literal search-pattern example in this document, not a private machine path.
+  Report candidates and exclusions rather than asserting that every absolute-path
+  string, personal datum or secret in every revision is absent.
+- No third-party source attribution header was found by the tracked-text search.
+  Missing headers do not prove independent authorship or permission to republish.
+
+### Public data and history boundary
+
+- The CLI examples, four reference demo JSON files and RAG evidence cards are
+  labeled synthetic. The frontend uses `web/src/demoData.ts` plus bundled answer
+  and evidence JSON; it does not execute the reference JSON files as live runs.
+- These labels and tests establish declared fixture behavior, not the origin or
+  redistribution permission of every clinical paragraph. The owner must confirm
+  authorship/provenance of case narratives and `web/src/demoFinalAnswers.json`.
+- Benchmark pages contain aggregate historical claims, not raw case/answer dumps.
+  The underlying case/output rights and permission to publish the comparison and
+  product/model references still require owner confirmation; clinical results were
+  not independently revalidated in this review.
+- Deletions in the release tree did not rewrite Git history. Reachable ancestors
+  still contain an integration Trace, screenshots, local-path reports and targeted
+  evaluation question excerpts (for example the old `artifacts/integration-trace/`
+  and `eval/requestspec_validation/` paths). The inspected integration Trace is a
+  labeled deterministic synthetic run; the evaluation excerpts' redistribution
+  permission is not established here. Do not equate a clean checkout with a
+  sanitized history. No history rewrite or material deletion was performed.
+
+### Dependency evidence, not a license grant
+
+- Current installed metadata identifies MIT for FastAPI/Pydantic and BSD-3-Clause
+  for HTTPX/Uvicorn; the optional retrieval dependencies declare Apache licensing.
+  This is an environment snapshot, not a pinned Python transitive-dependency audit.
+- The tracked npm lockfile declares MIT, Apache-2.0, ISC, BSD-3-Clause and MPL-2.0.
+  The 12 MPL entries belong to Lightning CSS and its platform variants via Vite;
+  they are not evidence that all variants or MPL code ship in browser assets.
+- Confirm notices/source obligations against the actual source, bundle, container
+  or binary being distributed. In particular, distinguish build-tool use from
+  redistribution of MPL-covered code; do not assume the whole project must adopt
+  MPL. See the [Mozilla MPL FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/).
+- No project license or third-party notice file was added. Publication authority
+  for employer/university/collaborator work, imported prompts/code and demo text
+  cannot be inferred from dependency licenses or a technical clean-room claim.
+
+The preceding integration verified 423 tests, Ruff, frontend build and offline
+Smoke. This review changes documentation only and does not claim a fresh test run,
+real-model/Milvus evaluation, exhaustive dependency audit or clinical validation.
+
+## Historical snapshot (not current release clearance)
+
 ## Release Candidate
 
 - Target branch: `release/github-ready`
@@ -22,7 +92,8 @@
 **LOCAL_PATH = PASS**
 
 - No tracked `E:\`, `C:\`, `/home/`, private repository, or private model path is present.
-- `127.0.0.1:8000` appears only as the documented local API example, the CLI's local bind default, and the Vite development proxy; these are intentional localhost examples.
+- Localhost addresses are intentional local API/CLI examples. The current static
+  frontend has no Vite API proxy and makes no backend inference calls.
 - Test endpoints use reserved `.invalid` hosts and do not represent private services.
 
 ## Private Dependencies
@@ -101,11 +172,19 @@
 
 ## Final Verdict
 
-**READY_FOR_PUSH**
+**HISTORICAL_TECHNICAL_READINESS_ONLY**
 
-The code and metadata audits are technically ready for a public viewing and evaluation release. No open-source license is granted, and third-party components remain subject to their respective licenses.
+The old technical audit does not authorize publication of the integrated tree or
+its reachable history. No open-source license is granted. Current owner decisions
+and third-party obligations remain pending as described above.
 
 ## USER_ACTION_REQUIRED
 
-- No repository-level license selection action remains.
-- Continue to satisfy applicable third-party license and attribution obligations.
+- Confirm ownership and authority to publish all source, prompts and demo text,
+  including any employer, university or collaborator interests.
+- Confirm the intended public-viewing terms; select an open-source license only if
+  the rights holders explicitly authorize it. Missing an open-source license is
+  not itself a finding that the owner cannot publish their own work.
+- Confirm permissions for reachable historical evaluation excerpts and other old
+  materials; decide whether any separate release/history action is required.
+- Review third-party notices and source obligations for actual distributed assets.

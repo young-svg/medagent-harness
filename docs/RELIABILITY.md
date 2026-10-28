@@ -6,6 +6,9 @@ The runtime treats completion as a control-flow and coverage property. A provide
 
 ## Fixed 60-case result
 
+These are the existing pre-A1-C1 release results, not a rerun of the integrated
+runtime. Offline regressions verify engineering behavior, not clinical efficacy.
+
 | Metric | Result |
 | --- | ---: |
 | Cases | 60 |
@@ -21,11 +24,17 @@ The result set contains one valid execution for each fixed case. An attempt with
 
 ### Request and contract coverage
 
-Each required request item and clinical deliverable must be backed by a valid non-empty worker answer. Planner assignment alone does not count as completion.
+Each required request item and clinical deliverable must first be backed by a
+valid non-empty Worker answer. Final per-item coverage is then checked after
+synthesis, deterministic recovery and safety edits. Worker coverage or Planner
+assignment alone does not establish final completion; blocked dependencies also
+prevent a completed result.
 
 ### Infrastructure retry
 
-Transient provider failures may receive at most two retries with exponential backoff. Retry scheduling, attempt counts, and outcomes remain visible and do not imply medical-quality improvement.
+Transient provider failures may receive at most two retries by default, configurable
+from zero to three, with exponential backoff. Retry scheduling, attempt counts and
+outcomes remain visible and do not imply medical-quality improvement.
 
 ### Length recovery
 

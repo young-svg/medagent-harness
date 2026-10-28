@@ -11,7 +11,11 @@ The repository includes four local fixtures that demonstrate orchestration behav
 | RAG | Research and Consultation agents use synthetic admitted evidence cards |
 | Memory | A precomputed two-turn timeline shows bounded same-session conversation context injected into a follow-up |
 
-Fixtures live in `examples/demo_cases/` and are loaded by the frontend as static presentation data. Selecting a demo does not call a model, external retrieval service, or API.
+Reference fixtures live in `examples/demo_cases/`. The frontend defines its cases
+in `web/src/demoData.ts` and imports bundled answer/evidence JSON; it does not load
+the reference case files directly. Selecting a demo does not call a model,
+external retrieval service, or API. Synthetic labels describe intended use, not
+independent proof of text provenance or publication permission.
 
 The Memory fixture is an illustration, not a live memory write. It does not persist a patient record, extract structured clinical facts, or survive a process restart.
 
