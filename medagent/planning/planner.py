@@ -10,7 +10,7 @@ from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import TaskComplexityProfile, preferred_worker
-from medagent.planning.models import VALID_WORKERS, Plan, Subtask
+from medagent.planning.models import VALID_WORKERS, Plan, PlanDependencyError, Subtask
 
 
 class PlanCoverageError(ValueError):
@@ -60,8 +60,13 @@ class Planner:
 
     @staticmethod
     def parse(raw: Any, fallback_worker: str) -> Plan:
+        declares_dependencies = isinstance(raw, str) and '"depends_on"' in raw
         try:
             parsed = json.loads(raw) if isinstance(raw, str) else raw
+            declares_dependencies = declares_dependencies or any(
+                isinstance(item, dict) and "depends_on" in item
+                for item in parsed["subtasks"]
+            )
             subtasks = []
             for index, item in enumerate(parsed["subtasks"], 1):
                 agent = str(item.get("assigned_agent") or fallback_worker)
@@ -79,12 +84,17 @@ class Planner:
                         request_item_ids=[
                             str(value) for value in item.get("request_item_ids", [])
                         ],
+                        depends_on=item.get("depends_on", []),
                     )
                 )
             plan = Plan(subtasks)
             plan.validate()
             return plan
+        except PlanDependencyError:
+            raise
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            if declares_dependencies:
+                raise PlanDependencyError("invalid dependency plan; refusing fallback") from error
             return Plan(
                 [Subtask("task-1", "Address the requested deliverables.", fallback_worker)],
                 f"structured_parse_fallback:{type(error).__name__}",
@@ -123,7 +133,11 @@ class Planner:
                     "contract requested_deliverables, request_item_ids chosen only from the "
                     "RequestSpec, and a short justification. Every subtask must map at least one "
                     "request item, and every required request item must be mapped. Multiple "
-                    "request items may be handled by one worker. Do not create "
+                    "request items may be handled by one worker. "
+                    "Each task may include depends_on: a list of upstream subtask_id values. "
+                    "Use [] for independent work; declare dependencies only when a task needs "
+                    "another task's output. IDs must be unique, references valid and acyclic. "
+                    "Do not create "
                     "diagnosis, differential, testing, management, prognosis, or follow-up "
                     "work unless it is a requested deliverable or a necessary safety dependency. "
                     "Do not include reasoning. Current request data overrides session history."
@@ -167,6 +181,8 @@ class Planner:
             plan.planner_length_recovery_count = generation.length_recovery_count
             plan.planner_generation_status = generation.generation_status
             return plan
+        except PlanDependencyError:
+            raise
         except Exception as error:
             return Plan(
                 [Subtask("task-1", question, fallback_worker)],
@@ -201,6 +217,8 @@ def apply_contract_policy(
 ) -> Plan:
     """Remove planner expansion and attach every retained subtask to contract scope."""
 
+    plan.validate()
+    has_dependencies = any(item.depends_on for item in plan.subtasks)
     retained: list[Subtask] = []
     actions: list[str] = []
     for subtask in plan.subtasks:
@@ -225,10 +243,18 @@ def apply_contract_policy(
                     subtask.justification or "Serves requested contract deliverable(s)."
                 ),
                 request_item_ids=list(subtask.request_item_ids),
+                depends_on=list(subtask.depends_on),
             )
         )
 
-    if complexity.breadth == "focused" and retained:
+    if has_dependencies and {item.subtask_id for item in retained} != {
+        item.subtask_id for item in plan.subtasks
+    }:
+        raise PlanDependencyError("contract policy would remove tasks from a dependency plan")
+    if has_dependencies:
+        actions.append("preserved_dependency_graph")
+
+    if complexity.breadth == "focused" and retained and not has_dependencies:
         primary = contract.requested_deliverables[0]
         selected = next(
             (item for item in retained if primary in item.deliverable_ids), retained[0]
@@ -260,7 +286,7 @@ def apply_contract_policy(
         and complexity.deliverable_count <= 2
         and not complexity.requires_cross_role_reasoning
     )
-    if low_scope_single_worker and len(retained) > 1:
+    if low_scope_single_worker and len(retained) > 1 and not has_dependencies:
         primary = contract.requested_deliverables[0]
         selected_worker = preferred_worker(
             primary, external_evidence=complexity.requires_external_evidence
@@ -314,9 +340,11 @@ def apply_contract_policy(
 
     by_worker: dict[str, Subtask] = {}
     for item in retained:
-        existing = by_worker.get(item.assigned_agent)
+        # Do not collapse task identities in a dependency graph, even for one role.
+        key = item.subtask_id if has_dependencies else item.assigned_agent
+        existing = by_worker.get(key)
         if existing is None:
-            by_worker[item.assigned_agent] = item
+            by_worker[key] = item
             continue
         deliverable_ids = list(
             dict.fromkeys(existing.deliverable_ids + item.deliverable_ids)

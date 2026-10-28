@@ -58,9 +58,7 @@ def test_t2_unknown_item_remains_required() -> None:
     assert spec.items[0].semantic_type == "UNKNOWN"
     assert spec.items[0].required is True
     assert spec.items[1].semantic_type == "PREOPERATIVE_EVALUATION"
-    assert build_answer_contract(question).requested_deliverables == [
-        "PREOPERATIVE_EVALUATION"
-    ]
+    assert build_answer_contract(question).requested_deliverables == ["PREOPERATIVE_EVALUATION"]
 
 
 def test_t3_three_same_role_items_can_merge_into_one_worker() -> None:
@@ -102,8 +100,7 @@ def test_t4_t5_worker_partial_and_complete_coverage() -> None:
         "diagnostic_agent",
         "task",
         "all",
-        request_item_answers=partial.request_item_answers
-        + [RequestItemAnswer("RQ3", "three")],
+        request_item_answers=partial.request_item_answers + [RequestItemAnswer("RQ3", "three")],
     )
 
     assert partial_coverage.missing_request_items == ["RQ3"]
@@ -278,8 +275,14 @@ async def test_smoke_c_worker_omission_is_incomplete(tmp_path) -> None:
 
     assert result["status"] == "incomplete"
     assert result["user_request_complete"] is False
-    assert result["contract_complete"] is True
-    assert result["missing_required_request_items"] == ["RQ3"]
+    assert result["contract_complete"] is False
+    assert result["missing_required_request_items"] == ["RQ1", "RQ2", "RQ3"]
+    assert result["final_answer"] == ""
+    assert result["final_request_item_answers"] == {}
+    contract_coverage = next(
+        event for event in events if event["event_type"] == "contract_coverage"
+    )
+    assert contract_coverage["payload"]["missing_required_deliverables"] == []
     coverage = next(event for event in events if event["event_type"] == "request_coverage")
     assert coverage["payload"]["covered_request_items"] == ["RQ1", "RQ2"]
     assert coverage["payload"]["missing_request_items"] == ["RQ3"]

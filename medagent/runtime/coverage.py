@@ -6,6 +6,7 @@ from medagent.agents.base import WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.request_spec import RequestSpec
 from medagent.planning.models import Subtask
+from medagent.runtime.final_answers import has_answer_content
 
 
 def _coverage_key(value: str) -> str:
@@ -17,9 +18,7 @@ def required_deliverable_ids(contract: AnswerContract) -> list[str]:
 
     required_keys = {_coverage_key(item) for item in contract.must_cover}
     required_keys.update(
-        _coverage_key(item.item)
-        for item in contract.coverage_checklist
-        if item.priority == "MUST"
+        _coverage_key(item.item) for item in contract.coverage_checklist if item.priority == "MUST"
     )
     return [
         deliverable
@@ -103,4 +102,52 @@ def evaluate_contract_coverage(
         missing,
         successful_workers,
         len(workers) - successful_workers,
+    )
+
+
+def evaluate_final_request_coverage(
+    request_spec: RequestSpec, answers: dict[str, str]
+) -> RequestCoverage:
+    ordered = {
+        item.id: answers[item.id]
+        for item in request_spec.items
+        if item.id in answers and has_answer_content(answers[item.id])
+    }
+    required = request_spec.required_item_ids
+    return RequestCoverage(
+        required, list(ordered), [item for item in required if item not in ordered], ordered
+    )
+
+
+def evaluate_final_contract_coverage(
+    contract: AnswerContract,
+    request_spec: RequestSpec,
+    subtasks: list[Subtask],
+    final: RequestCoverage,
+    worker_coverage: ContractCoverage,
+) -> ContractCoverage:
+    required = required_deliverable_ids(contract)
+    covered: list[str] = []
+    for deliverable in contract.requested_deliverables:
+        ids = {
+            item.id
+            for item in request_spec.items
+            if item.semantic_type == deliverable and (item.required or deliverable not in required)
+        }
+        if not ids:
+            ids = {
+                request_id
+                for subtask in subtasks
+                if deliverable in subtask.deliverable_ids
+                for request_id in subtask.request_item_ids
+                if request_id in request_spec.required_item_ids
+            }
+        if ids and ids.issubset(final.covered_request_items):
+            covered.append(deliverable)
+    return ContractCoverage(
+        required,
+        covered,
+        [item for item in required if item not in covered],
+        worker_coverage.successful_workers,
+        worker_coverage.failed_workers,
     )

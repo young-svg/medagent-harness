@@ -22,3 +22,8 @@ class AnalyzeResponse(BaseModel):
     run_id: str
     trace: dict[str, Any]
     presentation: dict[str, Any]
+    user_request_complete: bool = False
+    contract_complete: bool = False
+    missing_required_request_items: list[str] = Field(default_factory=list)
+    request_item_answers: dict[str, str] = Field(default_factory=dict)
+    final_request_item_answers: dict[str, str] = Field(default_factory=dict)

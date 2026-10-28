@@ -34,7 +34,16 @@ Presentation views share the native final answer. Plain-language and developer m
 - Retrieval evidence is admitted before prompt injection.
 - A tool executes only after schema and budget checks.
 - Recovery never bypasses the original parser or completion gate.
-- Observable traces do not expose hidden chain-of-thought.
+- Handoff and final-answer paths remove tagged reasoning blocks. Raw audit traces
+  can retain model reasoning and sensitive case text; credential redaction is not
+  patient-data de-identification and does not make traces safe to publish.
+- Explicit dependencies survive policy reconciliation; upstream failure blocks
+  downstream execution rather than becoming dependency-free parallel work.
+- Worker coverage and final output coverage are separate. Completion uses the final
+  required answers after sanitizer and Guardrail edits, not the checker flag alone.
+- One read-time, count- and estimated-budget-bounded history snapshot is shared by
+  Planner and Workers. Current input/task context is not trimmed; byte estimation
+  is not a real-token hard limit. Explicit custom Memory retains its own settings.
 
 ## Deliberate non-goals
 

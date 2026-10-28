@@ -173,7 +173,7 @@ async def test_synthesis_recovers_once_after_empty_length_response(tmp_path) -> 
             "Diagnostic draft",
             "Research draft",
             length_response(),
-            LLMResponse("VALID_SYNTHESIZED_ANSWER", finish_reason="stop"),
+            {"answers": [{"request_item_id": "RQ1", "answer": "VALID_SYNTHESIZED_ANSWER"}]},
         ]
     )
     engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)

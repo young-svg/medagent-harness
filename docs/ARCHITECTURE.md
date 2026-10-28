@@ -73,8 +73,17 @@ This is stage-aware context construction, not one shared prompt and not a claim 
 
 - **Problem:** Independent model calls need common control over state, ownership, timeouts, tools, completion, and traceability.
 - **Design:** `NativeMedAgentEngine` coordinates the lifecycle; `AgentLoop` owns each worker's model/tool loop. Worker roles have explicit scopes and safety boundaries. The harness, rather than the model, owns dispatch and completion state.
-- **Runtime behavior:** Planned subtasks run concurrently with bounded worker timeouts. The Diagnostic worker covers pattern assessment and workup, the Consultation worker covers management and follow-up, and the Research worker summarizes admitted evidence for assigned evidence work.
-- **Failure handling:** Worker exceptions and timeouts become explicit failed-worker results. A surviving draft cannot produce a completed run unless both request and contract coverage gates pass.
+- **Runtime behavior:** Independent subtasks run concurrently. Validated `depends_on`
+  edges wait for successful upstream results; execution timeouts begin after waiting.
+  Sanitized, structured Handoff carries source task/Worker IDs, per-item answers and
+  the source Worker event ID, separately from patient facts and Memory. Results retain
+  plan order; same-role dependency tasks keep their identities. Contract reconciliation
+  preserves required deliverable ownership without dropping dependencies. The Diagnostic
+  worker covers assessment/workup, Consultation covers care, and Research covers evidence.
+- **Failure handling:** Worker exceptions and timeouts become explicit failed-worker results.
+  Invalid dependency graphs fail explicitly. Unusable upstream output blocks descendants
+  without their model calls, even if unrelated work covers the same request. Handoff filters
+  complete and unterminated reasoning tags before its Trace event and downstream prompt.
 
 ## 4. Tool Use and Optional RAG
 
@@ -89,7 +98,13 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 
 - **Problem:** Follow-up requests need relevant prior turns without mixing users or treating stale context as authoritative.
 - **Design:** `SessionMemory` is bounded, process-local, and keyed by `session_id`. It is session-scoped state, not persistent cross-session storage.
-- **Runtime behavior:** Recent messages from the same session are injected into Planner and worker context. The current request is appended last and explicitly takes precedence. Successful final responses add one user and one assistant message to the session. The current implementation stores recent conversation messages; it does not extract structured patient facts or persist patient records.
+- **Runtime behavior:** One shared history snapshot is injected into Planner and all Workers.
+  Count limiting precedes whole-message, oldest-first trimming to an estimated budget
+  (default 4096; 0 excludes history; None disables the budget). UTF-8 JSON bytes plus
+  framing are a conservative proxy, not actual tokenizer usage or a model-window hard
+  limit. Current input/task context is not trimmed. CLI/API default Memory inherits
+  RuntimeConfig; explicit custom Memory retains its settings. Accepted, deduplicated
+  writes are counted in Trace. Memory does not persist patient records.
 - **Failure handling:** Memory can be disabled, cleared per session, and never crosses session IDs. The recent-message limit prevents unbounded accumulation; process restart intentionally clears the state.
 
 ## 6. Worker Responses and Completion Gates
@@ -104,7 +119,13 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 - **Problem:** Combining worker drafts can introduce omissions or inconsistencies, and presentation should not create a second clinical conclusion.
 - **Design:** The Synthesizer receives the contract, request map, profiles, and successful worker drafts. A conservative Guardrail checks contract coverage and contradictions against the patient-fact ledger, then applies only stable whole-unit edits. Presentation derives patient, clinical, and developer views from the same final answer.
 - **Runtime behavior:** Multi-worker drafts are reduced to the smallest complete response; a single-worker draft bypasses synthesis. The guardrail runs on either path. Provider-backed presentation transformation is optional.
-- **Failure handling:** Empty or exhausted synthesis is a stage error. If presentation transformation fails or its protocol is invalid, the deterministic presentation adapter remains available; the medical answer is not regenerated merely to improve formatting.
+- **Failure handling:** Provider failure or exhausted synthesis is a stage error. Malformed,
+  duplicate, missing or empty per-item synthesized answers can be recovered deterministically
+  from corresponding validated Worker answers, without a repair call. Final required IDs and
+  substantive content are rechecked after sanitizer and stable Guardrail edits. Unrecoverable
+  answers return incomplete; Worker coverage and final coverage remain separate. Incomplete
+  runs skip the optional presentation transform. If the transform fails, deterministic
+  presentation remains available without changing the final answer or coverage state.
 
 ## 8. Reliability Control
 
@@ -120,7 +141,12 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 
 - **Problem:** Agent quality and reliability cannot be assessed from the final answer alone.
 - **Design:** A central trace recorder emits structured JSONL events and applies credential-shaped redaction at the write boundary. Evaluation remains separate from runtime execution.
-- **Runtime behavior:** Trace coverage includes the request/context, Planner input and output, route, worker and model requests/responses, tool calls/results, retrieval admission, usage, latency, coverage, recovery, final answer, and run status. The trace records observable execution data, not hidden chain-of-thought.
+- **Runtime behavior:** Trace records context, model/tool/retrieval boundaries, coverage,
+  recovery, Handoff provenance and final status. Causal parents are explicit; unrelated
+  concurrent events are not connected by append order. Worker request coverage and final
+  output coverage are distinct, and Replay uses final coverage when available. Raw audit
+  payloads may contain reasoning and sensitive text; credential redaction is not privacy
+  certification. Do not publish raw local traces or expose them to untrusted users.
 - **Failure handling:** Errors and recovery outcomes are events with sanitized error metadata. Local traces are excluded from the public repository and can be summarized or replayed read-only.
 
 Evaluation evidence is documented in:

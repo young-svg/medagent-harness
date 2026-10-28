@@ -43,9 +43,11 @@ class WorkerResult:
     protocol_recovery_success_count: int = 0
     worker_status: str = "success"
     request_item_answers: list[RequestItemAnswer] = field(default_factory=list)
+    trace_event_id: str | None = field(default=None, repr=False)
 
     def to_dict(self) -> dict[str, object]:
         value = asdict(self)
+        value.pop("trace_event_id")  # Runtime provenance, not part of the public Worker schema.
         value["answered_request_item_ids"] = [
             item.request_item_id for item in self.request_item_answers if item.answer.strip()
         ]

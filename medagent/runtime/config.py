@@ -34,6 +34,7 @@ class RuntimeConfig:
     special_collection: str = "clinical_guidelines"
     retrieval_top_k: int = 5
     retrieval_threshold: float = 0.63
+    memory_token_budget: int | None = 4096
 
     def __post_init__(self) -> None:
         if not 0 <= self.worker_max_infrastructure_retries <= 3:
@@ -42,6 +43,10 @@ class RuntimeConfig:
             raise ValueError(
                 "worker_infrastructure_retry_base_delay_seconds must be between 0 and 30"
             )
+        if self.memory_token_budget is not None and (
+            type(self.memory_token_budget) is not int or self.memory_token_budget < 0
+        ):
+            raise ValueError("memory_token_budget must be a non-negative integer or None")
 
     @classmethod
     def from_env(cls) -> RuntimeConfig:
@@ -51,6 +56,7 @@ class RuntimeConfig:
         retrieval_mode = os.getenv("MEDAGENT_RETRIEVAL_MODE", "off").strip().lower()
         if retrieval_mode not in {"off", "fake", "milvus"}:
             raise ValueError("MEDAGENT_RETRIEVAL_MODE must be 'off', 'fake', or 'milvus'")
+        memory_budget = os.getenv("MEDAGENT_MEMORY_TOKEN_BUDGET", "4096").strip()
         return cls(
             mode=mode,
             trace_dir=os.getenv("MEDAGENT_TRACE_DIR", "runs"),
@@ -96,6 +102,7 @@ class RuntimeConfig:
             ),
             retrieval_top_k=int(os.getenv("MEDAGENT_RETRIEVAL_TOP_K", "5")),
             retrieval_threshold=float(os.getenv("MEDAGENT_RETRIEVAL_THRESHOLD", "0.63")),
+            memory_token_budget=None if memory_budget.casefold() == "none" else int(memory_budget),
         )
 
     def public_dict(self) -> dict[str, object]:

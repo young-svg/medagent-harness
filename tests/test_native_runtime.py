@@ -206,6 +206,8 @@ def test_api_health_and_native_analysis(tmp_path, monkeypatch) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["final_answer"] == body["presentation"]["professional_answer"]
+    assert body["user_request_complete"] is body["trace"]["user_request_complete"] is True
+    assert body["final_answer"] == "\n\n".join(body["final_request_item_answers"].values())
 
 
 def test_trace_schema_is_public_and_complete(tmp_path) -> None:
@@ -313,7 +315,7 @@ async def test_multi_route_still_uses_synthesis(tmp_path) -> None:
             },
             "Diagnostic draft",
             "Research draft",
-            "VALID_SYNTHESIS_ANSWER",
+            {"answers": [{"request_item_id": "RQ1", "answer": "VALID_SYNTHESIS_ANSWER"}]},
         ]
     )
     engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)

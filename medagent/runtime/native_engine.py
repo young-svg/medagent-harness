@@ -10,10 +10,10 @@ from medagent.agents.base import AgentDefinition, WorkerResult
 from medagent.agents.consultation import CONSULTATION_AGENT
 from medagent.agents.diagnostic import DIAGNOSTIC_AGENT
 from medagent.agents.research import RESEARCH_AGENT
-from medagent.context.contract import build_answer_contract
-from medagent.context.evidence_ledger import build_evidence_ledger
+from medagent.context.contract import AnswerContract, build_answer_contract
+from medagent.context.evidence_ledger import EvidenceLedger, build_evidence_ledger
 from medagent.context.request_spec import RequestSpec, build_request_spec
-from medagent.guardrails.contract_checker import Guardrail
+from medagent.guardrails.contract_checker import CheckResult, Guardrail
 from medagent.guardrails.sanitizer import sanitize_answer
 from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
 from medagent.llm.client import LLMClient, LLMResponse, OpenAICompatibleLLM
@@ -28,6 +28,7 @@ from medagent.planning.complexity import (
     build_response_profile,
     tool_capabilities,
 )
+from medagent.planning.models import Subtask
 from medagent.planning.planner import Planner, apply_contract_policy
 from medagent.planning.router import Router
 from medagent.presentation.adapter import PresentationAdapter
@@ -41,10 +42,17 @@ from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
-from medagent.runtime.coverage import evaluate_contract_coverage, evaluate_request_coverage
+from medagent.runtime.coverage import (
+    evaluate_contract_coverage,
+    evaluate_final_contract_coverage,
+    evaluate_final_request_coverage,
+    evaluate_request_coverage,
+)
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
+from medagent.runtime.final_answers import has_answer_content, parse_synthesis_answers
+from medagent.runtime.handoff import WorkerHandoff, build_handoff
 from medagent.skills.loader import load_public_skills
-from medagent.tools.registry import ToolRegistry
+from medagent.tools.registry import ToolExecutionContext, ToolRegistry
 
 AGENTS: dict[str, AgentDefinition] = {
     item.agent_id: item for item in (DIAGNOSTIC_AGENT, CONSULTATION_AGENT, RESEARCH_AGENT)
@@ -83,7 +91,10 @@ class NativeMedAgentEngine:
         self.retrieval_mode = (
             self.config.retrieval_mode if retrieval_backend is None else "injected"
         )
-        self.memory = memory or SessionMemory()
+        self.memory = (
+            memory if memory is not None
+            else SessionMemory(token_budget=self.config.memory_token_budget)
+        )
         self.skills = load_public_skills()
         self._closed = False
 
@@ -126,7 +137,9 @@ class NativeMedAgentEngine:
             )
             current_context = {"description": description, "question": question}
             current_input = f"{description}\nQuestion: {question}"
-            memory_context = self.memory.context(session_id, current_input)
+            memory_context, memory_metadata = self.memory.context_with_metadata(
+                session_id, current_input
+            )
             injected_memory = memory_context[:-1]
             trace.record(
                 "memory_read",
@@ -134,6 +147,7 @@ class NativeMedAgentEngine:
                     "injected_messages": injected_memory,
                     "current_input": memory_context[-1],
                     "long_term_memory": "excluded",
+                    **memory_metadata,
                 },
                 stage="memory",
             )
@@ -143,12 +157,8 @@ class NativeMedAgentEngine:
             trace.record("contract_built", contract.to_dict(), stage="context")
             complexity = build_complexity_profile(question, contract)
             response_profile = build_response_profile(complexity)
-            trace.record(
-                "complexity_profile_built", complexity.to_dict(), stage="planning"
-            )
-            trace.record(
-                "response_profile_built", response_profile.to_dict(), stage="planning"
-            )
+            trace.record("complexity_profile_built", complexity.to_dict(), stage="planning")
+            trace.record("response_profile_built", response_profile.to_dict(), stage="planning")
             ledger = build_evidence_ledger(description)
             trace.record("evidence_ledger_built", ledger.to_dict(), stage="context")
 
@@ -167,19 +177,20 @@ class NativeMedAgentEngine:
                 request_spec=request_spec,
             )
             plan = apply_contract_policy(plan, contract, complexity, request_spec)
-            trace.record("plan_created", plan.to_dict(), stage="planning")
+            plan_event_id = trace.record("plan_created", plan.to_dict(), stage="planning")
             route = Router().route(plan, complexity)
-            trace.record("route_selected", route.to_dict(), stage="routing")
+            route_event_id = trace.record(
+                "route_selected", route.to_dict(), stage="routing", parent_event_id=plan_event_id
+            )
 
             evidence_bundle = EvidenceBundle("", "", [])
             capabilities = tool_capabilities(complexity)
             tools = self._tool_registry(
                 question,
-                contract.requested_deliverables[0],
                 evidence_bundle,
                 capabilities,
             )
-            trace.record(
+            policy_event_id = trace.record(
                 "capability_policy_applied",
                 {
                     "requires_external_evidence": complexity.requires_external_evidence,
@@ -188,6 +199,7 @@ class NativeMedAgentEngine:
                     },
                 },
                 stage="routing",
+                parent_event_id=route_event_id,
             )
             loop = AgentLoop(
                 self.llm,
@@ -200,29 +212,99 @@ class NativeMedAgentEngine:
                     self.config.worker_infrastructure_retry_base_delay_seconds
                 ),
             )
-            tasks = [
-                asyncio.wait_for(
-                    loop.execute(
-                        AGENTS[subtask.assigned_agent],
-                        subtask,
-                        request_spec,
-                        contract,
-                        ledger,
-                        current_context,
-                        injected_memory,
-                        self.skills[subtask.assigned_agent],
-                        trace,
-                        complexity,
-                        response_profile,
-                    ),
-                    timeout=self.config.worker_timeout_seconds,
-                )
-                for subtask in plan.subtasks
-            ]
-            outcomes = await asyncio.gather(*tasks, return_exceptions=True)
-            workers: list[WorkerResult] = []
-            for subtask, outcome in zip(plan.subtasks, outcomes, strict=True):
-                if isinstance(outcome, BaseException):
+            by_id = {item.subtask_id: item for item in plan.subtasks}
+            tasks: dict[str, asyncio.Task[WorkerResult]] = {}
+
+            async def run_subtask(subtask: Subtask) -> WorkerResult:
+                parent_id = policy_event_id
+                handoffs: list[WorkerHandoff] = []
+                if subtask.depends_on:
+                    wait_id = trace.record(
+                        "dependency_wait",
+                        {"subtask_id": subtask.subtask_id, "depends_on": subtask.depends_on},
+                        stage="scheduling",
+                        agent=subtask.assigned_agent,
+                        parent_event_id=policy_event_id,
+                    )
+                    upstream = await asyncio.gather(*(tasks[key] for key in subtask.depends_on))
+                    blocked = []
+                    for key, outcome in zip(subtask.depends_on, upstream, strict=True):
+                        handoff = build_handoff(by_id[key], outcome, request_spec)
+                        if handoff is None:
+                            blocked.append(key)
+                        else:
+                            handoffs.append(handoff)
+                    if blocked:
+                        blocked_id = trace.record(
+                            "dependency_blocked",
+                            {
+                                "subtask_id": subtask.subtask_id,
+                                "blocked_by": blocked,
+                                "source_event_ids": [item.trace_event_id for item in upstream],
+                            },
+                            stage="scheduling",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=wait_id,
+                        )
+                        result = WorkerResult(
+                            worker=subtask.assigned_agent,
+                            subtask_id=subtask.subtask_id,
+                            answer="",
+                            success=False,
+                            generation_status="not_started",
+                            failure_reason="dependency_failed",
+                            worker_status="dependency_blocked",
+                            provider_attempt_count=0,
+                        )
+                        result.trace_event_id = trace.record(
+                            "worker_draft",
+                            result.to_dict(),
+                            stage="worker",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=blocked_id,
+                        )
+                        return result
+                    handoff_ids = [
+                        trace.record(
+                            "worker_handoff",
+                            {
+                                "target_subtask_id": subtask.subtask_id,
+                                "wait_event_id": wait_id,
+                                **handoff.to_dict(),
+                            },
+                            stage="scheduling",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=handoff.source_event_id,
+                        )
+                        for handoff in handoffs
+                    ]
+                    parent_id = trace.record(
+                        "dependency_ready",
+                        {"subtask_id": subtask.subtask_id, "handoff_event_ids": handoff_ids},
+                        stage="scheduling",
+                        agent=subtask.assigned_agent,
+                        parent_event_id=wait_id,
+                    )
+                try:
+                    return await asyncio.wait_for(
+                        loop.execute(
+                            AGENTS[subtask.assigned_agent],
+                            subtask,
+                            request_spec,
+                            contract,
+                            ledger,
+                            current_context,
+                            injected_memory,
+                            self.skills[subtask.assigned_agent],
+                            trace,
+                            complexity,
+                            response_profile,
+                            parent_event_id=parent_id,
+                            **({"handoffs": tuple(handoffs)} if handoffs else {}),
+                        ),
+                        timeout=self.config.worker_timeout_seconds,
+                    )
+                except Exception as outcome:
                     result = WorkerResult(
                         worker=subtask.assigned_agent,
                         subtask_id=subtask.subtask_id,
@@ -233,21 +315,25 @@ class NativeMedAgentEngine:
                         failure_reason="provider_error",
                         worker_status="provider_error",
                     )
-                    trace.record(
+                    error_event_id = trace.record(
                         "error",
                         {"where": "worker", "error": type(outcome).__name__},
                         stage="worker",
                         agent=subtask.assigned_agent,
+                        parent_event_id=parent_id,
                     )
-                    trace.record(
+                    result.trace_event_id = trace.record(
                         "worker_draft",
                         result.to_dict(),
                         stage="worker",
                         agent=subtask.assigned_agent,
+                        parent_event_id=error_event_id,
                     )
-                    workers.append(result)
-                else:
-                    workers.append(outcome)
+                    return result
+
+            for subtask in plan.subtasks:
+                tasks[subtask.subtask_id] = asyncio.create_task(run_subtask(subtask))
+            workers = await asyncio.gather(*(tasks[item.subtask_id] for item in plan.subtasks))
             successful = [item for item in workers if item.success and item.answer.strip()]
             coverage = evaluate_contract_coverage(contract, plan.subtasks, workers)
             trace.record("contract_coverage", coverage.to_dict(), stage="contract_completion")
@@ -257,28 +343,46 @@ class NativeMedAgentEngine:
                 request_coverage.to_dict(),
                 stage="request_completion",
             )
-            if not successful:
+            if not successful and not any(item.depends_on for item in plan.subtasks):
                 raise EngineExecutionError("all workers failed")
-            if not request_coverage.complete or not coverage.complete:
-                failure_reason = (
-                    "missing_required_request_items"
-                    if not request_coverage.complete
-                    else "missing_required_deliverables"
+            dependency_blocked = any(item.worker_status == "dependency_blocked" for item in workers)
+            if not request_coverage.complete or not coverage.complete or dependency_blocked:
+                # No final body is emitted on this path. Keep Worker coverage as
+                # diagnostic input, but report empty final coverage consistently.
+                final_coverage = evaluate_final_request_coverage(request_spec, {})
+                final_contract = evaluate_final_contract_coverage(
+                    contract, request_spec, plan.subtasks, final_coverage, coverage
                 )
+                trace.record(
+                    "final_request_coverage",
+                    {
+                        **final_coverage.to_dict(),
+                        "parse_status": "not_generated",
+                        "fallback_attempted_request_items": [],
+                        "recovered_request_items": [],
+                    },
+                    stage="final_completion",
+                )
+                trace.record(
+                    "final_contract_coverage", final_contract.to_dict(), stage="final_completion"
+                )
+                if dependency_blocked:
+                    failure_reason = "dependency_blocked"
+                elif not request_coverage.complete:
+                    failure_reason = "missing_required_request_items"
+                else:
+                    failure_reason = "missing_required_deliverables"
                 trace.record(
                     "error",
                     {
                         "failure_stage": "request_completion",
                         "failure_reason": failure_reason,
-                        "missing_required_request_items": (
-                            request_coverage.missing_request_items
-                        ),
-                        "missing_required_deliverables": (
-                            coverage.missing_required_deliverables
-                        ),
+                        "missing_required_request_items": (request_coverage.missing_request_items),
+                        "missing_required_deliverables": (coverage.missing_required_deliverables),
                     },
                     stage="contract_completion",
                 )
+                trace.record("final_answer", {"answer": ""}, stage="output")
                 trace.finish("incomplete")
                 summary = trace.summary()
                 developer = {
@@ -290,6 +394,8 @@ class NativeMedAgentEngine:
                     "request_spec": request_spec.to_dict(),
                     "request_coverage": request_coverage.to_dict(),
                     "contract_coverage": coverage.to_dict(),
+                    "final_request_coverage": final_coverage.to_dict(),
+                    "final_contract_coverage": final_contract.to_dict(),
                     "failure_stage": "request_completion",
                     "failure_reason": failure_reason,
                     "tool": {"max_calls_per_worker": self.config.max_tool_calls},
@@ -311,15 +417,12 @@ class NativeMedAgentEngine:
                 return {
                     "final_answer": "",
                     "status": "incomplete",
-                    "user_request_complete": request_coverage.complete,
-                    "contract_complete": coverage.complete,
-                    "missing_required_request_items": (
-                        request_coverage.missing_request_items
-                    ),
-                    "missing_required_deliverables": (
-                        coverage.missing_required_deliverables
-                    ),
+                    "user_request_complete": final_coverage.complete,
+                    "contract_complete": final_contract.complete,
+                    "missing_required_request_items": final_coverage.missing_request_items,
+                    "missing_required_deliverables": final_contract.missing_required_deliverables,
                     "request_item_answers": request_coverage.request_item_answers,
+                    "final_request_item_answers": final_coverage.request_item_answers,
                     "successful_workers": coverage.successful_workers,
                     "failed_workers": coverage.failed_workers,
                     "run_id": trace.run_id,
@@ -337,37 +440,67 @@ class NativeMedAgentEngine:
                     complexity,
                     response_profile,
                 )
+                answers, parse_status = parse_synthesis_answers(final_draft, request_spec)
             else:
-                final_draft = successful[0].answer
-            final_draft = sanitize_answer(final_draft)
-            checker_input = trace.record(
-                "checker_input", {"draft": final_draft}, stage="guardrail", agent="guardrail"
+                answers = dict(request_coverage.request_item_answers)
+                parse_status = "single_worker"
+            final_answers, check, attempted_ids = self._finalize_answers(
+                answers,
+                request_coverage.request_item_answers,
+                request_spec,
+                contract,
+                ledger,
+                trace,
             )
-            check = Guardrail().check(final_draft, contract, ledger)
+            final_coverage = evaluate_final_request_coverage(request_spec, final_answers)
+            recovered_ids = [
+                item for item in final_coverage.covered_request_items if item in attempted_ids
+            ]
+            final_contract = evaluate_final_contract_coverage(
+                contract, request_spec, plan.subtasks, final_coverage, coverage
+            )
+            final_answer = "\n\n".join(final_coverage.request_item_answers.values())
+            status = (
+                "completed" if final_coverage.complete and final_contract.complete else "incomplete"
+            )
             trace.record(
-                "checker_result",
-                check.to_dict(),
-                stage="guardrail",
-                agent="guardrail",
-                parent_event_id=checker_input,
+                "final_request_coverage",
+                {
+                    **final_coverage.to_dict(),
+                    "parse_status": parse_status,
+                    "fallback_attempted_request_items": attempted_ids,
+                    "recovered_request_items": recovered_ids,
+                },
+                stage="final_completion",
             )
-            patch = apply_stable_edits(StableDraft.parse(final_draft), check.edits)
-            final_answer = sanitize_answer(patch.answer)
             trace.record(
-                "patch_applied",
-                {"applied": patch.applied, "reason": patch.reason},
-                stage="guardrail",
-                agent="guardrail",
+                "final_contract_coverage", final_contract.to_dict(), stage="final_completion"
             )
+            if status == "incomplete":
+                trace.record(
+                    "error",
+                    {
+                        "failure_stage": "final_completion",
+                        "failure_reason": "missing_safe_final_answers",
+                        "missing_required_request_items": final_coverage.missing_request_items,
+                    },
+                    stage="final_completion",
+                )
 
-            self.memory.add(session_id, "user", f"{description}\nQuestion: {question}")
-            self.memory.add(session_id, "assistant", final_answer)
-            trace.record(
-                "memory_write", {"session_id": session_id, "messages_added": 2}, stage="memory"
-            )
+            if status == "completed":
+                user_added = self.memory.add(session_id, "user", current_input)
+                assistant_added = self.memory.add(session_id, "assistant", final_answer)
+                trace.record(
+                    "memory_write",
+                    {
+                        "session_id": session_id,
+                        "messages_added": int(user_added) + int(assistant_added),
+                    },
+                    stage="memory",
+                )
             trace.record("final_answer", {"answer": final_answer}, stage="output")
             transformed: PresentationTransform | None = None
-            if self.presentation_llm is not None:
+            if self.presentation_llm is not None and status == "completed":
                 presentation_started = perf_counter()
                 try:
                     transformed, presentation_response = await transform_presentation(
@@ -428,7 +561,7 @@ class NativeMedAgentEngine:
                         },
                         stage="presentation",
                     )
-            trace.finish("completed")
+            trace.finish(status)
             summary = trace.summary()
             developer = {
                 "plan": plan.to_dict(),
@@ -439,6 +572,8 @@ class NativeMedAgentEngine:
                 "request_spec": request_spec.to_dict(),
                 "request_coverage": request_coverage.to_dict(),
                 "contract_coverage": coverage.to_dict(),
+                "final_request_coverage": final_coverage.to_dict(),
+                "final_contract_coverage": final_contract.to_dict(),
                 "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                 "retrieval": {
                     "query": evidence_bundle.query,
@@ -460,12 +595,13 @@ class NativeMedAgentEngine:
             )
             return {
                 "final_answer": final_answer,
-                "status": "completed",
-                "user_request_complete": True,
-                "contract_complete": True,
-                "missing_required_request_items": [],
-                "missing_required_deliverables": [],
+                "status": status,
+                "user_request_complete": final_coverage.complete,
+                "contract_complete": final_contract.complete,
+                "missing_required_request_items": final_coverage.missing_request_items,
+                "missing_required_deliverables": final_contract.missing_required_deliverables,
                 "request_item_answers": request_coverage.request_item_answers,
+                "final_request_item_answers": final_coverage.request_item_answers,
                 "successful_workers": coverage.successful_workers,
                 "failed_workers": coverage.failed_workers,
                 "run_id": trace.run_id,
@@ -485,10 +621,81 @@ class NativeMedAgentEngine:
             trace.finish("failed")
             raise
 
+    @staticmethod
+    def _finalize_answers(
+        answers: dict[str, str],
+        worker_answers: dict[str, str],
+        request_spec: RequestSpec,
+        contract: AnswerContract,
+        ledger: EvidenceLedger,
+        trace: TraceRecorder,
+    ) -> tuple[dict[str, str], CheckResult, list[str]]:
+        attempted: list[str] = []
+        # One initial pass and at most one deterministic repair after safety edits.
+        # Every fallback goes through the same sanitizer and medical Guardrail.
+        for attempt in range(2):
+            answers = {
+                item.id: sanitize_answer(answers[item.id])
+                for item in request_spec.items
+                if item.id in answers
+            }
+            answers = {key: value for key, value in answers.items() if has_answer_content(value)}
+            for request_id in request_spec.required_item_ids:
+                if request_id not in answers and request_id in worker_answers:
+                    fallback = sanitize_answer(worker_answers[request_id])
+                    if has_answer_content(fallback):
+                        answers[request_id] = fallback
+                        if request_id not in attempted:
+                            attempted.append(request_id)
+            ordered = [
+                (item.id, answers[item.id]) for item in request_spec.items if item.id in answers
+            ]
+            draft_text = "\n\n".join(value for _, value in ordered)
+            draft = StableDraft.parse(draft_text)
+            owners = [
+                request_id for request_id, value in ordered for _ in StableDraft.parse(value).units
+            ]
+            checker_input = trace.record(
+                "checker_input",
+                {"draft": draft_text, "attempt": attempt},
+                stage="guardrail",
+                agent="guardrail",
+            )
+            check = Guardrail().check(draft_text, contract, ledger)
+            trace.record(
+                "checker_result",
+                check.to_dict(),
+                stage="guardrail",
+                agent="guardrail",
+                parent_event_id=checker_input,
+            )
+            patch = apply_stable_edits(draft, check.edits)
+            trace.record(
+                "patch_applied",
+                {"applied": patch.applied, "reason": patch.reason},
+                stage="guardrail",
+                agent="guardrail",
+            )
+            # Ownership is retained through stable-unit edits. If an implementation
+            # changes untracked text, fail closed rather than claiming old coverage.
+            final: dict[str, str] = {}
+            if len(owners) == len(draft.units) and patch.answer == draft.render():
+                for owner, unit in zip(owners, draft.units, strict=True):
+                    text = sanitize_answer(unit.text)
+                    if text:
+                        final[owner] = "\n\n".join(filter(None, [final.get(owner), text]))
+                final = {key: value for key, value in final.items() if has_answer_content(value)}
+                rendered = "\n\n".join(final.values())
+                if sanitize_answer(rendered) != rendered:
+                    final = {}  # Cross-section sanitization invalidates ownership.
+            if evaluate_final_request_coverage(request_spec, final).complete:
+                return final, check, attempted
+            answers = final
+        return answers, check, attempted
+
     def _tool_registry(
         self,
         question: str,
-        deliverable: str,
         bundle: EvidenceBundle,
         capabilities: dict[str, set[str]],
     ) -> ToolRegistry:
@@ -502,10 +709,19 @@ class NativeMedAgentEngine:
             )
         )
 
-        async def retrieve(**arguments: Any) -> dict[str, Any]:
+        async def retrieve(
+            context: ToolExecutionContext | None, **arguments: Any
+        ) -> dict[str, Any]:
             tool_name = str(arguments.pop("_tool_name", "search_knowledge"))
             tool_input = " ".join(str(value) for value in arguments.values())
-            query = QueryBuilder().build(question, tool_input, deliverable, tool_input)
+            query = QueryBuilder().build(
+                question,
+                context.description if context else "",
+                context.deliverable_ids if context else (),
+                tool_input,
+                request_items=context.request_items if context else (),
+                excluded_source_spans=context.excluded_source_spans if context else (),
+            )
             decision = collection_router.route(tool_name)
             items = await self.retrieval_backend.search(
                 query, decision.collection, self.config.retrieval_top_k
@@ -523,6 +739,11 @@ class NativeMedAgentEngine:
                 ),
                 "admitted": compact,
                 "_trace_retrieval": {
+                    "subtask_id": context.subtask_id if context else None,
+                    "deliverable_ids": list(context.deliverable_ids) if context else [],
+                    "request_item_ids": [item.id for item in context.request_items]
+                    if context
+                    else [],
                     "query": query,
                     "collection": decision.collection,
                     "routing_reason": decision.reason,
@@ -543,10 +764,12 @@ class NativeMedAgentEngine:
 
         for name in RETRIEVAL_TOOLS:
 
-            async def handler(_name: str = name, **kwargs: Any) -> dict[str, Any]:
-                return await retrieve(_tool_name=_name, **kwargs)
+            async def handler(
+                context: ToolExecutionContext | None, _name: str = name, **kwargs: Any
+            ) -> dict[str, Any]:
+                return await retrieve(context, _tool_name=_name, **kwargs)
 
-            registry.register(name, handler)
+            registry.register(name, handler, with_context=True)
         registry.register(
             "analyze_symptoms",
             lambda symptoms: {
@@ -586,6 +809,11 @@ class NativeMedAgentEngine:
             {
                 "role": "system",
                 "content": (
+                    "Return exactly one JSON object with an answers array. Each entry must "
+                    "contain exactly request_item_id and answer (a non-empty string). Include "
+                    "each required RequestSpec ID exactly once; do not invent IDs. Integrate "
+                    "the worker drafts within each answer, using natural prose or Markdown, "
+                    "with substantive content rather than empty headings. "
                     "Produce the smallest complete answer that satisfies every required item in "
                     "the RequestSpec and the AnswerContract. Preserve an answer for every required "
                     "request_item_id; do not omit one during synthesis. "
@@ -611,6 +839,7 @@ class NativeMedAgentEngine:
             stage="synthesis",
             agent="synthesizer",
             messages=messages,
+            response_format={"type": "json_object"},
             purpose="synthesis",
             is_complete=lambda response: bool(response.content.strip()),
             trace=trace,
@@ -630,8 +859,6 @@ class NativeMedAgentEngine:
         )
         if generation.generation_status == "length_exhausted":
             raise StageGenerationError("synthesis", "generation_length_exhausted")
-        if not response.content.strip():
-            raise StageGenerationError("synthesis", "empty_generation_output")
         return response.content
 
     async def close(self) -> None:

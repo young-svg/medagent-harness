@@ -4,6 +4,11 @@
 
 This release reports two frozen development evaluations:
 
+Version boundary: the results below are the existing pre-A1-C1 release evaluation
+record (release baseline `80c98fe`), not measurements of the integrated runtime.
+The integration is checked with offline regressions; no real-provider, real-Milvus
+or clinical-score rerun is claimed and no delta is attributed to A1-C1.
+
 1. a 60-case execution reliability benchmark;
 2. a 60-case matched comparison with DeepSeek Web.
 
