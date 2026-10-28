@@ -568,13 +568,16 @@ class AgentLoop:
                         parent_event_id=response_id,
                     )
                     result_parent = call_id
+                    retrieval_trace = None
+                    retrieval_error_type = None
                     try:
                         output = await self.tools.execute(
                             agent.agent_id, call.name, call.arguments, context=tool_context
                         )
                     except (LookupError, PermissionError, RuntimeError, TypeError) as error:
                         output = {"error": str(error)}
-                    retrieval_trace = None
+                        retrieval_trace = getattr(error, "retrieval_trace", None)
+                        retrieval_error_type = getattr(error, "retrieval_error_type", None)
                     if isinstance(output, dict) and "_trace_retrieval" in output:
                         output = dict(output)
                         retrieval_trace = output.pop("_trace_retrieval")
@@ -597,18 +600,31 @@ class AgentLoop:
                             agent=agent.agent_id,
                             parent_event_id=call_id,
                         )
-                        result_parent = trace.record(
-                            "retrieval_result",
-                            {
-                                "tool": call.name,
-                                "raw_candidates": retrieval_trace.get("raw_candidates", []),
-                                "admission": retrieval_trace.get("admission", []),
-                                "compact_evidence": retrieval_trace.get("compact_evidence", []),
-                            },
-                            stage="retrieval",
-                            agent=agent.agent_id,
-                            parent_event_id=query_id,
-                        )
+                        if retrieval_error_type:
+                            result_parent = trace.record(
+                                "error",
+                                {
+                                    "where": "retrieval",
+                                    "tool": call.name,
+                                    "error_type": retrieval_error_type,
+                                },
+                                stage="retrieval",
+                                agent=agent.agent_id,
+                                parent_event_id=query_id,
+                            )
+                        else:
+                            result_parent = trace.record(
+                                "retrieval_result",
+                                {
+                                    "tool": call.name,
+                                    "raw_candidates": retrieval_trace.get("raw_candidates", []),
+                                    "admission": retrieval_trace.get("admission", []),
+                                    "compact_evidence": retrieval_trace.get("compact_evidence", []),
+                                },
+                                stage="retrieval",
+                                agent=agent.agent_id,
+                                parent_event_id=query_id,
+                            )
                     if isinstance(output, dict) and isinstance(output.get("admitted"), list):
                         deduplicated = []
                         for evidence in output["admitted"]:
@@ -625,7 +641,11 @@ class AgentLoop:
                             "evidence_status": (
                                 "relevant_evidence_admitted"
                                 if deduplicated
-                                else "no_new_relevant_evidence"
+                                else (
+                                    "no_new_relevant_evidence"
+                                    if output["admitted"]
+                                    else "no_relevant_evidence"
+                                )
                             ),
                             "admitted": deduplicated,
                         }

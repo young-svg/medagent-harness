@@ -66,6 +66,13 @@ RETRIEVAL_TOOLS = {
 }
 
 
+class _RetrievalToolError(RuntimeError):
+    def __init__(self, error: Exception, trace_context: dict[str, Any]) -> None:
+        super().__init__(str(error))
+        self.retrieval_error_type = type(error).__name__
+        self.retrieval_trace = trace_context
+
+
 class NativeMedAgentEngine:
     """Self-contained centralized planner-worker runtime."""
 
@@ -723,9 +730,23 @@ class NativeMedAgentEngine:
                 excluded_source_spans=context.excluded_source_spans if context else (),
             )
             decision = collection_router.route(tool_name)
-            items = await self.retrieval_backend.search(
-                query, decision.collection, self.config.retrieval_top_k
-            )
+            trace_context = {
+                "subtask_id": context.subtask_id if context else None,
+                "deliverable_ids": list(context.deliverable_ids) if context else [],
+                "request_item_ids": [item.id for item in context.request_items]
+                if context
+                else [],
+                "query": query,
+                "collection": decision.collection,
+                "routing_reason": decision.reason,
+                "top_k": self.config.retrieval_top_k,
+            }
+            try:
+                items = await self.retrieval_backend.search(
+                    query, decision.collection, self.config.retrieval_top_k
+                )
+            except Exception as error:
+                raise _RetrievalToolError(error, trace_context) from error
             admit_evidence(items, self.config.retrieval_threshold, self.config.retrieval_top_k)
             bundle.query = query
             bundle.collection = decision.collection
@@ -739,15 +760,7 @@ class NativeMedAgentEngine:
                 ),
                 "admitted": compact,
                 "_trace_retrieval": {
-                    "subtask_id": context.subtask_id if context else None,
-                    "deliverable_ids": list(context.deliverable_ids) if context else [],
-                    "request_item_ids": [item.id for item in context.request_items]
-                    if context
-                    else [],
-                    "query": query,
-                    "collection": decision.collection,
-                    "routing_reason": decision.reason,
-                    "top_k": self.config.retrieval_top_k,
+                    **trace_context,
                     "raw_candidates": [item.to_dict() for item in items],
                     "admission": [
                         {
