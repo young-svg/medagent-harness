@@ -6,14 +6,13 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 
 from api.schemas import AnalyzeRequest, AnalyzeResponse
-from medagent.memory.session import SessionMemory
 from medagent.observability.replay import trace_summary
 from medagent.runtime.config import RuntimeConfig
 from medagent.runtime.coordinator import Coordinator
 from medagent.runtime.engine import EngineExecutionError, RuntimeConfigurationError
 
 _config = RuntimeConfig.from_env()
-_coordinator = Coordinator(config=_config, memory=SessionMemory())
+_coordinator = Coordinator(config=_config)
 
 
 @asynccontextmanager
