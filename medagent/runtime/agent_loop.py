@@ -14,7 +14,7 @@ from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import ResponseProfile, TaskComplexityProfile
 from medagent.planning.models import Subtask
 from medagent.skills.loader import ProceduralSkill
-from medagent.tools.registry import ToolRegistry
+from medagent.tools.registry import ToolExecutionContext, ToolRegistry
 
 
 @dataclass(frozen=True, slots=True)
@@ -190,6 +190,21 @@ class AgentLoop:
         infrastructure_retry_count = 0
         provider_attempt_count = 0
         sent_evidence_ids: set[str] = set()
+        assigned_ids = set(subtask.request_item_ids)
+        assigned_items = tuple(item for item in request_spec.items if item.id in assigned_ids)
+        assigned_spans = {item.source_span for item in assigned_items}
+        tool_context = ToolExecutionContext(
+            subtask.subtask_id,
+            subtask.description,
+            tuple(subtask.deliverable_ids),
+            assigned_items,
+            tuple(
+                item.source_span
+                for item in request_spec.items
+                if assigned_items
+                and item.id not in assigned_ids and item.source_span not in assigned_spans
+            ),
+        )
         generation_parent_id = parent_event_id
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
@@ -319,7 +334,9 @@ class AgentLoop:
                     )
                     result_parent = call_id
                     try:
-                        output = await self.tools.execute(agent.agent_id, call.name, call.arguments)
+                        output = await self.tools.execute(
+                            agent.agent_id, call.name, call.arguments, context=tool_context
+                        )
                     except (LookupError, PermissionError, RuntimeError, TypeError) as error:
                         output = {"error": str(error)}
                     retrieval_trace = None
@@ -335,6 +352,11 @@ class AgentLoop:
                                 "collection": retrieval_trace.get("collection"),
                                 "routing_reason": retrieval_trace.get("routing_reason"),
                                 "top_k": retrieval_trace.get("top_k"),
+                                **{
+                                    key: retrieval_trace[key]
+                                    for key in ("subtask_id", "deliverable_ids", "request_item_ids")
+                                    if key in retrieval_trace
+                                },
                             },
                             stage="retrieval",
                             agent=agent.agent_id,

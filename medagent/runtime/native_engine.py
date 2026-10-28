@@ -48,7 +48,7 @@ from medagent.runtime.coverage import (
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
 from medagent.runtime.final_answers import has_answer_content, parse_synthesis_answers
 from medagent.skills.loader import load_public_skills
-from medagent.tools.registry import ToolRegistry
+from medagent.tools.registry import ToolExecutionContext, ToolRegistry
 
 AGENTS: dict[str, AgentDefinition] = {
     item.agent_id: item for item in (DIAGNOSTIC_AGENT, CONSULTATION_AGENT, RESEARCH_AGENT)
@@ -171,7 +171,6 @@ class NativeMedAgentEngine:
             capabilities = tool_capabilities(complexity)
             tools = self._tool_registry(
                 question,
-                contract.requested_deliverables[0],
                 evidence_bundle,
                 capabilities,
             )
@@ -536,7 +535,6 @@ class NativeMedAgentEngine:
     def _tool_registry(
         self,
         question: str,
-        deliverable: str,
         bundle: EvidenceBundle,
         capabilities: dict[str, set[str]],
     ) -> ToolRegistry:
@@ -550,10 +548,19 @@ class NativeMedAgentEngine:
             )
         )
 
-        async def retrieve(**arguments: Any) -> dict[str, Any]:
+        async def retrieve(
+            context: ToolExecutionContext | None, **arguments: Any
+        ) -> dict[str, Any]:
             tool_name = str(arguments.pop("_tool_name", "search_knowledge"))
             tool_input = " ".join(str(value) for value in arguments.values())
-            query = QueryBuilder().build(question, tool_input, deliverable, tool_input)
+            query = QueryBuilder().build(
+                question,
+                context.description if context else "",
+                context.deliverable_ids if context else (),
+                tool_input,
+                request_items=context.request_items if context else (),
+                excluded_source_spans=context.excluded_source_spans if context else (),
+            )
             decision = collection_router.route(tool_name)
             items = await self.retrieval_backend.search(
                 query, decision.collection, self.config.retrieval_top_k
@@ -571,6 +578,11 @@ class NativeMedAgentEngine:
                 ),
                 "admitted": compact,
                 "_trace_retrieval": {
+                    "subtask_id": context.subtask_id if context else None,
+                    "deliverable_ids": list(context.deliverable_ids) if context else [],
+                    "request_item_ids": [item.id for item in context.request_items]
+                    if context
+                    else [],
                     "query": query,
                     "collection": decision.collection,
                     "routing_reason": decision.reason,
@@ -591,10 +603,12 @@ class NativeMedAgentEngine:
 
         for name in RETRIEVAL_TOOLS:
 
-            async def handler(_name: str = name, **kwargs: Any) -> dict[str, Any]:
-                return await retrieve(_tool_name=_name, **kwargs)
+            async def handler(
+                context: ToolExecutionContext | None, _name: str = name, **kwargs: Any
+            ) -> dict[str, Any]:
+                return await retrieve(context, _tool_name=_name, **kwargs)
 
-            registry.register(name, handler)
+            registry.register(name, handler, with_context=True)
         registry.register(
             "analyze_symptoms",
             lambda symptoms: {
