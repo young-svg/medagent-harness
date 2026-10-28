@@ -69,8 +69,8 @@ class TraceRecorder:
         agent: str | None = None,
         parent_event_id: str | None = None,
     ) -> str:
-        if parent_event_id is None and self.events:
-            parent_event_id = self.events[-1].event_id
+        # Append order is not causality: concurrent Workers share this recorder.
+        # Unknown parents remain null; callers supply known causal boundaries.
         event = TraceEvent(
             run_id=self.run_id,
             stage=stage or event_type,

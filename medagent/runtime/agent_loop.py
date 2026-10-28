@@ -150,6 +150,8 @@ class AgentLoop:
         trace: TraceRecorder,
         complexity: TaskComplexityProfile,
         response_profile: ResponseProfile,
+        *,
+        parent_event_id: str | None = None,
     ) -> WorkerResult:
         messages: list[dict[str, object]] = [
             {
@@ -188,6 +190,7 @@ class AgentLoop:
         infrastructure_retry_count = 0
         provider_attempt_count = 0
         sent_evidence_ids: set[str] = set()
+        generation_parent_id = parent_event_id
         while True:
             schemas = self.tools.schemas_for(agent.agent_id)
             try:
@@ -206,6 +209,7 @@ class AgentLoop:
                         )
                     ),
                     trace=trace,
+                    parent_event_id=generation_parent_id,
                     max_infrastructure_retries=self.max_infrastructure_retries,
                     worker_id=agent.agent_id,
                     subtask_id=subtask.subtask_id,
@@ -234,12 +238,14 @@ class AgentLoop:
                     result.to_dict(),
                     stage="worker",
                     agent=agent.agent_id,
+                    parent_event_id=generation_parent_id,
                 )
                 return result
             infrastructure_retry_count += generation.infrastructure_retry_count
             provider_attempt_count += generation.provider_attempt_count
             response = generation.response
             response_id = generation.response_id
+            generation_parent_id = response_id
             length_recovery_count += generation.length_recovery_count
             if not response.tool_calls:
                 generation_status = generation.generation_status
@@ -366,7 +372,7 @@ class AgentLoop:
                             ),
                             "admitted": deduplicated,
                         }
-                    trace.record(
+                    generation_parent_id = trace.record(
                         "tool_result",
                         {"name": call.name, "result": output},
                         stage="tool",

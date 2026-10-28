@@ -161,9 +161,11 @@ class NativeMedAgentEngine:
                 request_spec=request_spec,
             )
             plan = apply_contract_policy(plan, contract, complexity, request_spec)
-            trace.record("plan_created", plan.to_dict(), stage="planning")
+            plan_event_id = trace.record("plan_created", plan.to_dict(), stage="planning")
             route = Router().route(plan, complexity)
-            trace.record("route_selected", route.to_dict(), stage="routing")
+            route_event_id = trace.record(
+                "route_selected", route.to_dict(), stage="routing", parent_event_id=plan_event_id
+            )
 
             evidence_bundle = EvidenceBundle("", "", [])
             capabilities = tool_capabilities(complexity)
@@ -173,7 +175,7 @@ class NativeMedAgentEngine:
                 evidence_bundle,
                 capabilities,
             )
-            trace.record(
+            policy_event_id = trace.record(
                 "capability_policy_applied",
                 {
                     "requires_external_evidence": complexity.requires_external_evidence,
@@ -182,6 +184,7 @@ class NativeMedAgentEngine:
                     },
                 },
                 stage="routing",
+                parent_event_id=route_event_id,
             )
             loop = AgentLoop(
                 self.llm,
@@ -205,6 +208,7 @@ class NativeMedAgentEngine:
                         trace,
                         complexity,
                         response_profile,
+                        parent_event_id=policy_event_id,
                     ),
                     timeout=self.config.worker_timeout_seconds,
                 )
@@ -224,17 +228,19 @@ class NativeMedAgentEngine:
                         failure_reason="provider_error",
                         worker_status="provider_error",
                     )
-                    trace.record(
+                    error_event_id = trace.record(
                         "error",
                         {"where": "worker", "error": type(outcome).__name__},
                         stage="worker",
                         agent=subtask.assigned_agent,
+                        parent_event_id=policy_event_id,
                     )
                     trace.record(
                         "worker_draft",
                         result.to_dict(),
                         stage="worker",
                         agent=subtask.assigned_agent,
+                        parent_event_id=error_event_id,
                     )
                     workers.append(result)
                 else:
