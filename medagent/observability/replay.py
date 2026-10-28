@@ -25,7 +25,15 @@ def trace_summary(run_dir: str | Path) -> dict[str, Any]:
         (
             item.get("payload") or {}
             for item in reversed(events)
-            if item["event_type"] == "contract_coverage"
+            if item["event_type"] in {"final_contract_coverage", "contract_coverage"}
+        ),
+        {},
+    )
+    request_coverage = next(
+        (
+            item.get("payload") or {}
+            for item in reversed(events)
+            if item["event_type"] in {"final_request_coverage", "request_coverage"}
         ),
         {},
     )
@@ -35,9 +43,9 @@ def trace_summary(run_dir: str | Path) -> dict[str, Any]:
         "event_count": len(events),
         "events": [item["event_type"] for item in events],
         "latency_ms": payload.get("latency_ms"),
-        "missing_required_deliverables": coverage.get(
-            "missing_required_deliverables", []
-        ),
+        "missing_required_deliverables": coverage.get("missing_required_deliverables", []),
+        "missing_required_request_items": request_coverage.get("missing_request_items", []),
+        "user_request_complete": request_coverage.get("user_request_complete", False),
     }
 
 

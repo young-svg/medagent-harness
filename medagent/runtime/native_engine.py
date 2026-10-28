@@ -9,10 +9,10 @@ from medagent.agents.base import AgentDefinition, WorkerResult
 from medagent.agents.consultation import CONSULTATION_AGENT
 from medagent.agents.diagnostic import DIAGNOSTIC_AGENT
 from medagent.agents.research import RESEARCH_AGENT
-from medagent.context.contract import build_answer_contract
-from medagent.context.evidence_ledger import build_evidence_ledger
+from medagent.context.contract import AnswerContract, build_answer_contract
+from medagent.context.evidence_ledger import EvidenceLedger, build_evidence_ledger
 from medagent.context.request_spec import RequestSpec, build_request_spec
-from medagent.guardrails.contract_checker import Guardrail
+from medagent.guardrails.contract_checker import CheckResult, Guardrail
 from medagent.guardrails.sanitizer import sanitize_answer
 from medagent.guardrails.stable_patch import StableDraft, apply_stable_edits
 from medagent.llm.client import LLMClient, OpenAICompatibleLLM
@@ -39,8 +39,14 @@ from medagent.retrieval.factory import build_retrieval_backend
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
-from medagent.runtime.coverage import evaluate_contract_coverage, evaluate_request_coverage
+from medagent.runtime.coverage import (
+    evaluate_contract_coverage,
+    evaluate_final_contract_coverage,
+    evaluate_final_request_coverage,
+    evaluate_request_coverage,
+)
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
+from medagent.runtime.final_answers import has_answer_content, parse_synthesis_answers
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
 
@@ -135,12 +141,8 @@ class NativeMedAgentEngine:
             trace.record("contract_built", contract.to_dict(), stage="context")
             complexity = build_complexity_profile(question, contract)
             response_profile = build_response_profile(complexity)
-            trace.record(
-                "complexity_profile_built", complexity.to_dict(), stage="planning"
-            )
-            trace.record(
-                "response_profile_built", response_profile.to_dict(), stage="planning"
-            )
+            trace.record("complexity_profile_built", complexity.to_dict(), stage="planning")
+            trace.record("response_profile_built", response_profile.to_dict(), stage="planning")
             ledger = build_evidence_ledger(description)
             trace.record("evidence_ledger_built", ledger.to_dict(), stage="context")
 
@@ -249,6 +251,25 @@ class NativeMedAgentEngine:
             if not successful:
                 raise EngineExecutionError("all workers failed")
             if not request_coverage.complete or not coverage.complete:
+                # No final body is emitted on this path. Keep Worker coverage as
+                # diagnostic input, but report empty final coverage consistently.
+                final_coverage = evaluate_final_request_coverage(request_spec, {})
+                final_contract = evaluate_final_contract_coverage(
+                    contract, request_spec, plan.subtasks, final_coverage, coverage
+                )
+                trace.record(
+                    "final_request_coverage",
+                    {
+                        **final_coverage.to_dict(),
+                        "parse_status": "not_generated",
+                        "fallback_attempted_request_items": [],
+                        "recovered_request_items": [],
+                    },
+                    stage="final_completion",
+                )
+                trace.record(
+                    "final_contract_coverage", final_contract.to_dict(), stage="final_completion"
+                )
                 failure_reason = (
                     "missing_required_request_items"
                     if not request_coverage.complete
@@ -259,15 +280,12 @@ class NativeMedAgentEngine:
                     {
                         "failure_stage": "request_completion",
                         "failure_reason": failure_reason,
-                        "missing_required_request_items": (
-                            request_coverage.missing_request_items
-                        ),
-                        "missing_required_deliverables": (
-                            coverage.missing_required_deliverables
-                        ),
+                        "missing_required_request_items": (request_coverage.missing_request_items),
+                        "missing_required_deliverables": (coverage.missing_required_deliverables),
                     },
                     stage="contract_completion",
                 )
+                trace.record("final_answer", {"answer": ""}, stage="output")
                 trace.finish("incomplete")
                 summary = trace.summary()
                 developer = {
@@ -279,6 +297,8 @@ class NativeMedAgentEngine:
                     "request_spec": request_spec.to_dict(),
                     "request_coverage": request_coverage.to_dict(),
                     "contract_coverage": coverage.to_dict(),
+                    "final_request_coverage": final_coverage.to_dict(),
+                    "final_contract_coverage": final_contract.to_dict(),
                     "failure_stage": "request_completion",
                     "failure_reason": failure_reason,
                     "tool": {"max_calls_per_worker": self.config.max_tool_calls},
@@ -300,15 +320,12 @@ class NativeMedAgentEngine:
                 return {
                     "final_answer": "",
                     "status": "incomplete",
-                    "user_request_complete": request_coverage.complete,
-                    "contract_complete": coverage.complete,
-                    "missing_required_request_items": (
-                        request_coverage.missing_request_items
-                    ),
-                    "missing_required_deliverables": (
-                        coverage.missing_required_deliverables
-                    ),
+                    "user_request_complete": final_coverage.complete,
+                    "contract_complete": final_contract.complete,
+                    "missing_required_request_items": final_coverage.missing_request_items,
+                    "missing_required_deliverables": final_contract.missing_required_deliverables,
                     "request_item_answers": request_coverage.request_item_answers,
+                    "final_request_item_answers": final_coverage.request_item_answers,
                     "successful_workers": coverage.successful_workers,
                     "failed_workers": coverage.failed_workers,
                     "run_id": trace.run_id,
@@ -326,36 +343,61 @@ class NativeMedAgentEngine:
                     complexity,
                     response_profile,
                 )
+                answers, parse_status = parse_synthesis_answers(final_draft, request_spec)
             else:
-                final_draft = successful[0].answer
-            final_draft = sanitize_answer(final_draft)
-            checker_input = trace.record(
-                "checker_input", {"draft": final_draft}, stage="guardrail", agent="guardrail"
+                answers = dict(request_coverage.request_item_answers)
+                parse_status = "single_worker"
+            final_answers, check, attempted_ids = self._finalize_answers(
+                answers,
+                request_coverage.request_item_answers,
+                request_spec,
+                contract,
+                ledger,
+                trace,
             )
-            check = Guardrail().check(final_draft, contract, ledger)
+            final_coverage = evaluate_final_request_coverage(request_spec, final_answers)
+            recovered_ids = [
+                item for item in final_coverage.covered_request_items if item in attempted_ids
+            ]
+            final_contract = evaluate_final_contract_coverage(
+                contract, request_spec, plan.subtasks, final_coverage, coverage
+            )
+            final_answer = "\n\n".join(final_coverage.request_item_answers.values())
+            status = (
+                "completed" if final_coverage.complete and final_contract.complete else "incomplete"
+            )
             trace.record(
-                "checker_result",
-                check.to_dict(),
-                stage="guardrail",
-                agent="guardrail",
-                parent_event_id=checker_input,
+                "final_request_coverage",
+                {
+                    **final_coverage.to_dict(),
+                    "parse_status": parse_status,
+                    "fallback_attempted_request_items": attempted_ids,
+                    "recovered_request_items": recovered_ids,
+                },
+                stage="final_completion",
             )
-            patch = apply_stable_edits(StableDraft.parse(final_draft), check.edits)
-            final_answer = sanitize_answer(patch.answer)
             trace.record(
-                "patch_applied",
-                {"applied": patch.applied, "reason": patch.reason},
-                stage="guardrail",
-                agent="guardrail",
+                "final_contract_coverage", final_contract.to_dict(), stage="final_completion"
             )
+            if status == "incomplete":
+                trace.record(
+                    "error",
+                    {
+                        "failure_stage": "final_completion",
+                        "failure_reason": "missing_safe_final_answers",
+                        "missing_required_request_items": final_coverage.missing_request_items,
+                    },
+                    stage="final_completion",
+                )
 
-            self.memory.add(session_id, "user", f"{description}\nQuestion: {question}")
-            self.memory.add(session_id, "assistant", final_answer)
-            trace.record(
-                "memory_write", {"session_id": session_id, "messages_added": 2}, stage="memory"
-            )
+            if status == "completed":
+                self.memory.add(session_id, "user", f"{description}\nQuestion: {question}")
+                self.memory.add(session_id, "assistant", final_answer)
+                trace.record(
+                    "memory_write", {"session_id": session_id, "messages_added": 2}, stage="memory"
+                )
             trace.record("final_answer", {"answer": final_answer}, stage="output")
-            trace.finish("completed")
+            trace.finish(status)
             summary = trace.summary()
             developer = {
                 "plan": plan.to_dict(),
@@ -366,6 +408,8 @@ class NativeMedAgentEngine:
                 "request_spec": request_spec.to_dict(),
                 "request_coverage": request_coverage.to_dict(),
                 "contract_coverage": coverage.to_dict(),
+                "final_request_coverage": final_coverage.to_dict(),
+                "final_contract_coverage": final_contract.to_dict(),
                 "tool": {"max_calls_per_worker": self.config.max_tool_calls},
                 "retrieval": {
                     "query": evidence_bundle.query,
@@ -385,12 +429,13 @@ class NativeMedAgentEngine:
             )
             return {
                 "final_answer": final_answer,
-                "status": "completed",
-                "user_request_complete": True,
-                "contract_complete": True,
-                "missing_required_request_items": [],
-                "missing_required_deliverables": [],
+                "status": status,
+                "user_request_complete": final_coverage.complete,
+                "contract_complete": final_contract.complete,
+                "missing_required_request_items": final_coverage.missing_request_items,
+                "missing_required_deliverables": final_contract.missing_required_deliverables,
                 "request_item_answers": request_coverage.request_item_answers,
+                "final_request_item_answers": final_coverage.request_item_answers,
                 "successful_workers": coverage.successful_workers,
                 "failed_workers": coverage.failed_workers,
                 "run_id": trace.run_id,
@@ -409,6 +454,78 @@ class NativeMedAgentEngine:
             trace.record("error", error_payload, stage="lifecycle")
             trace.finish("failed")
             raise
+
+    @staticmethod
+    def _finalize_answers(
+        answers: dict[str, str],
+        worker_answers: dict[str, str],
+        request_spec: RequestSpec,
+        contract: AnswerContract,
+        ledger: EvidenceLedger,
+        trace: TraceRecorder,
+    ) -> tuple[dict[str, str], CheckResult, list[str]]:
+        attempted: list[str] = []
+        # One initial pass and at most one deterministic repair after safety edits.
+        # Every fallback goes through the same sanitizer and medical Guardrail.
+        for attempt in range(2):
+            answers = {
+                item.id: sanitize_answer(answers[item.id])
+                for item in request_spec.items
+                if item.id in answers
+            }
+            answers = {key: value for key, value in answers.items() if has_answer_content(value)}
+            for request_id in request_spec.required_item_ids:
+                if request_id not in answers and request_id in worker_answers:
+                    fallback = sanitize_answer(worker_answers[request_id])
+                    if has_answer_content(fallback):
+                        answers[request_id] = fallback
+                        if request_id not in attempted:
+                            attempted.append(request_id)
+            ordered = [
+                (item.id, answers[item.id]) for item in request_spec.items if item.id in answers
+            ]
+            draft_text = "\n\n".join(value for _, value in ordered)
+            draft = StableDraft.parse(draft_text)
+            owners = [
+                request_id for request_id, value in ordered for _ in StableDraft.parse(value).units
+            ]
+            checker_input = trace.record(
+                "checker_input",
+                {"draft": draft_text, "attempt": attempt},
+                stage="guardrail",
+                agent="guardrail",
+            )
+            check = Guardrail().check(draft_text, contract, ledger)
+            trace.record(
+                "checker_result",
+                check.to_dict(),
+                stage="guardrail",
+                agent="guardrail",
+                parent_event_id=checker_input,
+            )
+            patch = apply_stable_edits(draft, check.edits)
+            trace.record(
+                "patch_applied",
+                {"applied": patch.applied, "reason": patch.reason},
+                stage="guardrail",
+                agent="guardrail",
+            )
+            # Ownership is retained through stable-unit edits. If an implementation
+            # changes untracked text, fail closed rather than claiming old coverage.
+            final: dict[str, str] = {}
+            if len(owners) == len(draft.units) and patch.answer == draft.render():
+                for owner, unit in zip(owners, draft.units, strict=True):
+                    text = sanitize_answer(unit.text)
+                    if text:
+                        final[owner] = "\n\n".join(filter(None, [final.get(owner), text]))
+                final = {key: value for key, value in final.items() if has_answer_content(value)}
+                rendered = "\n\n".join(final.values())
+                if sanitize_answer(rendered) != rendered:
+                    final = {}  # Cross-section sanitization invalidates ownership.
+            if evaluate_final_request_coverage(request_spec, final).complete:
+                return final, check, attempted
+            answers = final
+        return answers, check, attempted
 
     def _tool_registry(
         self,
@@ -511,6 +628,11 @@ class NativeMedAgentEngine:
             {
                 "role": "system",
                 "content": (
+                    "Return exactly one JSON object with an answers array. Each entry must "
+                    "contain exactly request_item_id and answer (a non-empty string). Include "
+                    "each required RequestSpec ID exactly once; do not invent IDs. Integrate "
+                    "the worker drafts within each answer, using natural prose or Markdown, "
+                    "with substantive content rather than empty headings. "
                     "Produce the smallest complete answer that satisfies every required item in "
                     "the RequestSpec and the AnswerContract. Preserve an answer for every required "
                     "request_item_id; do not omit one during synthesis. "
@@ -536,6 +658,7 @@ class NativeMedAgentEngine:
             stage="synthesis",
             agent="synthesizer",
             messages=messages,
+            response_format={"type": "json_object"},
             purpose="synthesis",
             is_complete=lambda response: bool(response.content.strip()),
             trace=trace,
@@ -555,8 +678,6 @@ class NativeMedAgentEngine:
         )
         if generation.generation_status == "length_exhausted":
             raise StageGenerationError("synthesis", "generation_length_exhausted")
-        if not response.content.strip():
-            raise StageGenerationError("synthesis", "empty_generation_output")
         return response.content
 
     async def close(self) -> None:

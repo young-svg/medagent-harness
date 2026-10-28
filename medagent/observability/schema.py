@@ -28,6 +28,8 @@ EVENT_TYPES = {
     "worker_draft",
     "contract_coverage",
     "request_coverage",
+    "final_request_coverage",
+    "final_contract_coverage",
     "synthesis_input",
     "synthesis_output",
     "checker_input",

@@ -39,8 +39,7 @@ def redact_trace_value(value: Any, key: str | None = None) -> Any:
         return _REDACTED
     if isinstance(value, dict):
         return {
-            item_key: redact_trace_value(item, str(item_key))
-            for item_key, item in value.items()
+            item_key: redact_trace_value(item, str(item_key)) for item_key, item in value.items()
         }
     if isinstance(value, list):
         return [redact_trace_value(item) for item in value]
@@ -120,6 +119,23 @@ class TraceRecorder:
             ),
             {},
         )
+        worker_request_coverage = request_coverage
+        coverage = next(
+            (
+                event.payload
+                for event in reversed(self.events)
+                if event.event_type == "final_contract_coverage"
+            ),
+            coverage,
+        )
+        request_coverage = next(
+            (
+                event.payload
+                for event in reversed(self.events)
+                if event.event_type == "final_request_coverage"
+            ),
+            request_coverage,
+        )
         return {
             "run_id": self.run_id,
             "event_count": len(self.events),
@@ -130,8 +146,7 @@ class TraceRecorder:
             "tool_calls": sum(event.event_type == "tool_call" for event in self.events),
             "tokens": sum(int(item.get("total_tokens", 0)) for item in usage) or None,
             "worker_infrastructure_retry_count": sum(
-                int(item.get("infrastructure_retry_count", 0))
-                for item in worker_summaries
+                int(item.get("infrastructure_retry_count", 0)) for item in worker_summaries
             ),
             "workers_recovered_after_infra_retry": sum(
                 int(item.get("infrastructure_retry_count", 0)) > 0
@@ -145,20 +160,13 @@ class TraceRecorder:
             ),
             "required_deliverable_ids": coverage.get("required_deliverable_ids", []),
             "covered_deliverable_ids": coverage.get("covered_deliverable_ids", []),
-            "missing_required_deliverables": coverage.get(
-                "missing_required_deliverables", []
-            ),
-            "contract_complete": not bool(
-                coverage.get("missing_required_deliverables", [])
-            ),
-            "required_request_items": request_coverage.get(
-                "required_request_items", []
-            ),
-            "covered_request_items": request_coverage.get(
-                "covered_request_items", []
-            ),
+            "missing_required_deliverables": coverage.get("missing_required_deliverables", []),
+            "contract_complete": not bool(coverage.get("missing_required_deliverables", [])),
+            "required_request_items": request_coverage.get("required_request_items", []),
+            "covered_request_items": request_coverage.get("covered_request_items", []),
             "missing_request_items": request_coverage.get("missing_request_items", []),
-            "user_request_complete": bool(
-                request_coverage.get("user_request_complete", False)
+            "user_request_complete": bool(request_coverage.get("user_request_complete", False)),
+            "worker_user_request_complete": bool(
+                worker_request_coverage.get("user_request_complete", False)
             ),
         }

@@ -137,7 +137,8 @@ async def test_worker_infrastructure_retry_recovers_and_completes(
     await engine.close()
     workers = result["presentation"]["execution_summary"]["workers"]
 
-    assert len(worker_requests(llm)) == 4
+    assert len(worker_requests(llm)) == 3
+    assert len(llm.requests) == 5  # Planner + three Worker attempts + one Synthesizer.
     assert workers[1]["provider_attempt_count"] == 2
     assert workers[1]["infrastructure_retry_count"] == 1
     assert result["status"] == "completed"
@@ -185,7 +186,9 @@ async def test_worker_infrastructure_retry_exhaustion_is_incomplete(
     assert workers[1]["worker_status"] == "provider_error"
     assert workers[1]["provider_attempt_count"] == 2
     assert result["status"] != "completed"
-    assert result["missing_required_deliverables"] == ["TREATMENT_PLAN"]
+    assert result["missing_required_deliverables"] == ["DIAGNOSIS_WITH_BASIS", "TREATMENT_PLAN"]
+    worker_coverage = next(event for event in events if event["event_type"] == "contract_coverage")
+    assert worker_coverage["payload"]["missing_required_deliverables"] == ["TREATMENT_PLAN"]
     assert result["successful_workers"] == 1
     assert result["failed_workers"] == 1
     assert not any(event["event_type"].startswith("synthesis_") for event in events)
@@ -203,9 +206,7 @@ async def test_duplicate_required_coverage_allows_completion(
     )
     llm = FailureInjectingLLM(
         [
-            two_deliverable_plan(
-                ["DIAGNOSIS_WITH_BASIS"], ["DIAGNOSIS_WITH_BASIS"]
-            ),
+            two_deliverable_plan(["DIAGNOSIS_WITH_BASIS"], ["DIAGNOSIS_WITH_BASIS"]),
             httpx.ConnectError("failure one"),
             httpx.ConnectError("failure two"),
             "Duplicate coverage succeeds",
@@ -264,7 +265,8 @@ async def test_extra_worker_text_cannot_claim_unassigned_coverage(
     await engine.close()
 
     assert result["status"] == "incomplete"
-    assert result["missing_required_deliverables"] == ["TREATMENT_PLAN"]
+    assert result["missing_required_deliverables"] == ["DIAGNOSIS_WITH_BASIS", "TREATMENT_PLAN"]
+    assert result["final_request_item_answers"] == {}
 
 
 @async_test
@@ -294,13 +296,9 @@ async def test_single_complete_still_bypasses_synthesis(tmp_path) -> None:
 
 
 @async_test
-async def test_multi_complete_still_synthesizes(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_multi_complete_still_synthesizes(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     patch_contract(monkeypatch, contract())
-    llm = FailureInjectingLLM(
-        [two_deliverable_plan(), "Diagnosis", "Treatment", "Combined answer"]
-    )
+    llm = FailureInjectingLLM([two_deliverable_plan(), "Diagnosis", "Treatment", "Combined answer"])
     engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "multi-complete")
@@ -324,9 +322,7 @@ async def test_retry_after_tool_does_not_repeat_tool_side_effect(tmp_path) -> No
                     }
                 ]
             },
-            LLMResponse(
-                tool_calls=[ToolCall("risk-1", "assess_risk", {"symptoms": "x"})]
-            ),
+            LLMResponse(tool_calls=[ToolCall("risk-1", "assess_risk", {"symptoms": "x"})]),
             httpx.ConnectError("post-tool transient failure"),
             "Tool-aware answer",
         ]

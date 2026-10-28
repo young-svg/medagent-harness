@@ -4,7 +4,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from medagent.tools.schemas import TOOL_SCHEMAS
+from medagent.tools.schemas import TOOL_SCHEMAS, validate_tool_arguments
 
 VISIBLE_TOOLS = {
     "consultation_agent": {
@@ -58,7 +58,7 @@ class ToolRegistry:
             if name in self._handlers
         ]
 
-    async def execute(self, worker: str, name: str, arguments: dict[str, Any]) -> Any:
+    async def execute(self, worker: str, name: str, arguments: object) -> Any:
         if name not in self.allowed_for(worker):
             raise PermissionError(f"tool {name!r} is not visible to {worker}")
         if name not in self._handlers:
@@ -67,6 +67,8 @@ class ToolRegistry:
         if used >= self.max_calls:
             raise RuntimeError(f"tool call budget exhausted for {worker}")
         self._calls[worker] = used + 1
+        # Rejected arguments consume an attempted call, just like handler TypeErrors.
+        validate_tool_arguments(name, arguments)
         result = self._handlers[name](**arguments)
         return await result if inspect.isawaitable(result) else result
 
