@@ -2,6 +2,13 @@
 
 Validation date: 2026-09-22
 
+> Historical operator integration report. The local database, smoke artifacts, counts,
+> and scores below have not been reopened or revalidated for the A1-C1 main revision.
+> They describe retrieval plumbing only, not current model inference or clinical
+> effectiveness. Machine-specific paths are historical examples, not portable defaults.
+> Current runtime queries now include per-subtask context; consult README.md for current
+> configuration and privacy/deployment boundaries.
+
 This integration connects an isolated copy of the existing MedicalQA-DX Milvus Lite database to the Native Retrieval Backend. It does not modify Runtime, Planner, Worker, RequestSpec, AnswerContract, prompts, orchestration, benchmark, demo fixtures, or frontend code.
 
 ## Source

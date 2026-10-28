@@ -16,8 +16,10 @@ Original question
   -> AnswerContract (clinical semantic/capability mapping)
   -> Planner request_item_ids + deliverable_ids
   -> Worker per-item answers
-  -> Request coverage + contract coverage
-  -> synthesis/checker/final
+  -> Worker request coverage + contract coverage
+  -> structured synthesis + deterministic recovery
+  -> sanitize / Guardrail stable edits
+  -> final request coverage + final contract coverage
 ```
 
 ## Data model
@@ -60,18 +62,22 @@ taxonomy labels.
 Planner input includes both RequestSpec and AnswerContract. Each `Subtask` carries both:
 
 - `request_item_ids` for user-request coverage;
-- `deliverable_ids` for clinical capability coverage.
+- `deliverable_ids` for clinical capability coverage;
+- `depends_on` for explicit upstream task dependencies (empty for legacy plans).
 
-The existing efficiency policy still merges work assigned to the same worker. Request count
-does not imply worker count. After the planner response is parsed, deterministic policy code:
+For independent plans, efficiency policy still merges same-role work. A dependency graph
+instead preserves task identities and edges, skips collapse/merge, and explicitly rejects
+unsafe task removal. Request count does not imply worker count. Policy also:
 
 1. removes invalid request IDs;
 2. gives every retained subtask at least one RequestItem;
 3. attaches every missing required RequestItem to the closest existing worker by semantic type,
    deliverable mapping, and worker role;
-4. uses the existing fallback when no planner work remains.
+4. uses the existing fallback when no independent planner work remains; invalid dependency
+   graphs or unsafe dependency rewrites fail explicitly, never via a dependency-free fallback.
 
-No second planning model call is made.
+Deterministic mapping/policy adds no planning model call. The existing configured
+length-recovery path can still issue an additional provider attempt.
 
 ## Worker response
 
@@ -91,42 +97,57 @@ Request coverage is the union of actual schema-valid non-empty per-item answers 
 workers. Assignment alone never counts as coverage.
 
 ```text
-UserRequestComplete = missing required RequestItems is empty
-ContractComplete    = missing required clinical deliverables is empty
-run completed       = UserRequestComplete AND ContractComplete
+Worker coverage     = valid per-item Worker answers (pre-synthesis diagnostic state)
+UserRequestComplete = required IDs have substantive final answers after safety edits
+ContractComplete    = final required clinical deliverables are covered
+run completed       = final gates satisfied AND no dependency-blocked task
 ```
 
 An optional RequestItem may be missing without blocking completion. Duplicate answers from
 multiple workers are unioned by request item ID. A single worker that omits one of three assigned
 items yields an incomplete run even if it returned other non-empty text.
 
-Single-worker runs that satisfy both gates continue to bypass synthesis. Multi-worker synthesis
-receives RequestSpec plus every per-item worker answer and is instructed not to omit required
-items. The natural-language final answer remains Markdown-compatible.
+One-successful-Worker runs that satisfy the gates bypass synthesis. Multiple-successful-Worker
+synthesis must return structured per-item answers. Parsing checks valid/unique IDs, structure,
+and substantive content, not keyword or title matching. Missing or invalid synthesized entries
+can be recovered from corresponding validated Worker answers without a repair LLM call.
+Rendering follows RequestSpec order; required coverage is re-evaluated after sanitizer and
+Guardrail stable-unit patches. `Guardrail.check.passed` alone is not the completion gate.
+The natural-language final answer remains Markdown-compatible.
+
+Dependencies add a separate execution gate: only validated/sanitized upstream per-item answers
+enter Handoff, not raw drafts, hidden reasoning, or patient facts. Missing valid required upstream
+content blocks descendants without their LLM calls. See [architecture](architecture.md).
 
 ## Result and trace
 
-Runtime results retain `request_item_answers` and expose:
+Runtime results retain Worker-stage `request_item_answers` and expose final-state fields:
 
 - `user_request_complete`;
 - `missing_required_request_items`;
 - `contract_complete`;
-- existing `missing_required_deliverables`.
+- existing `missing_required_deliverables`;
+- `final_request_item_answers`, matching the rendered final-body coverage.
 
 Trace additions are:
 
 - `request_spec_built`, including item source spans and required flags;
 - `plan_created.subtasks[].request_item_ids`;
 - `worker_draft.answered_request_item_ids` and per-item answers;
-- `request_coverage`, including required, covered, missing, and completion status.
+- `request_coverage`, including required, covered, missing, and completion status;
+- `final_request_coverage` and `final_contract_coverage` after final safety processing;
+- final coverage metadata distinguishes fallback attempts from successfully retained recovery;
+- dependency wait/ready/blocked and Handoff events with source IDs.
 
 `ContractComplete` and `UserRequestComplete` remain separate in trace summaries and reports.
 
 ## Scope preserved
 
-This refactor does not expand medical taxonomy, add case-specific rules, change public skill
-texts, alter RAG, memory, guardrails, retry policy, generation settings, frontend, or
-presentation behavior. `AnswerContract` keeps its name and remains the clinical semantic layer.
+The original RequestSpec migration did not expand medical taxonomy, add case-specific
+rules, change public skill texts, alter RAG, memory, guardrails, retry policy, generation settings, frontend, or
+presentation behavior. Later A1-C1 changes are reflected above; this historical scope statement
+is not a claim that those modules have never changed. `AnswerContract` remains the
+clinical semantic layer.
 
 REQUESTSPEC_COMMIT: the production commit containing this document, with commit message
 `Add request-spec completion coverage`; the resolved hash is recorded in the final handoff.

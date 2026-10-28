@@ -1,5 +1,13 @@
 # Native Public Runtime — Final Integration Closure
 
+> Historical integration-closure snapshot, predating A1-C1. Counts, packaging paths,
+> provenance checks and NOT_RUN flags below describe that closure, not a new execution
+> record for current main. The current architecture/configuration is in README.md and
+> docs/NATIVE_IMPLEMENTATION_SPEC.md. In particular, .env.example is not exhaustive,
+> Memory now has an estimated budget, dependency graphs/Handoff are supported, and raw
+> audit Trace is not guaranteed free of sensitive text or reasoning. This document is
+> retained as history, not as current benchmark evidence.
+
 1. **Memory is in the model context:** yes. Bounded, session-isolated history is
    injected into actual Planner and Worker requests. Current description/question and
    current Contract/Ledger are authoritative. Three-turn correction, isolation, empty

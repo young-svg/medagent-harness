@@ -2,6 +2,12 @@
 
 ## Scope
 
+This is the historical v7 policy design, not an evaluation of current A1-C1 main.
+The current policy still collapses/merges independent work as described below, but
+**dependency graphs preserve task identity and skip collapse/same-role merge**;
+unsafe removal fails explicitly. Current synthesis is structured by RequestItem ID,
+with deterministic recovery and post-safety final coverage. See architecture.md.
+
 This change controls orchestration breadth without changing the answer model, model settings,
 generation recovery, stage budgets, retrieval threshold, evidence admission, memory, guardrails,
 or the clinical corpus.
