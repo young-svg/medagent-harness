@@ -483,7 +483,9 @@ def test_cross_section_sanitization_cannot_keep_stale_coverage(tmp_path):
     result, events, _ = _run(tmp_path, synthesis)
     assert result["status"] == "completed"
     assert result["final_answer"] == COMPLETE
-    assert _payload(events, "final_request_coverage")["recovered_request_items"] == ["RQ1", "RQ2"]
+    # Each item is now sanitized independently before rendering, so neither
+    # item's public answer needs recovery from a cross-section reasoning block.
+    assert _payload(events, "final_request_coverage")["recovered_request_items"] == []
 
 
 def test_guardrail_treats_optional_deliverable_as_missing():

@@ -27,6 +27,7 @@ from medagent.planning.complexity import (
     build_response_profile,
     tool_capabilities,
 )
+from medagent.planning.models import Subtask
 from medagent.planning.planner import Planner, apply_contract_policy
 from medagent.planning.router import Router
 from medagent.presentation.adapter import PresentationAdapter
@@ -47,6 +48,7 @@ from medagent.runtime.coverage import (
 )
 from medagent.runtime.engine import EngineExecutionError, StageGenerationError
 from medagent.runtime.final_answers import has_answer_content, parse_synthesis_answers
+from medagent.runtime.handoff import WorkerHandoff, build_handoff
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolExecutionContext, ToolRegistry
 
@@ -199,30 +201,99 @@ class NativeMedAgentEngine:
                 max_length_recoveries=self.config.worker_max_length_recoveries,
                 max_infrastructure_retries=self.config.worker_max_infrastructure_retries,
             )
-            tasks = [
-                asyncio.wait_for(
-                    loop.execute(
-                        AGENTS[subtask.assigned_agent],
-                        subtask,
-                        request_spec,
-                        contract,
-                        ledger,
-                        current_context,
-                        injected_memory,
-                        self.skills[subtask.assigned_agent],
-                        trace,
-                        complexity,
-                        response_profile,
+            by_id = {item.subtask_id: item for item in plan.subtasks}
+            tasks: dict[str, asyncio.Task[WorkerResult]] = {}
+
+            async def run_subtask(subtask: Subtask) -> WorkerResult:
+                parent_id = policy_event_id
+                handoffs: list[WorkerHandoff] = []
+                if subtask.depends_on:
+                    wait_id = trace.record(
+                        "dependency_wait",
+                        {"subtask_id": subtask.subtask_id, "depends_on": subtask.depends_on},
+                        stage="scheduling",
+                        agent=subtask.assigned_agent,
                         parent_event_id=policy_event_id,
-                    ),
-                    timeout=self.config.worker_timeout_seconds,
-                )
-                for subtask in plan.subtasks
-            ]
-            outcomes = await asyncio.gather(*tasks, return_exceptions=True)
-            workers: list[WorkerResult] = []
-            for subtask, outcome in zip(plan.subtasks, outcomes, strict=True):
-                if isinstance(outcome, BaseException):
+                    )
+                    upstream = await asyncio.gather(*(tasks[key] for key in subtask.depends_on))
+                    blocked = []
+                    for key, outcome in zip(subtask.depends_on, upstream, strict=True):
+                        handoff = build_handoff(by_id[key], outcome, request_spec)
+                        if handoff is None:
+                            blocked.append(key)
+                        else:
+                            handoffs.append(handoff)
+                    if blocked:
+                        blocked_id = trace.record(
+                            "dependency_blocked",
+                            {
+                                "subtask_id": subtask.subtask_id,
+                                "blocked_by": blocked,
+                                "source_event_ids": [item.trace_event_id for item in upstream],
+                            },
+                            stage="scheduling",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=wait_id,
+                        )
+                        result = WorkerResult(
+                            worker=subtask.assigned_agent,
+                            subtask_id=subtask.subtask_id,
+                            answer="",
+                            success=False,
+                            generation_status="not_started",
+                            failure_reason="dependency_failed",
+                            worker_status="dependency_blocked",
+                            provider_attempt_count=0,
+                        )
+                        result.trace_event_id = trace.record(
+                            "worker_draft",
+                            result.to_dict(),
+                            stage="worker",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=blocked_id,
+                        )
+                        return result
+                    handoff_ids = [
+                        trace.record(
+                            "worker_handoff",
+                            {
+                                "target_subtask_id": subtask.subtask_id,
+                                "wait_event_id": wait_id,
+                                **handoff.to_dict(),
+                            },
+                            stage="scheduling",
+                            agent=subtask.assigned_agent,
+                            parent_event_id=handoff.source_event_id,
+                        )
+                        for handoff in handoffs
+                    ]
+                    parent_id = trace.record(
+                        "dependency_ready",
+                        {"subtask_id": subtask.subtask_id, "handoff_event_ids": handoff_ids},
+                        stage="scheduling",
+                        agent=subtask.assigned_agent,
+                        parent_event_id=wait_id,
+                    )
+                try:
+                    return await asyncio.wait_for(
+                        loop.execute(
+                            AGENTS[subtask.assigned_agent],
+                            subtask,
+                            request_spec,
+                            contract,
+                            ledger,
+                            current_context,
+                            injected_memory,
+                            self.skills[subtask.assigned_agent],
+                            trace,
+                            complexity,
+                            response_profile,
+                            parent_event_id=parent_id,
+                            **({"handoffs": tuple(handoffs)} if handoffs else {}),
+                        ),
+                        timeout=self.config.worker_timeout_seconds,
+                    )
+                except Exception as outcome:
                     result = WorkerResult(
                         worker=subtask.assigned_agent,
                         subtask_id=subtask.subtask_id,
@@ -238,18 +309,20 @@ class NativeMedAgentEngine:
                         {"where": "worker", "error": type(outcome).__name__},
                         stage="worker",
                         agent=subtask.assigned_agent,
-                        parent_event_id=policy_event_id,
+                        parent_event_id=parent_id,
                     )
-                    trace.record(
+                    result.trace_event_id = trace.record(
                         "worker_draft",
                         result.to_dict(),
                         stage="worker",
                         agent=subtask.assigned_agent,
                         parent_event_id=error_event_id,
                     )
-                    workers.append(result)
-                else:
-                    workers.append(outcome)
+                    return result
+
+            for subtask in plan.subtasks:
+                tasks[subtask.subtask_id] = asyncio.create_task(run_subtask(subtask))
+            workers = await asyncio.gather(*(tasks[item.subtask_id] for item in plan.subtasks))
             successful = [item for item in workers if item.success and item.answer.strip()]
             coverage = evaluate_contract_coverage(contract, plan.subtasks, workers)
             trace.record("contract_coverage", coverage.to_dict(), stage="contract_completion")
@@ -259,9 +332,10 @@ class NativeMedAgentEngine:
                 request_coverage.to_dict(),
                 stage="request_completion",
             )
-            if not successful:
+            if not successful and not any(item.depends_on for item in plan.subtasks):
                 raise EngineExecutionError("all workers failed")
-            if not request_coverage.complete or not coverage.complete:
+            dependency_blocked = any(item.worker_status == "dependency_blocked" for item in workers)
+            if not request_coverage.complete or not coverage.complete or dependency_blocked:
                 # No final body is emitted on this path. Keep Worker coverage as
                 # diagnostic input, but report empty final coverage consistently.
                 final_coverage = evaluate_final_request_coverage(request_spec, {})
@@ -281,11 +355,12 @@ class NativeMedAgentEngine:
                 trace.record(
                     "final_contract_coverage", final_contract.to_dict(), stage="final_completion"
                 )
-                failure_reason = (
-                    "missing_required_request_items"
-                    if not request_coverage.complete
-                    else "missing_required_deliverables"
-                )
+                if dependency_blocked:
+                    failure_reason = "dependency_blocked"
+                elif not request_coverage.complete:
+                    failure_reason = "missing_required_request_items"
+                else:
+                    failure_reason = "missing_required_deliverables"
                 trace.record(
                     "error",
                     {
