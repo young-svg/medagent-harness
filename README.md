@@ -47,7 +47,7 @@ See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure 
 <details>
 <summary>Runtime guarantees, boundaries, and implementation / regression-test links</summary>
 
-The A1–C1 labels in the implementation table below refer to earlier engineering fixes, not the later V1 validation stages A1–A3 summarized under Evaluation.
+The A1–C1 labels in the implementation table below refer to earlier engineering fixes, not the V1 real-integration validations summarized under Engineering Validation.
 
 ## Runtime Correctness and Dependency Execution
 
@@ -126,35 +126,28 @@ Protocol recovery is limited to one serialization-repair attempt. It does not re
 
 This mechanism was introduced after failure analysis of an early 20-case run: two incomplete cases contained clinically relevant worker content but failed at the structured-response boundary. The root cause was malformed serialization and parser rejection—not medical reasoning, planning, or network failure—so the fix targeted bounded serialization recovery without rerunning planning, tools, or clinical reasoning. The final fixed 60-case valid-execution set completed 60/60; this is not a claim of perfect reliability. See [Failure analysis](docs/FAILURE_ANALYSIS.md) for details.
 
-## Evaluation
+## Engineering Validation
 
 ### Current V1 engineering evidence
 
-These are separate validations, not a pooled clinical benchmark. All cases and retrieval documents used in V1 validation are synthetic; original traces and full human-review records are kept outside the public repository.
+The validation focus is the Harness control layer: task ownership, dependency execution, tool/evidence boundaries, session isolation and bounded recovery. Offline regressions and real-provider integration are separate evidence sets, not a pooled clinical benchmark.
 
 | Validation | Observed result | Evidence and limits |
 | --- | --- | --- |
+| Offline engineering regression | **459 tests passed** at the V1 release validation | Covers tools, coverage, dependencies/Handoff, RAG, Memory, recovery and Trace; not clinical effectiveness |
 | A1: real LLM integration | Single Worker, independent Multi-Agent, tools, real LLM + Fake Retrieval, and three-round Memory passed their scoped checks; dependent Handoff **PARTIAL** | [A1 report](docs/REAL_LLM_A1_VALIDATION.md): 33 real requests; dependent execution worked but RequestSpec retained only one RQ1 |
 | A2: real LLM + synthetic Milvus Lite | End-to-end **PASS** in one synthetic case; four offline retrieval scenarios passed after two targeted fixes | [A2 report](docs/REAL_MILVUS_A2_VALIDATION.md): 512-dimensional normalized embeddings, COSINE, threshold 0.63; not a real medical knowledge-base evaluation |
-| A3: frozen 20-case engineering evaluation | **10 PASS / 6 PARTIAL / 4 FAIL** after user-confirmed human review | Five task groups, four cases each; aggregate details below; no clinical-quality score or Web baseline |
-| HTTP400 follow-up | One isolated historical R03 continuation replay also returned **400 / invalid_request_error** | [Known issue](docs/HTTP400_KNOWN_ISSUE.md): specific root cause **UNKNOWN**, **not fixed**; no further real-model diagnostics planned |
 
-### A3: completion, semantics, and capability are different
+Implementation and offline regression evidence:
 
-| Group | System completed | Final required-ID coverage | Human semantic review | Overall result, including expected Agent capability |
-| --- | --- | --- | --- | --- |
-| Single | 4/4 | 4/4 | 3 PASS, 1 PARTIAL | 3 PASS, 1 PARTIAL |
-| Independent Multi | 4/4 | 8/8 | 4 PASS | 4 PARTIAL |
-| Dependent Multi | 4/4 | 8/8 | 3 PASS, 1 FAIL | 2 PASS, 1 PARTIAL, 1 FAIL |
-| RAG | 2/4 | 2/4 | 1 PASS, 3 FAIL | 1 PASS, 3 FAIL |
-| Session Memory | 4/4 | 4/4 | 4 PASS | 4 PASS |
-| Total | **18/20** | **26/28** | **15 PASS, 1 PARTIAL, 4 FAIL** | **10 PASS, 6 PARTIAL, 4 FAIL** |
+- **Dependencies / Handoff:** [validated public-result transfer](medagent/runtime/handoff.py) and [concurrency, provenance and failure-blocking tests](tests/test_multi_agent_handoff_audit.py).
+- **RAG:** [subtask-aligned query construction](medagent/retrieval/query_builder.py) and [query-alignment regressions](tests/test_retrieval_query_alignment_audit.py).
+- **Session Memory:** [bounded session history](medagent/memory/session.py) and [budget, shared injection and isolation tests](tests/test_session_memory_budget_audit.py).
+- **Recovery:** [Worker recovery flow](medagent/runtime/agent_loop.py) and [serialization-only recovery tests](tests/test_worker_protocol_recovery.py).
 
-The run used **71 real model requests**, **100,206 reported tokens** (68,611 input / 31,595 output), and **353.755 seconds** summed across cases. Two HTTP400 responses supplied no usage, so the reported token total is not a complete billing statement. The later one-request diagnostic replay is excluded from these totals.
+System completion and structural coverage are not task success or answer accuracy. The real-integration cases and retrieval documents above are synthetic; raw traces and internal exploratory evaluations are not published here. Offline fault injection is not evidence of real-provider recovery behavior.
 
-Independent-task answers were correct, but routing did not meet the frozen requirement: two plans were consolidated by contract policy, one was single-task from the model, and another added an unnecessary dependent aggregation task. Three dependency cases executed Handoff; one single-task plan did not. One dependency answer failed the non-medicalized scope requirement despite correct Handoff. In RAG, two tool-continuation requests failed with HTTP400 and another case skipped retrieval; `completed` and full ID coverage did not establish semantic success.
-
-This is a small synthetic engineering evaluation, not clinical validation. Memory stayed below its budget, so real-model trimming and deduplication boundaries were not exercised. Full review documents and original traces remain internal; only aggregate results are published here. **The RAG delivery failure remains open.**
+Known limitation: RAG tool-continuation HTTP400 remains **unresolved; root cause UNKNOWN**. See the [diagnostic record](docs/HTTP400_KNOWN_ISSUE.md).
 
 ### Historical 60-case quality comparison — old version
 
@@ -172,7 +165,7 @@ The largest gains were in:
 
 MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. This is a paired complete-system comparison of different orchestration, context-management, and execution pipelines rather than foundation-model scale or family. Because DeepSeek Web's internal configuration is not observable, this is not a strict component-level causal ablation, and the **+6.49%** delta is not attributed solely to the Harness.
 
-These scores belong to the release evaluation before A1-C1 integration (release baseline `80c98fe`). They are not scores for the current V1 runtime. A1/A2 now provide the limited real-provider and synthetic-Milvus evidence above; neither they nor A3 reran this clinical-quality comparison or establish a +6.49% improvement for the current version.
+These scores belong to the release evaluation before A1-C1 integration (release baseline `80c98fe`). They are not scores for the current V1 runtime. A1/A2 provide the limited real-provider and synthetic-Milvus evidence above; neither reran this clinical-quality comparison or establishes a +6.49% improvement for the current version.
 
 Runs followed a frozen validity policy: valid model responses were never regenerated for answer quality or manually edited; detailed methodology is documented in [Benchmark](docs/BENCHMARK.md) and [Reliability](docs/RELIABILITY.md).
 
@@ -420,7 +413,6 @@ consent, corpus governance, and deployment hardening are operator responsibiliti
 - [Failure analysis](docs/FAILURE_ANALYSIS.md)
 - [Real LLM validation (V1 A1)](docs/REAL_LLM_A1_VALIDATION.md)
 - [Synthetic Milvus validation (V1 A2)](docs/REAL_MILVUS_A2_VALIDATION.md)
-- [Unresolved HTTP400 delivery issue](docs/HTTP400_KNOWN_ISSUE.md)
 - [Demo guide](docs/DEMO.md)
 - [Static demo](docs/STATIC_DEMO.md)
 - [Static demo audit](docs/STATIC_DEMO_AUDIT.md)
