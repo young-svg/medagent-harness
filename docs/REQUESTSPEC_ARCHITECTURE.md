@@ -17,7 +17,8 @@ Original question
   -> Planner request_item_ids + deliverable_ids
   -> Worker per-item answers
   -> Worker request coverage + contract coverage
-  -> structured synthesis + deterministic recovery
+  -> conditional structured synthesis (>=2 successful Workers; otherwise direct)
+  -> deterministic per-item recovery
   -> sanitize / Guardrail stable edits
   -> final request coverage + final contract coverage
 ```

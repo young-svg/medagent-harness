@@ -16,20 +16,9 @@ One question may require several outputs, while a later task may need an earlier
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    REQUEST["RequestSpec + AnswerContract"] --> HARNESS[["Planner / validated task graph"]]
-    HARNESS --> WORKER["Ready Workers<br/>independent tasks run in parallel"]
-    WORKER --> HANDOFF["Structured Handoff<br/>public answers + source event ID"]
-    HANDOFF --> DEPENDENT["Dependent Worker<br/>waits for valid upstream output"]
-    WORKER --> FINAL["Single result / structured synthesis<br/>sanitize + safety edits + final coverage"]
-    DEPENDENT --> FINAL
-    CONTEXT["Tools / optional RAG<br/>budgeted Session Memory"] --> WORKER
-    FINAL --> TRACE["Answer + causal Trace"]
+![MedAgent Harness Runtime Architecture: deterministic specification and policy around LLM planning, ready-task scheduling, parallel Workers or dependency Handoff, conditional synthesis and final structural verification; dashed links distinguish Session Memory from tools and external evidence.](docs/assets/medagent-architecture.svg)
 
-    classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
-    class HARNESS core
-```
+[Open the full-size architecture](docs/assets/medagent-architecture.svg). Solid arrows show execution; dashed arrows show support/context. Handoff is dependency-only. Synthesis runs only after coverage passes and at least two Workers succeed; a single successful Worker bypasses it. Structural coverage is not semantic or clinical validation.
 
 ## How One Request Runs
 

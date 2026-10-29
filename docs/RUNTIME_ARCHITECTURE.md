@@ -1,5 +1,9 @@
 # Runtime Architecture
 
+![MedAgent Harness Runtime Architecture: deterministic specification and policy, ready-task scheduling, parallel Workers or dependency Handoff, conditional synthesis and final structural coverage; distinct Memory and external-evidence support.](assets/medagent-architecture.svg)
+
+[Full-size overview](assets/medagent-architecture.svg). Solid arrows show execution/control; dashed arrows show context/support. This shared diagram omits the downstream Presentation transform; the lifecycle and failure details below remain authoritative.
+
 `NativeMedAgentEngine` owns one async lifecycle across planning, workers,
 synthesis, checking, presentation, and close. The runtime is centralized: the
 planner creates dispatchable subtasks; the router labels single/multi execution

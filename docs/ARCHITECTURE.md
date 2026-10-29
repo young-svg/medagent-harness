@@ -6,50 +6,9 @@ MedAgent Harness is a centralized planner-worker runtime for traceable clinical 
 
 ## Execution Model
 
-```mermaid
-flowchart TB
-    subgraph PIPELINE["AGENT HARNESS EXECUTION"]
-        direction LR
+![MedAgent Harness Runtime Architecture: specification and planning, dependency-aware Worker execution, conditional synthesis and structural verification, with separate Memory and tool/evidence support.](assets/medagent-architecture.svg)
 
-        subgraph CONTEXT_LAYER["CONTEXT MANAGEMENT"]
-            direction TB
-            REQUEST(["User Request"])
-            CONTEXT["RequestSpec<br/>Stage-aware Context"]
-            MEMORY["Session Memory<br/>Bounded · Session-isolated<br/>Process-local"]
-
-            REQUEST --> CONTEXT
-            MEMORY --> CONTEXT
-        end
-
-        HARNESS[["AGENT HARNESS RUNTIME<br/>CORE CONTROL PLANE<br/><br/>Planner · Complexity Routing<br/>State Management · Agent Dispatch"]]
-
-        subgraph EXECUTION_LAYER["AGENTS & CAPABILITIES"]
-            direction TB
-            AGENTS["Specialized Agents<br/>Diagnostic · Consultation"]
-            CAPABILITIES["Tools & RAG<br/>Tool Policy · Optional Retrieval<br/>Evidence Injection"]
-
-            AGENTS --> CAPABILITIES
-        end
-
-        OUTPUT(["Output<br/>Final Answer · Presentation Layer"])
-
-        CONTEXT_LAYER --> HARNESS --> EXECUTION_LAYER --> OUTPUT
-    end
-
-    subgraph ASSURANCE["VERIFICATION, RECOVERY & OBSERVABILITY · CROSS-CUTTING"]
-        direction LR
-        VERIFY["Answer Contract<br/>Completion Gate"] ~~~ RECOVERY["Infrastructure Retry<br/>Protocol Recovery"] ~~~ OBS["Trace · Usage · Latency<br/>Benchmark"]
-    end
-
-    PIPELINE -.->|control signals and outcomes| ASSURANCE
-
-    classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
-    class HARNESS core
-    style PIPELINE fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
-    style CONTEXT_LAYER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
-    style EXECUTION_LAYER fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
-    style ASSURANCE fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
-```
+This is the same [full-size overview](assets/medagent-architecture.svg) used by the README. Solid arrows are execution/control; light dashed arrows are support/context, not additional execution stages. The Router labels the route; the engine owns scheduling. Handoff applies only to declared dependencies.
 
 For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths still pass through the guardrail and presentation stages.
 
@@ -67,7 +26,7 @@ This is stage-aware context construction, not one shared prompt and not a claim 
 - **Problem:** One worker is sufficient for focused dependent work, while broad cross-role requests benefit from explicit decomposition.
 - **Design:** A deterministic complexity profile captures breadth, requested deliverables, cross-role needs, and explicit external-evidence requirements. The centralized Planner assigns bounded subtasks and ownership to the Diagnostic, Consultation, or Research worker. The Router reports a `single` or `multi` route from the validated plan.
 - **Runtime behavior:** Every required request item must map to a subtask. Capability policy exposes retrieval-oriented tools only when the request explicitly requires external evidence. Workers do not create or claim arbitrary work.
-- **Failure handling:** Invalid planner structure falls back to a dispatchable bounded subtask with a valid worker. Contract policy normalizes ownership, and the Router has a diagnostic dispatchability fallback if no valid worker survives validation.
+- **Failure handling:** Malformed independent plans can fall back to a bounded subtask. Invalid declared dependency plans fail explicitly rather than losing dependencies. Contract policy normalizes ownership; the Router's diagnostic fallback is a route label, not a replacement for engine plan validation or scheduling.
 
 ## 3. Agent Harness and Multi-Agent Orchestration
 
