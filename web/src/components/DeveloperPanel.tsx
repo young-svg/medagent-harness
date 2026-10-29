@@ -41,6 +41,7 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
           <span>Route</span>
           <strong>{presentation.route?.mode || "Not available"}</strong>
         </div>
+        {presentation.route?.reason && <p className="route-reason">{presentation.route.reason}</p>}
         <div className="worker-list">
           {presentation.workers.length ? presentation.workers.map((worker) => (
             <div className="worker-card" key={worker.id}>
@@ -50,9 +51,11 @@ export function DeveloperPanel({ presentation, isDemo = false }: Props) {
                 <p className="worker-responsibility"><span>负责：</span>{agentResponsibilities[worker.name] || "临床分析"}</p>
                 <p>{worker.description}</p>
                 <div className="chip-row">
+                  <span className="chip">{worker.id}</span>
                   {worker.requestItemIds.map((id) => <span className="chip" key={id}>{id}</span>)}
                   {worker.status && <span className="success-chip">{worker.status}</span>}
                 </div>
+                <p>{worker.dependsOn.length ? `Waits for: ${worker.dependsOn.join(", ")}` : "No upstream dependency"}</p>
               </div>
             </div>
           )) : <p className="empty-state">No plan is available yet.</p>}

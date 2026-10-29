@@ -13,7 +13,7 @@ button { cursor: pointer; }
 .brand strong { font-size: 16px; letter-spacing: -.01em; }
 .brand small { margin-top: 2px; color: #7a7f88; font-size: 13px; }
 .run-status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #e4e7eb; border-radius: 999px; color: #666c76; background: #fafafa; font-size: 14px; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #a2a8b1; }
+.status-dot { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #a2a8b1; }
 .status-running .status-dot { background: #2563eb; animation: pulse 1.2s infinite; }
 .status-complete .status-dot { background: #22a06b; }
 .status-error .status-dot { background: #d64545; }
@@ -115,6 +115,21 @@ textarea[readonly] { cursor: default; color: #3e4550; background: #fff; }
 .mode-badge { padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
 .mode-demo { color: #2456be; background: #eaf0ff; }
 .fixture-note { margin: 0 0 12px; color: #6b7280; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+.handoff-section { margin-top: 28px; padding: 24px; border: 1px solid #dce6fb; border-radius: 16px; background: #f7faff; }
+.handoff-section h2 { margin: 0; font-size: 22px; }
+.handoff-disclosure { margin: 10px 0 18px; color: #627087; font-size: 13px; line-height: 1.7; }
+.handoff-flow { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.handoff-step { min-width: 0; padding: 18px; border: 1px solid #e0e7f2; border-radius: 12px; background: white; }
+.handoff-step h3 { font-size: 16px; }
+.handoff-step p, .handoff-step li { color: #59677c; font-size: 13px; line-height: 1.7; }
+.handoff-step ul { padding-left: 18px; }
+.handoff-step code, .handoff-step small { display: block; margin-top: 8px; color: #526b94; font-size: 11px; overflow-wrap: anywhere; }
+.handoff-arrow { color: #2563eb; font-size: 26px; }
+.handoff-transfer { border-color: #bdd0f8; }
+.route-reason { color: #627087; font-size: 13px; line-height: 1.6; }
+.status-list li > div { min-width: 0; }
+.status-list code, .status-list small { display: block; margin-top: 3px; color: #7c8592; font-size: 11px; overflow-wrap: anywhere; }
+.result-context, .worker-card, .tool-row, .memory-facts dd { overflow-wrap: anywhere; }
 .mode-live { color: #13724d; background: #e7f6ef; }
 
 .developer-area { margin: 25px 0 64px; padding: 26px 28px; border: 1px solid #e7e9ed; border-radius: 17px; background: #fafbfc; }
@@ -203,8 +218,8 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
 
 @media (max-width: 760px) {
   .app-shell { width: min(100% - 28px, 1120px); }
-  .site-header { height: 76px; }
-  .run-status { max-width: 150px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .site-header { height: auto; min-height: 76px; flex-wrap: wrap; justify-content: flex-start; gap: 12px; padding: 15px 0; }
+  .run-status { max-width: 100%; white-space: normal; font-size: 12px; }
   .showcase-banner { align-items: flex-start; flex-direction: column; gap: 10px; }
   .hero { padding: 38px 2px 29px; }
   .hero h1 { font-size: 36px; white-space: normal; text-wrap: balance; }
@@ -216,13 +231,17 @@ footer { display: flex; justify-content: space-between; padding: 25px 0 35px; bo
   .demo-picker select { width: 100%; min-width: 0; max-width: 100%; }
   .input-grid, .developer-panel { grid-template-columns: 1fr; }
   .memory-turn-flow { grid-template-columns: 1fr; }
+  .handoff-flow { grid-template-columns: 1fr; }
+  .handoff-section { padding: 18px; }
   .memory-flow-arrow { margin: 2px 0 8px; transform: rotate(90deg); }
   .field-help { min-height: 0; }
   textarea, textarea.question-input { min-height: 155px; }
   .answer-card { padding: 22px; }
   .clinical-card { padding: 0; }
   .clinical-card summary, .clinical-content { padding: 22px; }
-  .developer-toggle-row { align-items: flex-start; }
+  .developer-toggle-row { align-items: flex-start; flex-wrap: wrap; }
+  .result-context { flex-wrap: wrap; }
+  .tool-row { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
   .developer-area { padding: 22px; }
   footer { flex-direction: column; gap: 7px; }
   .memory-facts { grid-template-columns: 1fr; }

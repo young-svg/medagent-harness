@@ -1,12 +1,16 @@
 # MedAgent Harness
 
-MedAgent Harness is a native multi-agent runtime for clinical decision-support workflows. Rather than training a new foundation model, it controls how LLM agents execute a request: structuring requirements, planning and routing work, constructing bounded context, running specialized workers and tools, optionally retrieving evidence, verifying completion, recovering from bounded failures, and recording traces.
+MedAgent Harness is a Planner–Worker runtime for complex clinical questions that combine assessment, investigation, management, and follow-up. It makes task ownership, evidence use, and failure handling inspectable instead of relying on one long model response to cover every requirement.
+
+The project focuses on execution engineering, not training a new foundation model: dependency-aware scheduling, structured handoff, bounded tools and context, final-answer coverage, and causal traces.
+
+[Explore the static Demo](https://young-svg.github.io/medagent-harness/) · [Runtime design](docs/RUNTIME_ARCHITECTURE.md) · [Real LLM validation](docs/REAL_LLM_A1_VALIDATION.md) · [Synthetic Milvus validation](docs/REAL_MILVUS_A2_VALIDATION.md)
 
 Built as an agent-engineering portfolio project, it is not a medical device, does not replace qualified clinical judgment, and does not guarantee a diagnosis. Real clinical deployment, patient safety, and medical effectiveness have not been validated by the engineering regression suite.
 
 ## Why MedAgent Harness?
 
-Direct LLM generation can miss explicit deliverables in a complex request. Tools, context, and multi-step execution also become difficult to bound, while failures are hard to locate and recover.
+One question may require several outputs, while a later task may need an earlier result. The engineering problem is to preserve those requirements through planning, tool use, synthesis, and safety edits, and to explain where execution stopped when a provider or worker fails.
 
 **The core contribution is the Harness control layer:** it converts each user request into an explicit execution contract and controls the Agent lifecycle from planning and stage-aware context construction through worker dispatch, tool execution, verification, recovery, and tracing.
 
@@ -14,19 +18,14 @@ Direct LLM generation can miss explicit deliverables in a complex request. Tools
 
 ```mermaid
 flowchart LR
-    CONTEXT["Context Management<br/>User Request · RequestSpec · Stage-aware"]
-    MEMORY["Session Memory<br/>Bounded · Isolated"]
-    HARNESS[["Agent Harness Runtime<br/>Plan · Route · State · Dispatch"]]
-    AGENTS["Specialized Agents"]
-    CAPABILITIES["Tools & RAG<br/>Tool Policy · Retrieval · Evidence"]
-    VERIFY["Verification & Observability<br/>Gates · Recovery · Trace · Eval"]
-
-    CONTEXT --> HARNESS
-    MEMORY --> HARNESS
-    HARNESS --> AGENTS
-    HARNESS --> CAPABILITIES
-    AGENTS --> VERIFY
-    CAPABILITIES --> VERIFY
+    REQUEST["RequestSpec + AnswerContract"] --> HARNESS[["Planner / validated task graph"]]
+    HARNESS --> WORKER["Ready Workers<br/>independent tasks run in parallel"]
+    WORKER --> HANDOFF["Structured Handoff<br/>public answers + source event ID"]
+    HANDOFF --> DEPENDENT["Dependent Worker<br/>waits for valid upstream output"]
+    WORKER --> FINAL["Single result / structured synthesis<br/>sanitize + safety edits + final coverage"]
+    DEPENDENT --> FINAL
+    CONTEXT["Tools / optional RAG<br/>budgeted Session Memory"] --> WORKER
+    FINAL --> TRACE["Answer + causal Trace"]
 
     classDef core fill:#2563eb,stroke:#1d4ed8,stroke-width:4px,color:#ffffff,font-weight:700
     class HARNESS core
@@ -34,14 +33,14 @@ flowchart LR
 
 ## How One Request Runs
 
-**User Request → RequestSpec + AnswerContract → Planner / Router → Specialized Worker(s) → Tools / optional RAG / bounded session context when needed → Request Coverage + Answer Contract completion gates → Final Answer + Execution Trace**
+**Requirements → task graph → Workers / Handoff → synthesis → safety edits → final structural coverage → answer and Trace.**
 
 - `RequestSpec` preserves the user's explicit requirements and deliverables.
 - `AnswerContract` defines the clinical dimensions the final answer must cover.
-- The Planner decomposes and routes work according to request complexity.
+- The Planner proposes tasks and dependencies; contract policy may consolidate low-scope independent work. Declared dependency graphs are preserved and validated.
 - Each worker receives role-relevant, stage-aware bounded context rather than one shared oversized prompt.
 - Tools and optional RAG inject evidence only through the controlled worker loop; session memory remains bounded, process-local, and session-scoped.
-- Final output must pass request-coverage and Answer Contract completion gates, with execution recorded in a structured trace.
+- Coverage is checked again on the final per-item answers after synthesis and safety edits. Structural completion does not certify semantic or medical correctness.
 
 See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure model.
 
@@ -49,16 +48,17 @@ See [Architecture](docs/ARCHITECTURE.md) for the detailed execution and failure 
 
 | Capability | Implementation |
 | --- | --- |
-| Context Engineering | `RequestSpec`, `AnswerContract`, and stage-aware context construction |
-| Planning | Task decomposition and complexity-aware routing |
-| Multi-Agent | Specialized worker ownership and centralized orchestration |
-| Tool Use | Schema-filtered execution with a per-worker call budget |
-| Retrieval | Optional RAG with query routing, evidence admission, and compact injection |
-| Memory | Bounded, process-local, session-scoped context injection |
-| Guardrails | Request coverage, Answer Contract, completion gate, and stable patching |
-| Reliability | Bounded infrastructure retries with backoff and worker protocol recovery |
-| Observability | Structured execution traces with model events, tools, usage, latency, and recovery |
-| Evaluation | Reliability benchmark, quality comparison, and failure analysis |
+| Task ownership | Explicit request IDs, role-scoped context, and final per-item coverage |
+| Dependencies | Acyclic `depends_on`, structured Handoff, upstream-failure blocking |
+| Tools | Published argument-schema validation, worker permissions, shared call budgets |
+| RAG | Subtask-aligned queries, optional Milvus backend, threshold admission and source tracing |
+| Session Memory | Isolated, process-local history with message-count and estimated-token budgets |
+| Reliability | Bounded transport retries and serialization recovery; causal Trace and sanitized HTTP diagnostics |
+
+<details>
+<summary>Runtime guarantees, boundaries, and implementation / regression-test links</summary>
+
+The A1–C1 labels in the implementation table below refer to earlier engineering fixes, not the later V1 validation stages A1–A3 summarized under Evaluation.
 
 ## Runtime Correctness and Dependency Execution
 
@@ -124,6 +124,8 @@ Implementation and offline regression evidence:
 For a compact dependency-plan example and operating limits, see
 [architecture](docs/RUNTIME_ARCHITECTURE.md) and the [behavior specification](docs/NATIVE_IMPLEMENTATION_SPEC.md).
 
+</details>
+
 ## Key Reliability Design
 
 Two bounded worker recovery paths are emphasized:
@@ -136,6 +138,36 @@ Protocol recovery is limited to one serialization-repair attempt. It does not re
 This mechanism was introduced after failure analysis of an early 20-case run: two incomplete cases contained clinically relevant worker content but failed at the structured-response boundary. The root cause was malformed serialization and parser rejection—not medical reasoning, planning, or network failure—so the fix targeted bounded serialization recovery without rerunning planning, tools, or clinical reasoning. The final fixed 60-case valid-execution set completed 60/60; this is not a claim of perfect reliability. See [Failure analysis](docs/FAILURE_ANALYSIS.md) for details.
 
 ## Evaluation
+
+### Current V1 engineering evidence
+
+These are separate validations, not a pooled clinical benchmark. All cases and retrieval documents used in V1 validation are synthetic; original traces and full human-review records are kept outside the public repository.
+
+| Validation | Observed result | Evidence and limits |
+| --- | --- | --- |
+| A1: real LLM integration | Single Worker, independent Multi-Agent, tools, real LLM + Fake Retrieval, and three-round Memory passed their scoped checks; dependent Handoff **PARTIAL** | [A1 report](docs/REAL_LLM_A1_VALIDATION.md): 33 real requests; dependent execution worked but RequestSpec retained only one RQ1 |
+| A2: real LLM + synthetic Milvus Lite | End-to-end **PASS** in one synthetic case; four offline retrieval scenarios passed after two targeted fixes | [A2 report](docs/REAL_MILVUS_A2_VALIDATION.md): 512-dimensional normalized embeddings, COSINE, threshold 0.63; not a real medical knowledge-base evaluation |
+| A3: frozen 20-case engineering evaluation | **10 PASS / 6 PARTIAL / 4 FAIL** after user-confirmed human review | Five task groups, four cases each; aggregate details below; no clinical-quality score or Web baseline |
+| HTTP400 follow-up | One isolated historical R03 continuation replay also returned **400 / invalid_request_error** | [Known issue](docs/HTTP400_KNOWN_ISSUE.md): specific root cause **UNKNOWN**, **not fixed**; no further real-model diagnostics planned |
+
+### A3: completion, semantics, and capability are different
+
+| Group | System completed | Final required-ID coverage | Human semantic review | Overall result, including expected Agent capability |
+| --- | --- | --- | --- | --- |
+| Single | 4/4 | 4/4 | 3 PASS, 1 PARTIAL | 3 PASS, 1 PARTIAL |
+| Independent Multi | 4/4 | 8/8 | 4 PASS | 4 PARTIAL |
+| Dependent Multi | 4/4 | 8/8 | 3 PASS, 1 FAIL | 2 PASS, 1 PARTIAL, 1 FAIL |
+| RAG | 2/4 | 2/4 | 1 PASS, 3 FAIL | 1 PASS, 3 FAIL |
+| Session Memory | 4/4 | 4/4 | 4 PASS | 4 PASS |
+| Total | **18/20** | **26/28** | **15 PASS, 1 PARTIAL, 4 FAIL** | **10 PASS, 6 PARTIAL, 4 FAIL** |
+
+The run used **71 real model requests**, **100,206 reported tokens** (68,611 input / 31,595 output), and **353.755 seconds** summed across cases. Two HTTP400 responses supplied no usage, so the reported token total is not a complete billing statement. The later one-request diagnostic replay is excluded from these totals.
+
+Independent-task answers were correct, but routing did not meet the frozen requirement: two plans were consolidated by contract policy, one was single-task from the model, and another added an unnecessary dependent aggregation task. Three dependency cases executed Handoff; one single-task plan did not. One dependency answer failed the non-medicalized scope requirement despite correct Handoff. In RAG, two tool-continuation requests failed with HTTP400 and another case skipped retrieval; `completed` and full ID coverage did not establish semantic success.
+
+This is a small synthetic engineering evaluation, not clinical validation. Memory stayed below its budget, so real-model trimming and deduplication boundaries were not exercised. Full review documents and original traces remain internal; only aggregate results are published here. **The RAG delivery failure remains open.**
+
+### Historical 60-case quality comparison — old version
 
 | Fixed 60-case development evaluation | Result |
 | --- | ---: |
@@ -151,7 +183,7 @@ The largest gains were in:
 
 MedAgent and the DeepSeek Web baseline used the same underlying DeepSeek model. This is a paired complete-system comparison of different orchestration, context-management, and execution pipelines rather than foundation-model scale or family. Because DeepSeek Web's internal configuration is not observable, this is not a strict component-level causal ablation, and the **+6.49%** delta is not attributed solely to the Harness.
 
-These are historical results from the release evaluation recorded before A1-C1 integration (release baseline `80c98fe`), not a new clinical evaluation of this integration. Engineering tests do not attribute a score improvement to A1-C1; real-provider and real-Milvus validation of the integrated version remain NOT_RUN.
+These scores belong to the release evaluation before A1-C1 integration (release baseline `80c98fe`). They are not scores for the current V1 runtime. A1/A2 now provide the limited real-provider and synthetic-Milvus evidence above; neither they nor A3 reran this clinical-quality comparison or establish a +6.49% improvement for the current version.
 
 Runs followed a frozen validity policy: valid model responses were never regenerated for answer quality or manually edited; detailed methodology is documented in [Benchmark](docs/BENCHMARK.md) and [Reliability](docs/RELIABILITY.md).
 
@@ -161,11 +193,12 @@ This comparison measures clinical decision-support quality on a fixed 60-case de
 
 [MedAgent Showcase Demo](https://young-svg.github.io/medagent-harness/)
 
-The frontend presents four bundled synthetic scenarios: single-agent routing, multi-agent collaboration, optional RAG, and same-session memory.
+The frontend presents four bundled, **precomputed static** scenarios: single-agent routing, dependency-aware Multi-Agent Handoff, synthetic RAG evidence, and same-session memory.
 
 - Fixture-only; no backend required.
 - No API keys.
 - No external inference calls.
+- The Multi fixture illustrates ST1 → validated public Handoff → ST2; it is not a recorded live execution or evidence that every Planner chooses that route.
 - Engineering portfolio showcase, not an online medical service.
 
 ### Run the showcase locally
@@ -396,6 +429,9 @@ consent, corpus governance, and deployment hardening are operator responsibiliti
 - [Benchmark](docs/BENCHMARK.md)
 - [Reliability](docs/RELIABILITY.md)
 - [Failure analysis](docs/FAILURE_ANALYSIS.md)
+- [Real LLM validation (V1 A1)](docs/REAL_LLM_A1_VALIDATION.md)
+- [Synthetic Milvus validation (V1 A2)](docs/REAL_MILVUS_A2_VALIDATION.md)
+- [Unresolved HTTP400 delivery issue](docs/HTTP400_KNOWN_ISSUE.md)
 - [Demo guide](docs/DEMO.md)
 - [Static demo](docs/STATIC_DEMO.md)
 - [Static demo audit](docs/STATIC_DEMO_AUDIT.md)

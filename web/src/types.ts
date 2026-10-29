@@ -19,7 +19,17 @@ export type WorkerPlan = {
   name: string;
   description: string;
   requestItemIds: string[];
+  dependsOn: string[];
   status?: string;
+};
+
+export type HandoffInfo = {
+  sourceTaskId: string;
+  targetTaskId: string;
+  worker: string;
+  status: string;
+  sourceEventId: string;
+  answers: Array<{ requestItemId: string; answer: string }>;
 };
 
 export type RouteInfo = {
@@ -57,6 +67,8 @@ export type ToolInfo = {
 };
 
 export type TraceEvent = {
+  event_id?: string;
+  parent_event_id?: string | null;
   event_type?: string;
   stage?: string;
   payload?: Record<string, unknown>;
@@ -84,6 +96,7 @@ export type PresentationView = {
   requestItems: RequestItem[];
   route: RouteInfo | null;
   workers: WorkerPlan[];
+  handoffs: HandoffInfo[];
   retrieval: RetrievalInfo | null;
   retrievalSummary?: RetrievalSummary | null;
   traceEvents: TraceEvent[];

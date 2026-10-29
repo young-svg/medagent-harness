@@ -3,6 +3,7 @@ import type {
   BackendPresentation,
   EvidenceCard,
   EvidenceState,
+  HandoffInfo,
   MemoryInfo,
   PresentationView,
   RequestItem,
@@ -177,9 +178,29 @@ function workersFrom(execution: Record<string, unknown>): WorkerPlan[] {
       name: agent,
       description: typeof subtask.description === "string" ? subtask.description : "Clinical analysis",
       requestItemIds: stringArray(subtask.request_item_ids),
+      dependsOn: stringArray(subtask.depends_on),
       status: typeof result?.worker_status === "string" ? result.worker_status : undefined,
     };
   });
+}
+
+function handoffsFrom(execution: Record<string, unknown>): HandoffInfo[] {
+  const handoffs = Array.isArray(execution.handoffs) ? execution.handoffs : [];
+  return handoffs.map(objectValue).filter((item) =>
+    typeof item.source_subtask_id === "string"
+    && typeof item.target_subtask_id === "string"
+    && typeof item.source_event_id === "string"
+  ).map((item) => ({
+    sourceTaskId: item.source_subtask_id as string,
+    targetTaskId: item.target_subtask_id as string,
+    sourceEventId: item.source_event_id as string,
+    worker: typeof item.worker === "string" ? item.worker : "Worker",
+    status: typeof item.status === "string" ? item.status : "unknown",
+    answers: (Array.isArray(item.request_item_answers) ? item.request_item_answers : [])
+      .map(objectValue)
+      .filter((answer) => typeof answer.request_item_id === "string" && typeof answer.answer === "string")
+      .map((answer) => ({ requestItemId: answer.request_item_id as string, answer: answer.answer as string })),
+  }));
 }
 
 function routeFrom(execution: Record<string, unknown>): RouteInfo | null {
@@ -370,6 +391,7 @@ export function adaptAnalyzeResponse(response: AnalyzeResponse): PresentationVie
     requestItems: requestItemsFrom(execution),
     route: routeFrom(execution),
     workers: workersFrom(execution),
+    handoffs: handoffsFrom(execution),
     retrieval: retrievalFrom(execution),
     retrievalSummary: retrievalSummaryFrom(execution, evidenceCards),
     traceEvents,

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AnswerSummary } from "./components/AnswerSummary";
 import { ClinicalDetail } from "./components/ClinicalDetail";
 import { DeveloperPanel } from "./components/DeveloperPanel";
+import { HandoffFlow } from "./components/HandoffFlow";
 import { PlainLanguageCard } from "./components/PlainLanguageCard";
 import { demoCases } from "./demoData";
 import { adaptAnalyzeResponse } from "./presentationAdapter";
@@ -67,7 +68,7 @@ export default function App() {
           <span><strong>MedAgent Harness</strong><small>Agent Engineering Showcase</small></span>
         </a>
         <div className={`run-status status-${status}`} role="status">
-          <span className="status-dot" />{statusMessage}
+          <span className="status-dot" aria-hidden="true" /><span>{statusMessage}</span>
         </div>
       </header>
 
@@ -77,7 +78,7 @@ export default function App() {
           <strong>LOCAL FIXTURES</strong>
           <strong>NO API CALL</strong>
         </div>
-        <p>Static showcase only. Runs on local demo fixtures without backend inference.</p>
+        <p>Precomputed static showcase. Local synthetic fixtures only; no runtime, model, or database call.</p>
       </section>
 
       <section className="hero" id="top">
@@ -161,6 +162,8 @@ export default function App() {
           </button>
         </div>
       </section>
+
+      <HandoffFlow handoffs={presentation.handoffs} />
 
       <section className="results" aria-labelledby="results-title">
         <div className="section-heading">

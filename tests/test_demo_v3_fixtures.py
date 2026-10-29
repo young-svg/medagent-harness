@@ -59,3 +59,28 @@ def test_demo_03_evidence_is_explicitly_synthetic() -> None:
     assert all(card["evidence_id"].startswith("synthetic-") for card in evidence["cards"])
     assert all(card["source"] == "Synthetic Guideline Fixture" for card in evidence["cards"])
     assert all("SYNTHETIC EVIDENCE" in card["text_preview"] for card in evidence["cards"])
+
+
+def test_multi_demo_handoff_has_owned_answers_and_causal_source() -> None:
+    fixture = json.loads((EXAMPLES / FILE_NAMES["demo-02-multi-agent"]).read_text(encoding="utf-8"))
+    developer = fixture["developer"]
+    tasks = developer["planner"]["subtasks"]
+    assert tasks[0]["depends_on"] == []
+    assert tasks[1]["depends_on"] == [tasks[0]["subtask_id"]]
+    handoff, = developer["handoffs"]
+    assert handoff["source_subtask_id"] == tasks[0]["subtask_id"]
+    assert handoff["target_subtask_id"] == tasks[1]["subtask_id"]
+    assert handoff["request_item_answers"]
+    assert all(answer["answer"].strip() for answer in handoff["request_item_answers"])
+    assert {answer["request_item_id"] for answer in handoff["request_item_answers"]} <= set(
+        tasks[0]["request_item_ids"]
+    )
+    events = developer["trace"]
+    source = next(event for event in events if event.get("event_id") == handoff["source_event_id"])
+    transfer = next(event for event in events if event["event_type"] == "worker_handoff")
+    ready = next(event for event in events if event["event_type"] == "dependency_ready")
+    assert transfer["parent_event_id"] == source["event_id"]
+    assert ready["parent_event_id"] == transfer["event_id"]
+    assert events.index(source) < events.index(transfer) < events.index(ready)
+    assert "<think>" not in json.dumps(handoff).casefold()
+    assert "<analysis>" not in json.dumps(handoff).casefold()

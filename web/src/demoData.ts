@@ -1,6 +1,7 @@
 import type { AnalyzeResponse, EvidenceCard } from "./types";
 import demoFinalAnswers from "./demoFinalAnswers.json";
 import demoEvidenceCards from "./demoEvidenceCards.json";
+import multiAgentFixture from "../../examples/demo_cases/demo_02_multi_agent.json";
 
 type DemoCaseFixture = {
   id: string;
@@ -26,6 +27,7 @@ type DemoCaseFixture = {
     route: Record<string, unknown>;
     planner: { subtasks: Record<string, unknown>[] };
     workers: Record<string, unknown>[];
+    handoffs?: Record<string, unknown>[];
     tool_state: { status: string; tools: Record<string, unknown>[] };
     evidence: {
       status: "NOT_REQUIRED" | "REQUIRED_UNAVAILABLE" | "AVAILABLE";
@@ -96,17 +98,10 @@ export const demoFixtures: DemoCaseFixture[] = [
         { id: "RQ3", text: "制定进一步检查方案", required: true, semantic_type: "INVESTIGATION_PLAN" },
         { id: "RQ4", text: "制定治疗和随访计划", required: true, semantic_type: "TREATMENT_PLAN" },
       ] },
-      route: { mode: "multi", reason: "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划" },
-      planner: {
-        subtasks: [
-          { subtask_id: "ST1", assigned_agent: "diagnostic_agent", description: "完成高风险诊断、鉴别诊断与检查优先级", request_item_ids: ["RQ1", "RQ2", "RQ3"] },
-          { subtask_id: "ST2", assigned_agent: "consultation_agent", description: "基于诊断路径制定治疗、风险处置与随访节点", request_item_ids: ["RQ4"] },
-        ],
-      },
-      workers: [
-        { worker: "diagnostic_agent", worker_status: "success", answered_request_item_ids: ["RQ1", "RQ2", "RQ3"] },
-        { worker: "consultation_agent", worker_status: "success", answered_request_item_ids: ["RQ4"] },
-      ],
+      route: multiAgentFixture.developer.route,
+      planner: multiAgentFixture.developer.planner,
+      workers: multiAgentFixture.developer.workers,
+      handoffs: multiAgentFixture.developer.handoffs,
       tool_state: { status: "NOT_REQUIRED", tools: [] },
       evidence: {
         status: "NOT_REQUIRED",
@@ -114,7 +109,7 @@ export const demoFixtures: DemoCaseFixture[] = [
         cards: [],
         retrieval: { query: null, collection: null, retrieved_count: 0, admitted_evidence_ids: [] },
       },
-      trace: commonTrace,
+      trace: multiAgentFixture.developer.trace,
     },
   },
   {
@@ -291,6 +286,7 @@ function toAnalyzeResponse(fixture: DemoCaseFixture): AnalyzeResponse {
         plan: { subtasks: developer.planner.subtasks },
         route: developer.route,
         workers: developer.workers,
+        handoffs: developer.handoffs || [],
         tools: developer.tool_state.tools,
         complexity_profile: { requires_external_evidence: developer.evidence.required },
         retrieval: developer.evidence.retrieval,

@@ -35,13 +35,15 @@
     },
     "route": {
       "mode": "multi",
-      "reason": "警示症状需要独立诊断工作流，且治疗随访可由另一角色并行规划"
+      "reason": "预计算依赖示例：ST1先整理诊断不确定性与检查优先级；ST2等待有效Handoff后形成条件性治疗与随访建议。"
     },
     "planner": {
       "subtasks": [
         {
           "subtask_id": "ST1",
           "assigned_agent": "diagnostic_agent",
+          "description": "整理诊断、鉴别方向与检查优先级，保留尚未确诊的不确定性",
+          "depends_on": [],
           "request_item_ids": [
             "RQ1",
             "RQ2",
@@ -51,6 +53,8 @@
         {
           "subtask_id": "ST2",
           "assigned_agent": "consultation_agent",
+          "description": "等待ST1的公开结构化结果，再制定条件性治疗与随访建议",
+          "depends_on": ["ST1"],
           "request_item_ids": [
             "RQ4"
           ]
@@ -60,6 +64,8 @@
     "workers": [
       {
         "worker": "diagnostic_agent",
+        "subtask_id": "ST1",
+        "worker_status": "success",
         "status": "success",
         "answered_request_item_ids": [
           "RQ1",
@@ -69,9 +75,25 @@
       },
       {
         "worker": "consultation_agent",
+        "subtask_id": "ST2",
+        "worker_status": "success",
         "status": "success",
         "answered_request_item_ids": [
           "RQ4"
+        ]
+      }
+    ],
+    "handoffs": [
+      {
+        "source_subtask_id": "ST1",
+        "target_subtask_id": "ST2",
+        "worker": "diagnostic_agent",
+        "status": "success",
+        "source_event_id": "fixture-multi-st1-draft",
+        "request_item_answers": [
+          {"request_item_id": "RQ1", "answer": "警示征象提示需优先排除结构性病变；尚未确诊，需胃镜及病理证实。"},
+          {"request_item_id": "RQ2", "answer": "恶性病变、反流相关狭窄等仍为待验证的鉴别方向。"},
+          {"request_item_id": "RQ3", "answer": "优先胃镜与活检；病理明确后再决定分期评估。"}
         ]
       }
     ],
@@ -85,24 +107,17 @@
       "cards": []
     },
     "trace": [
-      {
-        "event": "Question received"
-      },
-      {
-        "event": "RequestSpec extracted"
-      },
-      {
-        "event": "Planner selected multi route"
-      },
-      {
-        "event": "Diagnostic Agent completed RQ1-RQ3"
-      },
-      {
-        "event": "Consultation Agent completed RQ4"
-      },
-      {
-        "event": "Final answer generated"
-      }
+      {"event_type": "run_start", "stage": "lifecycle"},
+      {"event_type": "request_spec_built", "stage": "context"},
+      {"event_type": "plan_created", "stage": "planning"},
+      {"event_type": "dependency_wait", "event_id": "fixture-multi-wait", "stage": "worker", "payload": {"subtask_id": "ST2", "depends_on": ["ST1"]}},
+      {"event_type": "worker_draft", "event_id": "fixture-multi-st1-draft", "stage": "worker", "payload": {"subtask_id": "ST1", "worker_status": "success"}},
+      {"event_type": "worker_handoff", "event_id": "fixture-multi-handoff", "parent_event_id": "fixture-multi-st1-draft", "stage": "worker", "payload": {"source_subtask_id": "ST1", "target_subtask_id": "ST2", "source_event_id": "fixture-multi-st1-draft"}},
+      {"event_type": "dependency_ready", "event_id": "fixture-multi-ready", "parent_event_id": "fixture-multi-handoff", "stage": "worker", "payload": {"subtask_id": "ST2"}},
+      {"event_type": "worker_draft", "event_id": "fixture-multi-st2-draft", "parent_event_id": "fixture-multi-ready", "stage": "worker", "payload": {"subtask_id": "ST2", "worker_status": "success"}},
+      {"event_type": "synthesis_output", "stage": "synthesis"},
+      {"event_type": "final_request_coverage", "stage": "request_completion", "payload": {"covered_request_items": ["RQ1", "RQ2", "RQ3", "RQ4"]}},
+      {"event_type": "final_answer", "stage": "output"}
     ]
   },
   "source_run_id": "synthetic-demo-multi-001",
