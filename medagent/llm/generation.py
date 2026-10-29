@@ -214,6 +214,11 @@ async def run_with_length_recovery(
                         "retry_type": recovery_type,
                         "error_type": type(error).__name__,
                         "error_message_sanitized": _sanitized_error_message(error),
+                        **(
+                            {"http_error": error.http_diagnostics}
+                            if getattr(error, "http_diagnostics", None)
+                            else {}
+                        ),
                         "provider": type(client).__name__,
                         "model": getattr(client, "model", None),
                         "latency_ms": attempt_latency_ms,

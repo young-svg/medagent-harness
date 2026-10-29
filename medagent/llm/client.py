@@ -6,6 +6,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from medagent.llm.http_errors import safe_http_diagnostics
+
 
 @dataclass(slots=True)
 class ToolCall:
@@ -85,7 +87,18 @@ class OpenAICompatibleLLM:
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            diagnostics = safe_http_diagnostics(response, self.api_key)
+            # Preserve httpx's exception type/response and existing retry semantics.
+            # Do not put the URL or untrusted provider body in str(error)/Trace.
+            error.http_diagnostics = diagnostics
+            error.args = (
+                f"LLM provider HTTP {response.status_code}: "
+                f"{diagnostics['message_class']}; raw error message omitted for privacy.",
+            )
+            raise
         body = response.json()
         message = body["choices"][0]["message"]
         calls = []
