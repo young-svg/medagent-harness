@@ -1,0 +1,40 @@
+{
+  "version": "A3-v1-freeze-candidate-2026-10-29",
+  "scope": "Synthetic engineering evaluation only; no real patients or clinical validation.",
+  "rag_fixture": {
+    "embedding_model": "BAAI/bge-small-zh-v1.5",
+    "normalize_embeddings": true,
+    "dimension": 512,
+    "metric": "COSINE",
+    "threshold": 0.63,
+    "collections": ["clinical_guidelines", "clinical_knowledge"],
+    "documents": [
+      {"id": "SYN-R1", "title": "合成轻症咽痛观察片段", "source": "A3 synthetic fixture, not clinical evidence", "text": "合成演示片段，非真实指南：成人轻度咽痛与鼻塞、无发热及呼吸或吞咽困难时，可考虑短期休息、补水和观察；出现呼吸困难、吞咽困难、持续高热或明显加重时应就医。不可用于真实患者决策。"},
+      {"id": "SYN-R2", "title": "合成随访卡 QF-12", "source": "A3 synthetic fixture, not clinical evidence", "text": "合成演示随访卡 QF-12：若记录状态为黄色，测试规则要求在第3天核对状态；若状态未知，不能推断具体随访日。该规则只用于工程测试。"},
+      {"id": "SYN-R3A", "title": "合成规则 ZETA 版本A", "source": "A3 synthetic fixture version A", "text": "合成规则 ZETA 版本A称：在标记 ZETA 且信息完整时，第2天复核。此为测试冲突材料，非真实指南。"},
+      {"id": "SYN-R3B", "title": "合成规则 ZETA 版本B", "source": "A3 synthetic fixture version B", "text": "合成规则 ZETA 版本B称：在标记 ZETA 且信息完整时，第4天复核。此为测试冲突材料，非真实指南。"}
+    ]
+  },
+  "cases": [
+    {"id":"S01","group":"single","session_id":"a3-s01","description":"合成记录 A01：代号蓝桥；体温36.7℃；未提供其他病史。","question":"请只概括这条合成记录中已知的事实，并说明不能据此作诊断。","goal":"单 Worker 事实提取","expected":"真实 Planner 选择一个 Worker；回答只复述蓝桥和36.7℃并声明信息不足。","pass":"单 Worker；完成、覆盖；无虚构病史或诊断。","fail":"多 Worker 路由、漏掉事实、把未提供信息说成已知或下诊断。"},
+    {"id":"S02","group":"single","session_id":"a3-s02","description":"合成记录 A02：成人轻度鼻塞1天，无发热、无呼吸困难；无药物信息。","question":"请用一句话说明这份合成记录还缺少什么信息，不能作个体化治疗决定。","goal":"单 Worker 缺失信息识别","expected":"一个 Worker，指出至少一项未提供的病史或用药信息，避免具体治疗。","pass":"单 Worker；完成、覆盖；明确缺口与不作治疗决定。","fail":"擅自补全病史、给出确定用药或多 Worker 路由。"},
+    {"id":"S03","group":"single","session_id":"a3-s03","description":"合成处方条目 A03：药物代号 DX-1；过敏史字段为未填写。代号不对应真实药物。","question":"请说明为何不能仅凭这个合成条目判断用药是否适宜。","goal":"单 Worker 安全边界","expected":"一个 Worker，指出过敏史未知和药物仅为代号。","pass":"单 Worker；完成、覆盖；不捏造 DX-1 的真实药理。","fail":"推断真实药物性质或给出确定用药安全结论。"},
+    {"id":"S04","group":"single","session_id":"a3-s04","description":"合成记录 A04：仅有“复查时间待定”字段，没有日期或症状变化。","question":"请给这条合成记录写一句谨慎的状态摘要，不要编造复查日期。","goal":"单 Worker 不确定性表达","expected":"一个 Worker，保留时间待定。","pass":"单 Worker；完成、覆盖；没有具体日期或新症状。","fail":"虚构日期、症状或多 Worker 路由。"},
+    {"id":"I01","group":"independent_multi","session_id":"a3-i01","description":"两个互不相关的合成记录：甲为轻度鼻塞、无发热；乙为代号 K7、预约状态待确认。","question":"1. 仅概括甲的已知症状，不推断乙的信息。\n2. 仅概括乙的预约状态和代号，不推断甲的信息。","goal":"双 Worker 无依赖及记录隔离","expected":"Planner 自主生成两个无依赖子任务，并行完成。","pass":"两任务无依赖、运行时间重叠、回答分别归属甲乙且覆盖两项。","fail":"路由成单任务或依赖任务、串入另一记录事实、任一项缺失。"},
+    {"id":"I02","group":"independent_multi","session_id":"a3-i02","description":"合成记录甲：红旗字段为否；合成记录乙：药物过敏史未知。二者没有关联。","question":"1. 说明甲的红旗字段记载了什么，不推断临床风险。\n2. 说明乙为什么不能确认用药安全，不借用甲的字段。","goal":"两条独立安全检查并行","expected":"两个无依赖子任务，分别基于本记录。","pass":"并行、两项覆盖；甲只说红旗字段为否，乙指出过敏史未知。","fail":"串扰、补全未知过敏史、无故依赖或漏答。"},
+    {"id":"I03","group":"independent_multi","session_id":"a3-i03","description":"合成标签表：P-11 标记蓝色、备注待核对；Q-22 标记绿色、备注已核对。标签仅为测试符号。","question":"1. 只提取 P-11 的标签和备注。\n2. 只提取 Q-22 的标签和备注。","goal":"多 Worker 结果归属与并行","expected":"两个无依赖子任务；不得互换标签。","pass":"并行，P-11=蓝色/待核对且 Q-22=绿色/已核对，最终两项覆盖。","fail":"混淆两条、依赖或漏项。"},
+    {"id":"I04","group":"independent_multi","session_id":"a3-i04","description":"合成数据源甲：样本数3、状态完成；合成数据源乙：样本数5、状态待复核。两源独立。","question":"1. 汇总数据源甲的样本数和状态。\n2. 汇总数据源乙的样本数和状态。","goal":"独立子任务并行和合成顺序","expected":"Planner 两个无依赖任务，最终按题目顺序呈现。","pass":"并行、先甲后乙、3/完成与5/待复核无混淆。","fail":"错序归属、漏项、虚构样本或无故依赖。"},
+    {"id":"D01","group":"dependent_multi","session_id":"a3-d01","description":"合成规则：仅当红旗字段为否时，可标记“观察候选”；若为是则标记“转介候选”。记录红旗字段为否。规则不是医疗指南。","question":"1. 先提取本记录的红旗字段及其原文。\n2. 仅依据第1步提取结果和给定合成规则，给出候选标签并说明这是测试标签。","goal":"单级依赖与正确 Handoff","expected":"两个子任务，第二个 depends_on 第一个。","pass":"真实依赖等待、来源可追踪 Handoff；标签观察候选；两项语义完成。","fail":"无依赖并行、未读上游结果、标签错误或把测试标签说成临床结论。"},
+    {"id":"D02","group":"dependent_multi","session_id":"a3-d02","description":"合成规则：红旗字段为是→转介候选；否则观察候选。记录红旗字段为是。非真实医疗规则。","question":"1. 先从记录提取红旗字段。\n2. 再只根据第1步结果应用给定规则，写出候选标签及理由。","goal":"依赖路径的另一规则分支","expected":"第二子任务依赖第一子任务，不能预设观察。","pass":"有依赖 Handoff；标签转介候选；注明合成规则。","fail":"观察候选、无 Handoff、下游先于上游或医学化表述。"},
+    {"id":"D03","group":"dependent_multi","session_id":"a3-d03","description":"合成条目：药物代码 DX-2，过敏史未知；测试规则要求信息缺失时输出“需补充信息”，不得作适宜性判断。","question":"1. 先提取药物代码与过敏史状态。\n2. 根据第1步提取结果应用给定测试规则，给出下一步标签。","goal":"依赖、未知值与安全阻断","expected":"第二子任务依赖第一子任务，保持未知状态。","pass":"Handoff 保留 DX-2/过敏史未知，输出需补充信息，无药物性质推断。","fail":"补全过敏史、输出适宜/不适宜、无依赖或漏项。"},
+    {"id":"D04","group":"dependent_multi","session_id":"a3-d04","description":"合成审阅规则：若字段 X 与 Y 冲突则标记“待人工核对”；若一致则“可继续审阅”。记录 X=已完成、Y=未完成。","question":"1. 先比较 X 与 Y 是否一致。\n2. 再仅根据第1步的比较结果应用合成审阅规则，并说明为何不能直接宣布完成。","goal":"依赖 Handoff 与冲突传播","expected":"下游依赖上游比较结论。","pass":"可追踪 Handoff，识别冲突并标记待人工核对，不宣布完成。","fail":"并行绕过比较、忽略冲突或虚报完成。"},
+    {"id":"R01","group":"rag","session_id":"a3-r01","description":"合成病例：成人轻度咽痛与鼻塞2天，无发热、呼吸困难或吞咽困难；不是实际患者。","question":"请检索合成指南证据，对照这份轻症描述说明观察条件和警示信号，标明证据来源与非真实指南局限。","goal":"相关合成证据检索与引用","expected":"模型自主调用检索；优先利用 SYN-R1，不把它当真实指南。","pass":"真实 Milvus 查询、准入与 Trace 一致；回答只引用已准入相关片段并说明局限。","fail":"不检索、引用未准入/不存在来源、把合成片段说成真实临床证据。"},
+    {"id":"R02","group":"rag","session_id":"a3-r02","description":"合成随访卡状态为黄色，卡号 QF-12；无真实患者。","question":"请检索卡号 QF-12 的合成随访规则，说明规则中的核对日和来源；不要扩展成医疗建议。","goal":"检索精确代码与来源","expected":"检索 SYN-R2，答第3天并标注合成。","pass":"工具调用合法、证据准入且来源可追踪，回答第3天和测试局限。","fail":"未检索、把第3天说成真实医学标准、错引其他卡号。"},
+    {"id":"R03","group":"rag","session_id":"a3-r03","description":"合成标记 ZETA，字段完整；两份测试文档可能意见不同。","question":"请检索 ZETA 的合成规则，比较可获得的不同版本；如证据冲突，不要给出确定的单一复核日。","goal":"冲突来源识别","expected":"检索 SYN-R3A 和 SYN-R3B；仅对实际准入来源作比较。","pass":"指出被准入的版本、2天/4天冲突；若仅一份准入则明确资料不足，不伪称已比较两份。","fail":"捏造未准入版本、强行给确定日或忽略冲突。"},
+    {"id":"R04","group":"rag","session_id":"a3-r04","description":"合成卡号 QX-91；固定语料没有该卡号。","question":"请检索 QX-91 的合成规则；若没有匹配的可用证据，请明确无法确定，不借用其他卡号的规则。","goal":"无相关来源时的拒答","expected":"模型主动检索，记录真实得分和准入；不得把其他卡号当 QX-91。","pass":"无匹配证据时明确无法确定；若向量误准入无关片段，仍须识别代码不匹配并拒绝引用其规则。","fail":"不检索或借用 QF-12/ZETA 的规则给 QX-91 下确定结论。"},
+    {"id":"M01","group":"memory","session_id":"a3-memory-A","round":1,"description":"合成会话 A：本轮代号 BLUE-ORBIT-17，观察窗为2天。仅是测试符号，没有患者。","question":"请复述本轮的代号与观察窗。","goal":"同 Session 首轮写入","expected":"正常完成并写入 A 历史。","pass":"答 BLUE-ORBIT-17/2天，memory_write 与实际新增条数一致。","fail":"代号或天数错误、写入失败或跨 Session 内容出现。"},
+    {"id":"M02","group":"memory","session_id":"a3-memory-A","round":2,"description":"合成会话 A 的下一轮；本轮不重复提供上一轮代号和观察窗。","question":"请回忆本会话上一轮的代号与观察窗；如果历史不可用，请直说。","goal":"同 Session 历史注入与利用","expected":"Planner/Worker 使用同一份已裁剪 A 历史，答 A 的两个值。","pass":"Trace 与实际输入均有 A 历史、预算元数据一致；答 BLUE-ORBIT-17/2天。","fail":"无历史注入、答错或从当前输入伪装回忆。"},
+    {"id":"M03","group":"memory","session_id":"a3-memory-B","round":1,"description":"独立合成会话 B：本轮代号 GREEN-KEEL-29，观察窗为4天。不提供 A 的任何事实。","question":"请复述本轮的代号与观察窗。","goal":"新 Session 隔离与独立写入","expected":"B 首轮注入历史为0，只答 B 事实。","pass":"Planner/Worker 输入与 memory_read 均无 A 内容；答 GREEN-KEEL-29/4天。","fail":"A 的历史进入 B 输入，或将 A 代号写入 B。"},
+    {"id":"M04","group":"memory","session_id":"a3-memory-B","round":2,"description":"独立合成会话 B 的下一轮；本轮不重复提供 B 的代号和观察窗。","question":"请回忆本会话上一轮的代号与观察窗；如果历史不可用，请直说。","goal":"B 历史利用及 A/B 双向隔离","expected":"只注入 B 历史，答 B 的两个值，不出现 A 值。","pass":"Trace 中 B 有历史且无 A 历史；答 GREEN-KEEL-29/4天。","fail":"A 的事实进入 B 输入、答 A 的值，或 B 历史未注入。"}
+  ]
+}
