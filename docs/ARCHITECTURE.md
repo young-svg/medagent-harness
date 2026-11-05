@@ -1,23 +1,25 @@
 # Architecture
 
+> **Version boundary — documentation-only review.** This branch is based on release `6147196` and adds only five documentation/SVG files. The W1–W7 implementation described here belongs to the unpublished local development snapshot `499d2fa`; it is **not included in this branch**. Shared source paths here still resolve to older release code and do not verify the development claims. The existing static Demo is unchanged.
+
 ## System Objective
 
 MedAgent Harness is a centralized planner-worker runtime for traceable clinical decision-support workflows. Its objective is not autonomous diagnosis or a new foundation model. It turns a compound request into explicit work, runs that work through bounded agent and tool loops, verifies completion, and records the observable execution lifecycle.
 
 ## Execution Model
 
-![MedAgent Harness Runtime Architecture: specification and planning, dependency-aware Worker execution, conditional synthesis and structural verification, with separate Memory and tool/evidence support.](assets/medagent-architecture.svg)
+![MedAgent Harness Runtime Architecture: W1 specification, Policy-validated DAG, bounded Workers and Handoff, then shared structural, evidence and W2 semantic acceptance.](assets/medagent-architecture.svg)
 
 This is the same [full-size overview](assets/medagent-architecture.svg) used by the README. Solid arrows are execution/control; light dashed arrows are support/context, not additional execution stages. The Router labels the route; the engine owns scheduling. Handoff applies only to declared dependencies.
 
-For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths still pass through the guardrail and presentation stages.
+For a single successful worker, the harness can use the worker answer directly instead of running multi-worker synthesis. Both paths use shared FinalAcceptance. Incomplete results skip the optional model presentation transform. W7 evaluation interfaces are not additional stages in this diagram.
 
 ## 1. Request Structuring and Context Engineering
 
 - **Problem:** A clinical prompt can contain several explicit questions, while a broad intent label can silently hide one of them.
-- **Design:** `RequestSpec` preserves ordered user-request items. `AnswerContract` separately identifies requested clinical deliverables such as diagnosis, investigation, treatment, and follow-up. An evidence ledger represents patient facts without inventing missing data.
+- **Design:** W1 extracts and independently reviews source-aligned requirement spans in separate model contexts. Program checks validate schema, mapping and priorities. `RequestSpec` assigns ordered RQ IDs; `AnswerContract` derives deliverables from accepted positive scope and restrictions. An evidence ledger represents patient facts without inventing missing data.
 - **Runtime behavior:** The current case and question are authoritative. The Planner receives task-level context; each worker receives its assigned request IDs, role-specific subtask, bounded session context, contract, profiles, and patient-fact ledger. Tool or retrieval evidence enters only through the worker loop.
-- **Failure handling:** If safe request decomposition is unavailable, the full question remains a required item. Unknown, duplicate, unassigned, or empty request-item answers cannot claim coverage.
+- **Failure handling:** Default W1 fails closed on disagreement, invalid output, timeout or inadequate verification budget before planning. It does not silently fall back to regex decomposition. Separate verification contexts may use the same model; agreement does not guarantee correct scope. Unknown, duplicate, unassigned, or empty request-item answers cannot claim coverage.
 
 This is stage-aware context construction, not one shared prompt and not a claim of complete long-context management.
 
@@ -47,16 +49,16 @@ This is stage-aware context construction, not one shared prompt and not a claim 
 ## 4. Tool Use and Optional RAG
 
 - **Problem:** Unbounded or globally exposed tools make agent behavior difficult to control and audit.
-- **Design:** The tool registry filters schemas by worker role and request-derived capability policy, revalidates tool names at execution, and enforces a per-worker call budget. Retrieval is a tool-backed optional capability with `off`, deterministic `fake`, and user-configured `milvus` modes.
-- **Runtime behavior:** Workers can call visible functions inside the AgentLoop. Retrieval builds and routes a query, records raw candidates, applies score/count admission, deduplicates evidence, and returns only compact admitted evidence to the worker.
+- **Design:** The tool registry filters schemas by worker role and request-derived capability policy, revalidates tool names at execution, and enforces independent per-subtask attempt budgets. Retrieval is a tool-backed optional capability with `off`, deterministic `fake`, and user-configured `milvus` modes.
+- **Runtime behavior:** Workers can call visible functions inside the AgentLoop. Retrieval targets a declared RQ, routes the query, admits candidates and returns compact evidence. Runtime records bind tool execution, source category, admission, delivery and citation to that RQ. Multi-RQ tasks identify the retrieval target. Handoff reuse requires an authorized relationship; receiving another RQ's source cannot complete a new retrieval requirement. Repeated tool-call IDs terminate the subtask before re-execution, including after recovery.
 - **Failure handling:** Invisible, missing, malformed, or over-budget tool calls return explicit errors to the loop. `off` mode fails retrieval explicitly; incomplete Milvus configuration or missing optional packages raises a configuration error instead of silently using private local data.
 
-The base runtime does not require RAG, and retrieval is not claimed as the primary source of the reported benchmark improvement. Users must supply and govern any real corpus themselves.
+The base runtime does not require RAG for every question. Explicit required sources need actual retrieval or authorized reuse; a model's claim of having consulted sources is insufficient. Evidence Gate validates execution and lineage, not relevance, entailment, freshness or directory authenticity. Users must supply and govern any real corpus themselves.
 
 ## 5. Session Memory
 
 - **Problem:** Follow-up requests need relevant prior turns without mixing users or treating stale context as authoritative.
-- **Design:** `SessionMemory` is bounded, process-local, and keyed by `session_id`. It is session-scoped state, not persistent cross-session storage.
+- **Design:** `SessionMemory` is bounded, process-local, and keyed by `session_id`. Omitted IDs generate fresh selectors; explicit reuse continues a session. Selectors are not authentication. The API supports a trusted local operator with loopback peer/Host/origin checks and an optional operator Bearer secret, not public multi-tenant deployment.
 - **Runtime behavior:** One shared history snapshot is injected into Planner and all Workers.
   Count limiting precedes whole-message, oldest-first trimming to an estimated budget
   (default 4096; 0 excludes history; None disables the budget). UTF-8 JSON bytes plus
@@ -69,9 +71,9 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 ## 6. Worker Responses and Completion Gates
 
 - **Problem:** A worker can return fluent text while omitting an assigned item or violating the structured response protocol.
-- **Design:** Worker output maps answers to assigned `request_item_id` values. The runtime computes two independent gates: required `RequestSpec` coverage and required `AnswerContract` coverage.
-- **Runtime behavior:** Only schema-valid, non-empty answers from successful workers count. Multiple drafts are synthesized only after both coverage gates are complete.
-- **Failure handling:** Unknown IDs, duplicate IDs, empty answers, and unassigned answers do not count. Missing required request items or deliverables returns an explicit `incomplete` result with the missing IDs instead of presenting a partial answer as complete.
+- **Design:** Worker output maps answers to assigned `request_item_id` values. Shared `runtime/acceptance.py::FinalAcceptance` combines RequestSpec/Contract structural coverage, Evidence Gate, hard safety blocks and final W2 semantic acceptance.
+- **Runtime behavior:** Only schema-valid, non-empty answers from successful workers count structurally. Evidence is checked before usable Handoff. Multiple successful Workers use Synthesis only after preflight coverage/dependency checks; final citations are checked again after edits. W2 receives final answers and scope, not generator reasoning or prior self-approval. Optional omissions do not block MUST completion.
+- **Failure handling:** Unknown IDs, duplicate IDs, empty answers, and unassigned answers do not count. Missing required request items or deliverables returns an explicit `incomplete` result with the missing IDs instead of presenting a partial answer as complete. W2 distinguishes unanswered, off-topic, insufficient-information, uncertain and execution-error results; invalid validation fails closed. Unresolved hard safety blocks prevent completed even with semantic validation disabled. These model judgments do not certify medical correctness.
 
 ## 7. Synthesis, Guardrails, and Presentation
 
@@ -82,7 +84,9 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
   duplicate, missing or empty per-item synthesized answers can be recovered deterministically
   from corresponding validated Worker answers, without a repair call. Final required IDs and
   substantive content are rechecked after sanitizer and stable Guardrail edits. Unrecoverable
-  answers return incomplete; Worker coverage and final coverage remain separate. Incomplete
+  answers return incomplete; Worker coverage and final coverage remain separate. Final
+  evidence requirements, W2 and accumulated Guardrail hard blocks still apply; a later
+  successful check or fallback cannot clear an unresolved hard block. Incomplete
   runs skip the optional presentation transform. If the transform fails, deterministic
   presentation remains available without changing the final answer or coverage state.
 
@@ -99,17 +103,20 @@ The base runtime does not require RAG, and retrieval is not claimed as the prima
 ## 9. Observability and Evaluation
 
 - **Problem:** Agent quality and reliability cannot be assessed from the final answer alone.
-- **Design:** A central trace recorder emits structured JSONL events and applies credential-shaped redaction at the write boundary. Evaluation remains separate from runtime execution.
+- **Design:** A central recorder emits JSONL events. Default metadata projection validates allowed IDs, fixed statuses, counts, usage and timing; arbitrary content is omitted. Credential redaction is an additional boundary, not clinical de-identification. Evaluation remains separate from runtime execution.
 - **Runtime behavior:** Trace records context, model/tool/retrieval boundaries, coverage,
   recovery, Handoff provenance and final status. Causal parents are explicit; unrelated
   concurrent events are not connected by append order. Worker request coverage and final
-  output coverage are distinct, and Replay uses final coverage when available. Raw audit
-  payloads may contain reasoning and sensitive text; credential redaction is not privacy
-  certification. Do not publish raw local traces or expose them to untrusted users.
+  output coverage are distinct. Validated wait/source/Handoff UUIDs preserve dependency
+  and evidence causality in metadata. Loaded role-spec names/hashes associate with actual
+  model stages; loading four is not executing four. Metadata Replay cannot restore
+  omitted answers. Explicit raw mode retains sensitive content for local Replay and
+  must not be published. HTTP execution summaries are metadata even if disk mode is raw.
 - **Failure handling:** Errors and recovery outcomes are events with sanitized error metadata. Local traces are excluded from the public repository and can be summarized or replayed read-only.
 
 Evaluation evidence is documented in:
 
+- [W7 real-model results and offline boundaries](W7_REAL_MODEL_RESULTS.md)
 - [Benchmark](BENCHMARK.md)
 - [Reliability](RELIABILITY.md)
 - [Failure analysis](FAILURE_ANALYSIS.md)

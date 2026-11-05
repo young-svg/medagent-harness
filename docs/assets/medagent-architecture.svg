@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1140" viewBox="0 0 1640 1140" role="img" aria-labelledby="title description">
   <title id="title">MedAgent Harness Runtime Architecture</title>
-  <desc id="description">Three execution layers: deterministic request specification, LLM planning and deterministic contract policy; dependency-aware Worker scheduling with parallel tasks or validated Handoff; Worker coverage, conditional synthesis, safety edits and final structural coverage. Session Memory and Tools with optional RAG are distinct context interfaces. Bounded recovery and causal tracing span execution. Structural coverage does not prove semantic correctness or clinical safety.</desc>
+  <desc id="description">Unpublished development design. This documentation-only branch retains older release code and does not contain the depicted W1–W7 implementation. Three execution layers: W1 source-aligned semantic specification with independent review and program checks, LLM planning and deterministic contract policy; DAG-ready bounded Worker loops with parallel tasks or structured Handoff; Worker gates, conditional synthesis, safety edits, final structural coverage, per-request evidence and W2 semantic acceptance. Memory and Tools with optional RAG are separate context supports. Recovery, budgets and metadata causal tracing span execution. Model-assisted acceptance does not prove clinical correctness. W7 frozen evaluation interfaces are not part of this normal runtime flow.</desc>
   <!-- Editable SVG: native text, simple paths, no embedded image, font or external resource.
        Code correspondence (repository-relative):
-       Specification: medagent/context/{request_spec,contract}.py; native_engine.analyze
+       Specification: runtime/semantic_validation.py SemanticValidator.extract / contract_for_spec;
+                      context/{request_spec,contract}.py; native_engine.analyze
        Planning: planning/planner.py Planner.plan / apply_contract_policy; planning/models.py
        Routing/scheduling: planning/router.py; runtime/native_engine.py analyze / run_subtask
        Workers/Handoff: runtime/agent_loop.py; runtime/handoff.py build_handoff
-       Completion: runtime/coverage.py; native_engine._synthesize / _finalize_answers;
+       Completion: runtime/acceptance.py FinalAcceptance.evaluate / finalize_answers;
+                   runtime/coverage.py; native_engine._synthesize / _finalize_answers;
                    runtime/final_answers.py; guardrails/{sanitizer,contract_checker}.py
        Support: tools/registry.py; retrieval/query_builder.py; memory/session.py
        Cross-cutting: llm/generation.py; agent_loop._attempt_protocol_recovery;
-                     observability/{tracer,replay}.py
+                     observability/{tracer,privacy,replay}.py
        Dashed M / E paths are support/context interfaces, not execution stages.
        Diagram intentionally omits the downstream Presentation view transformation.
   -->
@@ -45,8 +47,8 @@
   </defs>
   <rect width="1640" height="1140" fill="#fff"/>
   <text class="title" x="40" y="65">MedAgent Harness Runtime Architecture</text>
-  <text class="subtitle" x="40" y="101">Explicit task ownership. Dependency-aware execution. Verifiable structural completion.</text>
-  <text class="tag" x="1598" y="65" text-anchor="end">RUNTIME ARCHITECTURE · V1</text>
+  <text class="subtitle" x="40" y="101">Unpublished development snapshot · implementation is not included in this docs-only branch.</text>
+  <text class="tag" x="1598" y="65" text-anchor="end">DEVELOPMENT DESIGN · W1–W7</text>
 
   <!-- 01: LLM proposals are not the final executable plan. -->
   <g id="task-specification-planning">
@@ -54,10 +56,10 @@
     <text class="number" x="70" y="167">01</text>
     <text class="section" x="105" y="167">Task Specification &amp; Planning</text>
     <rect class="card" x="70" y="190" width="360" height="120" rx="12"/>
-    <text class="tag" x="90" y="210">DETERMINISTIC · CURRENT REQUEST</text>
+    <text class="tag" x="90" y="210">W1 · MODEL + PROGRAM CHECKS</text>
     <text class="heading" x="90" y="240">RequestSpec + AnswerContract</text>
-    <text class="body" x="90" y="270">Required IDs + deliverable scope</text>
-    <text class="small" x="90" y="298">Case facts stay in a separate ledger.</text>
+    <text class="body" x="90" y="270">Extract + independently review scope</text>
+    <text class="small" x="90" y="298">Source spans · priorities · restrictions</text>
 
     <path class="flow" d="M430 250 H480"/>
     <rect class="llm" x="480" y="190" width="270" height="120" rx="12"/>
@@ -73,7 +75,7 @@
     <text class="tag" x="820" y="210">DETERMINISTIC POLICY</text>
     <text class="heading" x="820" y="240">Contract Policy + DAG validation</text>
     <text class="body" x="820" y="270">Constrain scope; reconcile required ownership</text>
-    <text class="small" x="820" y="298">Independent work may merge; dependency IDs stay stable.</text>
+    <text class="small" x="820" y="298">Task-count limit; dependency IDs stay stable.</text>
   </g>
 
   <!-- Policy -> Router/Scheduler -> Worker loops. Middle layer flows right to left. -->
@@ -85,9 +87,9 @@
     <rect class="card" x="1005" y="432" width="285" height="165" rx="12"/>
     <text class="tag" x="1025" y="458">DETERMINISTIC DISPATCH</text>
     <text class="heading" x="1025" y="489">Router + Scheduler</text>
-    <text class="body" x="1025" y="517">Engine dispatches ready tasks.</text>
-    <text class="body" x="1025" y="546">Wait for required upstreams.</text>
-    <text class="small" x="1025" y="573">Bad upstream → blocked</text>
+    <text class="body" x="1025" y="517">DAG-ready tasks acquire slots.</text>
+    <text class="body" x="1025" y="546">Dependency waits hold no slot.</text>
+    <text class="small" x="1025" y="573">Bad upstream → no model call</text>
     <text class="small" x="975" y="501" text-anchor="middle" style="font-size:12px">ready</text>
     <text class="small" x="975" y="518" text-anchor="middle" style="font-size:12px">tasks</text>
     <path class="flow" d="M1005 535 H945"/>
@@ -100,14 +102,14 @@
     <text class="port-text" x="914" y="583">E</text>
     <text class="body" x="90" y="496">Independent tasks</text>
     <path class="flow" d="M270 491 H320"/>
-    <text class="body" x="340" y="496">Parallel Worker loops · task-bound context</text>
+    <text class="body" x="340" y="496">Parallel bounded ReAct loops · RQ ownership</text>
     <line class="divider" x1="90" y1="514" x2="925" y2="514"/>
     <text class="body" x="90" y="544">Upstream Worker</text>
     <path class="flow" d="M270 539 H320"/>
     <text class="body accent" x="340" y="544">Validated Handoff</text>
     <path class="flow" d="M515 539 H565"/>
     <text class="body" x="585" y="544">Dependent Worker</text>
-    <text class="small" x="90" y="577">Public answers + source event ID; no hidden reasoning or confirmed patient facts.</text>
+    <text class="small" x="90" y="577">Sanitized public RQ answers + source lineage; provisional output, not patient facts.</text>
   </g>
   <path class="flow" d="M1145 310 V432"/>
   <!-- Enter completion only after Worker-level coverage and dependency checks. -->
@@ -115,11 +117,11 @@
   <g id="completion-verification">
     <rect class="layer" x="40" y="664" width="1280" height="226" rx="16"/>
     <text class="number" x="70" y="693">03</text>
-    <text class="section" x="105" y="693">Completion &amp; Verification</text>
+    <text class="section" x="105" y="693">Shared Final Acceptance</text>
     <rect class="card" x="70" y="718" width="230" height="145" rx="12"/>
-    <text class="heading" x="88" y="747">Worker coverage</text>
-    <text class="body" x="88" y="777">Request + contract IDs</text>
-    <text class="body" x="88" y="806">Dependency outcomes</text>
+    <text class="heading" x="88" y="747">Worker gates</text>
+    <text class="body" x="88" y="777">RQ + Contract coverage</text>
+    <text class="body" x="88" y="806" style="font-size:17px">Evidence + dependencies</text>
     <text class="small" x="88" y="841">Fail → incomplete</text>
     <path class="flow" d="M300 779 H340"/>
 
@@ -138,13 +140,13 @@
     <path class="flow" d="M925 779 H965"/>
 
     <rect class="llm" x="965" y="718" width="325" height="145" rx="12" style="fill:#fff;stroke:#91b2ed"/>
-    <text class="heading" x="983" y="747">Final coverage + output</text>
-    <text class="body" x="983" y="777">Recheck IDs + contract after edits</text>
-    <text class="body" x="983" y="806">Render answers in request order.</text>
+    <text class="heading" x="983" y="747">Final verification</text>
+    <text class="body" x="983" y="777">Structure + Evidence Gate</text>
+    <text class="body" x="983" y="806" style="font-size:18px">W2 semantics + hard safety blocks</text>
     <text class="body accent" x="983" y="841">completed / incomplete</text>
   </g>
   <path class="flow" d="M70 566 H54 V779 H70"/>
-  <text x="70" y="922" font-size="18" font-weight="600">Structural coverage ≠ semantic correctness or clinical validation.</text>
+  <text x="70" y="922" font-size="18" font-weight="600">Structure, source lineage and model-assisted acceptance ≠ clinical validation.</text>
 
   <!-- Support paths route through gutters, never through execution cards.
        M: same read-time history snapshot, shared by Planner and Workers.
@@ -155,15 +157,15 @@
     <rect class="port" x="90" y="968" width="28" height="25" rx="6"/>
     <text class="port-text" x="104" y="986">M</text>
     <text class="heading" x="132" y="989">Session Memory</text>
-    <text class="body" x="90" y="1018">Shared trimmed history → Planner + Workers</text>
+    <text class="body" x="90" y="1018">One bounded history snapshot → model stages</text>
     <text class="small" x="90" y="1043">Session-isolated · process-local · estimated, not a hard cap</text>
 
     <rect class="card" x="690" y="949" width="600" height="112" rx="12"/>
     <rect class="port" x="710" y="968" width="28" height="25" rx="6"/>
     <text class="port-text" x="724" y="986">E</text>
     <text class="heading" x="752" y="989">Tools / optional RAG</text>
-    <text class="body" x="710" y="1018">Schema validation · permissions · call budgets</text>
-    <text class="small" x="710" y="1043">Subtask query → retrieval → admission → compact evidence</text>
+    <text class="body" x="710" y="1018">Role ∩ task permissions · schemas · attempt limits</text>
+    <text class="small" x="710" y="1043">RQ query → admission → delivery + citation / valid reuse</text>
   </g>
 
   <!-- Cross-cutting mechanisms; no claim of a new autonomous recovery Agent. -->
@@ -176,8 +178,8 @@
     <text class="body" x="1382" y="292">Transport retry</text>
     <text class="body" x="1382" y="326">Length completion</text>
     <text class="body" x="1382" y="360">Protocol repair</text>
-    <text class="small" x="1382" y="412">Stage-limited;</text>
-    <text class="small" x="1382" y="436">no replanning.</text>
+    <text class="small" x="1382" y="412">Actual-attempt ceilings;</text>
+    <text class="small" x="1382" y="436">no tool-ID replay.</text>
     <line class="divider" x1="1382" y1="459" x2="1578" y2="459"/>
     <text class="heading" x="1382" y="506">Causal Trace</text>
     <text class="body" x="1382" y="540">Explicit parent IDs</text>
@@ -186,10 +188,10 @@
     <text class="small" x="1382" y="650">JSONL · Summary · Replay</text>
     <text class="small" x="1382" y="692">Causality ≠ append order.</text>
     <line class="divider" x1="1382" y1="718" x2="1578" y2="718"/>
-    <text class="small" x="1382" y="760">Raw Trace may contain</text>
-    <text class="small" x="1382" y="784">sensitive text.</text>
-    <text class="small" x="1382" y="834">Sanitized public answers</text>
-    <text class="small" x="1382" y="858">only in Handoff.</text>
+    <text class="small" x="1382" y="760">Metadata by default.</text>
+    <text class="small" x="1382" y="784">Validated IDs, no body.</text>
+    <text class="small" x="1382" y="834">Explicit raw may retain</text>
+    <text class="small" x="1382" y="858">sensitive text; keep local.</text>
   </g>
   <g id="support-relationships">
     <path class="support" d="M90 980 H20 V178 H721 V200"/>
