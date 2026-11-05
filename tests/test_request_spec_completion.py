@@ -200,7 +200,8 @@ async def test_smoke_a_three_same_role_requests_stay_single(tmp_path) -> None:
             _answer(("RQ1", "manifestations"), ("RQ2", "cause"), ("RQ3", "care")),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", question, "same-role")
     await engine.close()
@@ -238,7 +239,8 @@ async def test_smoke_b_three_cross_role_requests_use_multi(tmp_path) -> None:
             "Combined answer covering diagnosis, tests, and treatment.",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", question, "cross-role")
     await engine.close()
@@ -267,7 +269,8 @@ async def test_smoke_c_worker_omission_is_incomplete(tmp_path) -> None:
             _answer(("RQ1", "manifestations"), ("RQ2", "cause")),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", question, "omission")
     await engine.close()
@@ -307,7 +310,8 @@ async def test_smoke_d_unknown_taxonomy_can_complete(tmp_path) -> None:
             _answer(("RQ1", "benefit"), ("RQ2", "preoperative steps")),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", question, "unknown")
     await engine.close()

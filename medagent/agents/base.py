@@ -44,6 +44,8 @@ class WorkerResult:
     worker_status: str = "success"
     request_item_answers: list[RequestItemAnswer] = field(default_factory=list)
     trace_event_id: str | None = field(default=None, repr=False)
+    model_round_count: int = 0
+    tool_error_count: int = 0
 
     def to_dict(self) -> dict[str, object]:
         value = asdict(self)

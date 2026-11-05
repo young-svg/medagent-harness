@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import json
 from collections.abc import Callable, Iterable
+from hashlib import sha256
 from typing import Any, Protocol
 
 from medagent.retrieval.evidence import EvidenceItem
@@ -17,9 +18,15 @@ class RetrievalBackend(Protocol):
     async def search(self, query: str, collection: str, top_k: int) -> list[EvidenceItem]: ...
 
 
+class RetrievalDisabledError(RuntimeError):
+    """The explicitly configured offline retrieval mode cannot provide evidence."""
+
+
 class OffRetrievalBackend:
     async def search(self, query: str, collection: str, top_k: int) -> list[EvidenceItem]:
-        raise RuntimeError("clinical retrieval is disabled by MEDAGENT_RETRIEVAL_MODE=off")
+        raise RetrievalDisabledError(
+            "clinical retrieval is disabled by MEDAGENT_RETRIEVAL_MODE=off"
+        )
 
 
 class FakeRetrievalBackend:
@@ -336,7 +343,8 @@ class MilvusRetrievalBackend:
                 )
             items.append(
                 EvidenceItem(
-                    evidence_id=f"milvus-{stable_evidence_id}",
+                    evidence_id=f"milvus-{sha256(physical_collection.encode()).hexdigest()[:12]}-"
+                                f"{stable_evidence_id}",
                     document_id=raw_id,
                     source_id=entity.get("source_id") or metadata.get("source_record_id"),
                     title=entity.get("title") or metadata.get("disease") or metadata.get("topic"),

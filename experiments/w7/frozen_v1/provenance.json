@@ -1,0 +1,19 @@
+{
+  "fixture_version": "w7-2b-v1-candidate",
+  "approval_status": "CANDIDATE_PENDING_HUMAN_APPROVAL",
+  "core_interfaces_commit": "1f43fb003c99ec512c43e6cdf0196171bb542012",
+  "original_w6_baseline": "59a783f39e23bef514dffa7ab416373f11c2dca2",
+  "source_documents": [
+    {
+      "path": "W7-1_original_design_report.md",
+      "sha256": "6707546aeccc9257709c19142aebf7a6f4f6f120f0a312d998a15c830adc281f"
+    },
+    {
+      "path": "W7-1_24_case_draft_original.md",
+      "sha256": "69522d08de68cc8ec0eec0c747d80c96c5858ee89f16907755b90b01b8c2ab8f"
+    }
+  ],
+  "authority": "W7-1 report section 4 (case table); sections 5-8 (fixture and protocol design)",
+  "annotation_method": "transcribed supplied v1 draft; assistant-added offsets, taxonomy and rubrics pending human review; no evaluated model answers or production regex inference used as ground truth",
+  "frozen": false
+}

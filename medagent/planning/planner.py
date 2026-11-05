@@ -6,11 +6,18 @@ from typing import Any
 from medagent.context.contract import AnswerContract, infer_deliverable_ids
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.context.request_spec import RequestItem, RequestSpec
+from medagent.guardrails.untrusted_context import CONTEXT_BOUNDARY
 from medagent.llm.client import LLMClient
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import TaskComplexityProfile, preferred_worker
-from medagent.planning.models import VALID_WORKERS, Plan, PlanDependencyError, Subtask
+from medagent.planning.models import (
+    VALID_WORKERS,
+    Plan,
+    PlanBudgetError,
+    PlanDependencyError,
+    Subtask,
+)
 
 
 class PlanCoverageError(ValueError):
@@ -49,6 +56,7 @@ class Planner:
         *,
         max_tokens: int = 8192,
         max_length_recoveries: int = 1,
+        max_subtasks: int = 16,
     ) -> None:
         if max_tokens <= 0:
             raise ValueError("planner max_tokens must be positive")
@@ -57,12 +65,17 @@ class Planner:
         self.llm = llm
         self.max_tokens = max_tokens
         self.max_length_recoveries = max_length_recoveries
+        if type(max_subtasks) is not int or max_subtasks < 1:
+            raise ValueError("max_subtasks must be positive")
+        self.max_subtasks = max_subtasks
 
     @staticmethod
-    def parse(raw: Any, fallback_worker: str) -> Plan:
+    def parse(raw: Any, fallback_worker: str, max_subtasks: int = 16) -> Plan:
         declares_dependencies = isinstance(raw, str) and '"depends_on"' in raw
         try:
             parsed = json.loads(raw) if isinstance(raw, str) else raw
+            if isinstance(parsed["subtasks"], list) and len(parsed["subtasks"]) > max_subtasks:
+                raise PlanBudgetError("subtask_budget_exhausted")
             declares_dependencies = declares_dependencies or any(
                 isinstance(item, dict) and "depends_on" in item
                 for item in parsed["subtasks"]
@@ -90,7 +103,7 @@ class Planner:
             plan = Plan(subtasks)
             plan.validate()
             return plan
-        except PlanDependencyError:
+        except (PlanDependencyError, PlanBudgetError):
             raise
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
             if declares_dependencies:
@@ -141,6 +154,7 @@ class Planner:
                     "diagnosis, differential, testing, management, prognosis, or follow-up "
                     "work unless it is a requested deliverable or a necessary safety dependency. "
                     "Do not include reasoning. Current request data overrides session history."
+                    + CONTEXT_BOUNDARY
                 ),
             },
             {
@@ -171,17 +185,17 @@ class Planner:
                 messages=messages,
                 purpose="planner",
                 is_complete=lambda response: self.parse(
-                    response.content, fallback_worker
+                    response.content, fallback_worker, self.max_subtasks
                 ).fallback_reason
                 is None,
                 trace=trace,
                 response_format={"type": "json_object"},
             )
-            plan = self.parse(generation.response.content, fallback_worker)
+            plan = self.parse(generation.response.content, fallback_worker, self.max_subtasks)
             plan.planner_length_recovery_count = generation.length_recovery_count
             plan.planner_generation_status = generation.generation_status
             return plan
-        except PlanDependencyError:
+        except (PlanDependencyError, PlanBudgetError):
             raise
         except Exception as error:
             return Plan(

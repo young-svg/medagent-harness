@@ -42,6 +42,17 @@ class AnswerContract:
     breadth: str = "balanced"
     coverage_checklist: list[CoverageItem] = field(default_factory=list)
 
+    @property
+    def required_deliverable_ids(self) -> list[str]:
+        """One priority interpretation shared by structural coverage and Guardrail."""
+        def key(value: str) -> str:
+            return " ".join(value.replace("_", " ").casefold().split())
+
+        required = {key(item) for item in self.must_cover}
+        required.update(key(item.item) for item in self.coverage_checklist
+                        if item.priority == "MUST")
+        return [item for item in self.requested_deliverables if key(item) in required]
+
     def validate(self) -> None:
         if not self.intent or not self.requested_deliverables:
             raise ValueError("intent and at least one requested deliverable are required")

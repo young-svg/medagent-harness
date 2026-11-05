@@ -17,7 +17,7 @@ from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import build_complexity_profile, build_response_profile
 from medagent.planning.models import Subtask
 from medagent.retrieval.backend import FakeRetrievalBackend
-from medagent.retrieval.evidence import EvidenceBundle
+from medagent.retrieval.evidence import EvidenceBundle, EvidenceItem
 from medagent.retrieval.query_builder import QueryBuilder
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
@@ -44,7 +44,10 @@ def test_engine_queries_use_current_subtask_and_deliverables(
         if distinct_tool_inputs
         else "synthetic condition evidence",
     }
-    backend = FakeRetrievalBackend()
+    backend = FakeRetrievalBackend([
+        EvidenceItem("query-source", "doc", "source", "Synthetic guideline", None,
+                     "Offline fixture", None, "Synthetic retrieved content", 0.9, 1),
+    ])
     builder_calls = []
     original_build = QueryBuilder.build
 
@@ -95,7 +98,8 @@ def test_engine_queries_use_current_subtask_and_deliverables(
                 content=json.dumps(
                     {
                         "answers": [
-                            {"request_item_id": item, "answer": f"A cautious {worker} response."}
+                            {"request_item_id": item, "answer":
+                             f"A cautious {worker} response. [EVIDENCE:query-source]"}
                             for item in task["request_item_ids"]
                         ]
                     }
@@ -103,7 +107,8 @@ def test_engine_queries_use_current_subtask_and_deliverables(
             )
 
     llm = TaskAwareOfflineLLM()
-    config = RuntimeConfig(trace_dir=str(tmp_path), max_tool_calls=1)
+    config = RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path), max_tool_calls=1)
     engine = NativeMedAgentEngine(config, llm=llm, retrieval_backend=backend)
 
     async def run():
@@ -186,7 +191,7 @@ def test_query_builder_can_preserve_distinct_tasks_and_deduplicates_exact_parts(
     )
 
 
-def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path):
+def test_same_worker_concurrent_subtasks_scope_retrieval_to_selected_request(tmp_path):
     question = (
         "Synthetic fatigue; adult outpatient.\n"
         "1. Explain the diagnosis.\n"
@@ -213,7 +218,7 @@ def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path)
             request_item_ids=[spec.items[2].id],
         ),
     ]
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
 
     class OverlappingBackend(FakeRetrievalBackend):
         async def search(self, query, collection, top_k):
@@ -234,7 +239,10 @@ def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path)
             if self.counts[task_id] == 1:
                 return LLMResponse(
                     tool_calls=[
-                        ToolCall(task_id, "clinical_guideline", {"query": "shared evidence"})
+                        ToolCall(task_id, "clinical_guideline", {
+                            "query": "shared evidence",
+                            "request_item_id": task["request_item_ids"][0],
+                        })
                     ]
                 )
             return LLMResponse(
@@ -253,7 +261,8 @@ def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path)
 
     backend = OverlappingBackend()
     llm = SubtaskLLM()
-    config = RuntimeConfig(trace_dir=str(tmp_path), max_tool_calls=2)
+    config = RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path), max_tool_calls=1)
     engine = NativeMedAgentEngine(config, llm=llm, retrieval_backend=backend)
     registry = engine._tool_registry(
         question, EvidenceBundle("", "", []), {"diagnostic_agent": {"clinical_guideline"}}
@@ -295,8 +304,13 @@ def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path)
     assert (
         registry.schemas_for("diagnostic_agent") == schemas == [TOOL_SCHEMAS["clinical_guideline"]]
     )
-    with pytest.raises(RuntimeError, match="budget exhausted"):
-        asyncio.run(registry.execute("diagnostic_agent", "clinical_guideline", {"query": "third"}))
+    for task in tasks:
+        assert registry.calls_for("diagnostic_agent", subtask_id=task.subtask_id) == 1
+        context = ToolExecutionContext(task.subtask_id, task.description, (), ())
+        with pytest.raises(RuntimeError, match="budget exhausted"):
+            asyncio.run(registry.execute(
+                "diagnostic_agent", "clinical_guideline", {"query": "third"}, context=context,
+            ))
     assert len(backend.requests) == 2
     queries = {
         event["payload"]["subtask_id"]: event["payload"]
@@ -306,14 +320,17 @@ def test_same_worker_concurrent_subtasks_preserve_all_assigned_context(tmp_path)
     for task in tasks:
         payload = queries[task.subtask_id]
         query = payload["query"]
-        assert task.description in query
+        selected = next(item for item in spec.items if item.id == task.request_item_ids[0])
+        multi = len(task.request_item_ids) > 1
+        assert (selected.text if multi else task.description) in query
         assert "Synthetic fatigue; adult outpatient." in query
-        assert payload["deliverable_ids"] == task.deliverable_ids
-        assert payload["request_item_ids"] == task.request_item_ids
-        for deliverable in task.deliverable_ids:
+        deliverables = [selected.semantic_type] if multi else task.deliverable_ids
+        assert payload["deliverable_ids"] == deliverables
+        assert payload["request_item_ids"] == [selected.id]
+        for deliverable in deliverables:
             assert deliverable.replace("_", " ").lower() in query
         for item in spec.items:
-            assert (item.text in query) == (item.id in task.request_item_ids)
+            assert (item.text in query) == (item.id == selected.id)
         assert any(request["query"] == query for request in backend.requests)
         other = next(value for value in tasks if value != task)
         assert other.description not in query
@@ -383,7 +400,8 @@ def test_legacy_handlers_and_retrieval_without_context_remain_usable(tmp_path):
     )
     handler.assert_called_once_with(query="value")
     backend = FakeRetrievalBackend()
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), retrieval_backend=backend)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), retrieval_backend=backend)
     tools = engine._tool_registry(
         "Original context", EvidenceBundle("", "", []), {"diagnostic_agent": {"clinical_guideline"}}
     )

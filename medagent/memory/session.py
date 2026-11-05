@@ -1,8 +1,19 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from uuid import uuid4
+
+
+def resolve_session_id(session_id: str | None) -> str:
+    """A fresh selector when omitted; explicit selectors are not authentication."""
+    if session_id is None:
+        return str(uuid4())
+    if not isinstance(session_id, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", session_id):
+        raise ValueError("invalid session_id")
+    return session_id
 
 
 def estimate_history_tokens(messages: list[dict[str, str]]) -> int:

@@ -9,6 +9,16 @@ import httpx
 from medagent.llm.http_errors import safe_http_diagnostics
 
 
+class LLMProtocolError(ValueError):
+    """The provider returned an invalid response envelope; no raw body is exposed."""
+
+
+def valid_tool_call_id(value: object) -> bool:
+    """Opaque, case-sensitive IDs; reject missing/blank, whitespace and control text."""
+    return (isinstance(value, str) and 1 <= len(value) <= 256
+            and all(char.isprintable() and not char.isspace() for char in value))
+
+
 @dataclass(slots=True)
 class ToolCall:
     id: str
@@ -99,16 +109,28 @@ class OpenAICompatibleLLM:
                 f"{diagnostics['message_class']}; raw error message omitted for privacy.",
             )
             raise
+        try:
+            return self._parse_response(response)
+        except LLMProtocolError:
+            raise
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError):
+            raise LLMProtocolError("invalid provider response envelope") from None
+
+    @staticmethod
+    def _parse_response(response: httpx.Response) -> LLMResponse:
         body = response.json()
         message = body["choices"][0]["message"]
         calls = []
         for item in message.get("tool_calls") or []:
+            call_id = item.get("id")
+            if not valid_tool_call_id(call_id):
+                raise LLMProtocolError("invalid_tool_call_id")
             function = item.get("function") or {}
             try:
                 arguments = json.loads(function.get("arguments") or "{}")
             except json.JSONDecodeError:
                 arguments = {}
-            calls.append(ToolCall(str(item.get("id") or "tool-call"), function["name"], arguments))
+            calls.append(ToolCall(call_id, function["name"], arguments))
         usage = dict(body.get("usage") or {})
         completion_details = usage.get("completion_tokens_details") or {}
         if "reasoning_tokens" in completion_details:

@@ -18,6 +18,7 @@ class QueryBuilder:
         *,
         request_items: Sequence[RequestItem] = (),
         excluded_source_spans: Sequence[str] = (),
+        case_description: str = "",
     ) -> str:
         # Remove only explicit unassigned RequestSpec spans, not inferred medical
         # concepts. Shared question preamble and all assigned source text survive.
@@ -25,7 +26,7 @@ class QueryBuilder:
             if span and not any(span in item.source_span for item in request_items):
                 question = question.replace(span, " ")
         deliverables = [deliverable] if isinstance(deliverable, str) else deliverable
-        parts = [question, subtask]
+        parts = [case_description, question, subtask]
         parts.extend(value.replace("_", " ").lower() for value in deliverables)
         # Unsplit questions may themselves be RequestItems; do not repeat them.
         parts.extend(item.text for item in request_items if item.text not in question)

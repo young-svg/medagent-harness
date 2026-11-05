@@ -37,7 +37,7 @@ class Coordinator:
         return self.engine.mode
 
     async def analyze(
-        self, description: str, question: str, session_id: str = "default"
+        self, description: str, question: str, session_id: str | None = None
     ) -> dict[str, Any]:
         return await self.engine.analyze(description, question, session_id)
 
@@ -48,7 +48,7 @@ class Coordinator:
 async def analyze_case(
     description: str,
     question: str,
-    session_id: str = "default",
+    session_id: str | None = None,
     trace_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     config = RuntimeConfig.from_env()

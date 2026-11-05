@@ -65,7 +65,8 @@ def test_long_multiturn_history_reaches_actual_planner_and_worker(tmp_path, unit
     drafts = [f"ANSWER_{index}: " + unit * 1000 for index in range(3)]
     llm = ScriptedLLM([value for draft in drafts for value in (plan, draft)])
     memory = SessionMemory(recent_limit=4, token_budget=budget)
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, memory=memory)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm, memory=memory)
     question = "Assess the case"
 
     async def run():
@@ -175,7 +176,8 @@ def test_disabled_memory_suppresses_reads_and_writes_but_does_not_clear(tmp_path
             "A cautious answer.",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, memory=memory)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm, memory=memory)
 
     async def run():
         try:
@@ -263,7 +265,8 @@ def test_partial_history_snapshot_is_shared_by_planner_and_all_workers(tmp_path,
             {"answers": []},
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, memory=memory)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm, memory=memory)
 
     async def run():
         try:
@@ -299,7 +302,8 @@ def test_memory_write_trace_counts_insertions_not_attempts_or_net_size(tmp_path)
     plan = {"subtasks": [{"description": "Assess", "assigned_agent": "diagnostic_agent"}]}
     llm = ScriptedLLM([value for _ in range(3) for value in (plan, "Identical cautious answer.")])
     memory = SessionMemory(recent_limit=2)
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, memory=memory)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm, memory=memory)
 
     async def run():
         try:
@@ -334,7 +338,9 @@ def test_runtime_memory_budget_configuration(tmp_path, monkeypatch, raw, expecte
     assert config.public_dict()["memory_token_budget"] == expected
     # Avoid environment-dependent model/retrieval settings in this unit check.
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path), memory_token_budget=expected)
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path), memory_token_budget=expected)
     )
     assert engine.memory.token_budget == expected
     asyncio.run(engine.close())
@@ -353,7 +359,9 @@ def test_defaults_and_explicit_memory_override_are_compatible(tmp_path, monkeypa
     assert SessionMemory().token_budget == RuntimeConfig.from_env().memory_token_budget == 4096
     memory = SessionMemory(token_budget=None, enabled=False)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path), memory_token_budget=0), memory=memory
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path), memory_token_budget=0), memory=memory
     )
     assert engine.memory is memory
     assert engine.memory.token_budget is None

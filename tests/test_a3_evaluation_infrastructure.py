@@ -193,7 +193,9 @@ def test_scripted_real_engine_smoke_keeps_semantics_pending(tmp_path: Path) -> N
     budget = RequestBudget()
     wrapper = BudgetedLLM(client, budget)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path / "trace")),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path / "trace")),
         llm=wrapper, presentation_llm=wrapper,
     )
 

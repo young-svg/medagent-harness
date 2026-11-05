@@ -77,7 +77,7 @@ async def complete_with_trace(
             completion_kwargs["temperature"] = temperature
         response = await client.complete(messages, **completion_kwargs)
     except Exception as error:
-        error_details = {"type": type(error).__name__, "message": str(error)}
+        error_details = {"type": type(error).__name__}
         if diagnostics := getattr(error, "http_diagnostics", None):
             error_details["http"] = diagnostics
         response_id = trace.record(

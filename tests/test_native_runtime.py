@@ -101,7 +101,8 @@ async def test_native_single_route_end_to_end(tmp_path) -> None:
             "Diagnosis with basis\n\nA cautious worker draft.",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
     result = await engine.analyze("Synthetic fatigue", "What is the diagnosis?", "single")
     await engine.close()
     assert result["final_answer"] == result["presentation"]["professional_answer"]
@@ -153,7 +154,9 @@ async def test_native_multi_tool_rag_topology_and_evidence_cards(tmp_path) -> No
         ]
     )
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, retrieval_backend=backend
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path)), llm=llm, retrieval_backend=backend
     )
     result = await engine.analyze("Synthetic symptom", "diagnosis with research evidence", "multi")
     events = read_trace(tmp_path / result["run_id"])
@@ -177,7 +180,9 @@ async def test_multi_turn_memory_current_input_priority(tmp_path) -> None:
         "Corrected answer",
     ]
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)), llm=ScriptedLLM(responses), memory=memory
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path)), llm=ScriptedLLM(responses), memory=memory
     )
     await engine.analyze("A", "Assess A", "same")
     await engine.analyze("Correction A-prime", "Reassess", "same")
@@ -191,9 +196,12 @@ async def test_multi_turn_memory_current_input_priority(tmp_path) -> None:
 def test_api_health_and_native_analysis(tmp_path, monkeypatch) -> None:
     from api import main
 
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)))
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)))
     monkeypatch.setattr(main, "_coordinator", engine)
-    with TestClient(app) as client:
+    with TestClient(
+        app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)
+    ) as client:
         assert client.get("/health").json()["mode"] == "native"
         response = client.post(
             "/api/analyze",
@@ -245,7 +253,8 @@ async def test_single_route_bypasses_synthesis(tmp_path) -> None:
             "",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "Assess safely", "single-bypass")
     events = read_trace(tmp_path / result["run_id"])
@@ -259,7 +268,7 @@ async def test_single_route_bypasses_synthesis(tmp_path) -> None:
 
 
 @async_test
-async def test_single_successful_worker_bypasses_synthesis(tmp_path) -> None:
+async def test_single_retained_worker_bypasses_synthesis(tmp_path) -> None:
     llm = ScriptedLLM(
         [
             {
@@ -281,14 +290,15 @@ async def test_single_successful_worker_bypasses_synthesis(tmp_path) -> None:
             "",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze(
-        "Synthetic case", "Assess with optional research", "one-successful-worker"
+        "Synthetic case", "Assess safely", "one-successful-worker"
     )
     events = read_trace(tmp_path / result["run_id"])
 
-    assert len(llm.requests) == 3
+    assert len(llm.requests) == 2  # Unneeded research is removed before execution.
     assert result["final_answer"] == "VALID_WORKER_ANSWER"
     assert not any(event["event_type"].startswith("synthesis_") for event in events)
     assert events[-1]["payload"]["status"] == "completed"
@@ -309,7 +319,7 @@ async def test_multi_route_still_uses_synthesis(tmp_path) -> None:
                     {
                         "subtask_id": "multi-2",
                         "description": "Research.",
-                        "assigned_agent": "research_agent",
+                        "assigned_agent": "consultation_agent",
                     },
                 ]
             },
@@ -318,9 +328,10 @@ async def test_multi_route_still_uses_synthesis(tmp_path) -> None:
             {"answers": [{"request_item_id": "RQ1", "answer": "VALID_SYNTHESIS_ANSWER"}]},
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
-    result = await engine.analyze("Synthetic case", "Assess and research", "multi-synthesis")
+    result = await engine.analyze("Synthetic case", "Diagnosis and treatment", "multi-synthesis")
     events = read_trace(tmp_path / result["run_id"])
 
     assert len(llm.requests) == 4
@@ -368,7 +379,8 @@ async def test_admitted_evidence_appears_once_in_next_worker_request(tmp_path) -
         for index in range(1, 6)
     ]
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path), retrieval_threshold=0.63),
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path), retrieval_threshold=0.63),
         llm=llm,
         retrieval_backend=FakeRetrievalBackend(items),
     )

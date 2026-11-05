@@ -165,7 +165,7 @@ async def execute_worker(
     agent, subtask, request_spec, contract, complexity, profile, skill = worker_inputs(
         request_item_ids, worker=worker
     )
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
     result = await AgentLoop(
         llm,
         tools,
@@ -335,7 +335,7 @@ async def test_invalid_protocol_recovery_stops_after_one_attempt(tmp_path: Path)
     )
 
     assert result.success is False
-    assert result.worker_status == "generation_error"
+    assert result.worker_status == "protocol_error"
     assert result.protocol_recovery_count == 1
     assert result.protocol_recovery_success_count == 0
     assert len(llm.requests) == 2

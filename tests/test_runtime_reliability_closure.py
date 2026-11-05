@@ -119,7 +119,8 @@ def worker_requests(llm: FailureInjectingLLM) -> list[dict[str, Any]]:
 
 
 def one_retry_config(tmp_path: Any) -> RuntimeConfig:
-    return RuntimeConfig(
+    return RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False,
         trace_dir=str(tmp_path),
         worker_max_infrastructure_retries=1,
         worker_infrastructure_retry_base_delay_seconds=0,
@@ -193,7 +194,8 @@ async def test_default_worker_retry_recovers_after_two_connect_errors_with_backo
             "Synthesis output",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze(
         "Synthetic case", "diagnosis and treatment", "retry-twice-ok"
@@ -338,7 +340,8 @@ async def test_single_complete_still_bypasses_synthesis(tmp_path) -> None:
             "Single complete answer",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "Assess safely", "single-complete")
     await engine.close()
@@ -352,7 +355,8 @@ async def test_single_complete_still_bypasses_synthesis(tmp_path) -> None:
 async def test_multi_complete_still_synthesizes(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     patch_contract(monkeypatch, contract())
     llm = FailureInjectingLLM([two_deliverable_plan(), "Diagnosis", "Treatment", "Combined answer"])
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "diagnosis and treatment", "multi-complete")
     await engine.close()

@@ -1,0 +1,1557 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "W7-2B candidate documents (not approved or frozen)",
+  "$defs": {
+    "case": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[SIDEM][0-9]{2}$"
+        },
+        "category": {
+          "enum": [
+            "simple",
+            "independent",
+            "dependent",
+            "external_evidence",
+            "memory"
+          ]
+        },
+        "fixture_version": {
+          "const": "w7-2b-v1-candidate"
+        },
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "original_design": {
+          "type": "object",
+          "properties": {
+            "report_section": {
+              "const": "4"
+            },
+            "table_columns": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 5,
+              "maxItems": 5
+            },
+            "original_input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "original_description": {
+              "type": "string"
+            },
+            "original_question": {
+              "type": "string",
+              "minLength": 1
+            },
+            "original_expected_request_spec": {
+              "type": "string",
+              "minLength": 1
+            },
+            "original_expected_contract": {
+              "type": "string",
+              "minLength": 1
+            },
+            "original_completion_condition": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "report_section",
+            "table_columns",
+            "original_input",
+            "original_description",
+            "original_question",
+            "original_expected_request_spec",
+            "original_expected_contract",
+            "original_completion_condition"
+          ],
+          "additionalProperties": false
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset_convention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_request_spec": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^RQ[1-9][0-9]*$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "source_span": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "semantic_type": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "text",
+                  "required",
+                  "order",
+                  "source_span",
+                  "semantic_type"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "source_mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "request_item_id": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "field": {
+                "const": "question"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "original_question_span": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "start": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "end": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "text",
+                  "start",
+                  "end"
+                ],
+                "additionalProperties": false
+              },
+              "source_context_spans": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "start": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "start",
+                    "end"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "request_item_id",
+              "field",
+              "text",
+              "start",
+              "end",
+              "original_question_span",
+              "source_context_spans"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "expected_answer_contract": {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requested_deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "response_mode": {
+              "type": "string",
+              "minLength": 1
+            },
+            "must_cover": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0
+            },
+            "optional_cover": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0
+            },
+            "avoid": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0
+            },
+            "breadth": {
+              "type": "string",
+              "minLength": 1
+            },
+            "coverage_checklist": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "enum": [
+                      "MUST",
+                      "OPTIONAL"
+                    ]
+                  },
+                  "covered": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "item",
+                  "priority",
+                  "covered"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "intent",
+            "requested_deliverables",
+            "response_mode",
+            "must_cover",
+            "optional_cover",
+            "avoid",
+            "breadth",
+            "coverage_checklist"
+          ],
+          "additionalProperties": false
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "restriction_mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "text",
+              "start",
+              "end"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "must_request_item_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^RQ[1-9][0-9]*$"
+          },
+          "minItems": 1
+        },
+        "optional_request_item_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^RQ[1-9][0-9]*$"
+          },
+          "minItems": 0
+        },
+        "expected_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "dependency_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_evidence_requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "request_item_id": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "source_category": {
+                "enum": [
+                  "guideline",
+                  "research",
+                  "classification",
+                  "external"
+                ]
+              },
+              "acceptable_source_categories": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "guideline",
+                    "research",
+                    "classification",
+                    "external"
+                  ]
+                },
+                "minItems": 1
+              },
+              "topic": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "execution": {
+                "enum": [
+                  "retrieve",
+                  "reuse_only"
+                ]
+              },
+              "upstream_request_item_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^RQ[1-9][0-9]*$"
+                },
+                "minItems": 0
+              },
+              "requires_admission_delivery_citation": {
+                "const": true
+              }
+            },
+            "required": [
+              "request_item_id",
+              "source_category",
+              "acceptable_source_categories",
+              "topic",
+              "required",
+              "execution",
+              "upstream_request_item_ids",
+              "requires_admission_delivery_citation"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "session_layout": {
+          "type": "object",
+          "properties": {
+            "active_session": {
+              "const": "A"
+            },
+            "sessions": {
+              "type": "object",
+              "required": [
+                "A"
+              ],
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "const": "user"
+                    },
+                    "content": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "content"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0
+              }
+            },
+            "isolate_per_case_and_group": {
+              "const": true
+            },
+            "seed_mode": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "active_session",
+            "sessions",
+            "isolate_per_case_and_group",
+            "seed_mode"
+          ],
+          "additionalProperties": false
+        },
+        "history_dependency": {
+          "enum": [
+            "none",
+            "required",
+            "current_sufficient_overrides_history"
+          ]
+        },
+        "completion_rubric": {
+          "type": "object",
+          "properties": {
+            "PASS": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "PARTIAL": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "FAIL": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "per_item": {
+              "type": "object",
+              "properties": {
+                "satisfied": {
+                  "const": 1
+                },
+                "partial": {
+                  "const": 0.5
+                },
+                "unanswered": {
+                  "const": 0
+                },
+                "off_topic": {
+                  "const": 0
+                },
+                "insufficient_information": {
+                  "type": "null"
+                },
+                "uncertain": {
+                  "type": "null"
+                },
+                "execution_error": {
+                  "const": 0
+                }
+              },
+              "required": [
+                "satisfied",
+                "partial",
+                "unanswered",
+                "off_topic",
+                "insufficient_information",
+                "uncertain",
+                "execution_error"
+              ],
+              "additionalProperties": false
+            },
+            "aggregation": {
+              "type": "string",
+              "minLength": 1
+            },
+            "optional_scored_separately": {
+              "const": true
+            },
+            "w2_is_not_independent_ground_truth": {
+              "const": true
+            },
+            "human_scoring": {
+              "type": "string",
+              "minLength": 1
+            },
+            "item_specific_criteria": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "request_item_id": {
+                    "type": "string",
+                    "pattern": "^RQ[1-9][0-9]*$"
+                  },
+                  "criterion": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source_completion_condition": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "request_item_id",
+                  "criterion",
+                  "source_completion_condition"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            },
+            "memory_off": {
+              "type": "object",
+              "properties": {
+                "task_grade": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "safe_behavior": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "task_grade",
+                "safe_behavior"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "per_item",
+            "aggregation",
+            "optional_scored_separately",
+            "w2_is_not_independent_ground_truth",
+            "human_scoring",
+            "item_specific_criteria"
+          ],
+          "additionalProperties": false
+        },
+        "forbidden_claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "human_review_required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "required_tool_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "case_id",
+        "category",
+        "fixture_version",
+        "approval_status",
+        "original_design",
+        "description",
+        "question",
+        "offset_convention",
+        "expected_request_spec",
+        "source_mappings",
+        "expected_answer_contract",
+        "restrictions",
+        "restriction_mappings",
+        "must_request_item_ids",
+        "optional_request_item_ids",
+        "expected_dependencies",
+        "dependency_policy",
+        "external_evidence_requirements",
+        "session_layout",
+        "history_dependency",
+        "completion_rubric",
+        "forbidden_claims",
+        "human_review_required",
+        "required_tool_policy"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "section": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "null"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "admitted": {
+          "const": false
+        },
+        "admission_reason": {
+          "const": "not_evaluated"
+        },
+        "collection": {
+          "enum": [
+            "clinical_knowledge",
+            "clinical_guidelines"
+          ]
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "source_kind": {
+              "enum": [
+                "guideline",
+                "research",
+                "classification",
+                "external"
+              ]
+            },
+            "synthetic": {
+              "const": true
+            },
+            "fixture_version": {
+              "const": "w7-2b-v1-candidate"
+            },
+            "fixture_date": {
+              "type": "string",
+              "minLength": 1
+            },
+            "real_world_currentness": {
+              "const": "NOT_ASSERTED"
+            }
+          },
+          "required": [
+            "source_kind",
+            "synthetic",
+            "fixture_version",
+            "fixture_date",
+            "real_world_currentness"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "evidence_id",
+        "document_id",
+        "source_id",
+        "title",
+        "section",
+        "source",
+        "url",
+        "text",
+        "score",
+        "rank",
+        "admitted",
+        "admission_reason",
+        "collection",
+        "topic",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "cases_document": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "fixture_version": {
+          "const": "w7-2b-v1-candidate"
+        },
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/case"
+          },
+          "minItems": 24,
+          "maxItems": 24
+        }
+      },
+      "required": [
+        "schema_version",
+        "fixture_version",
+        "approval_status",
+        "cases"
+      ],
+      "additionalProperties": false
+    },
+    "corpus_document": {
+      "type": "object",
+      "properties": {
+        "fixture_version": {
+          "const": "w7-2b-v1-candidate"
+        },
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "synthetic_only": {
+          "const": true
+        },
+        "admission_threshold": {
+          "const": 0.63
+        },
+        "top_k": {
+          "const": 5
+        },
+        "source_records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1
+        },
+        "request_bindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^[SIDEM][0-9]{2}$"
+              },
+              "request_item_id": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "execution": {
+                "enum": [
+                  "retrieve",
+                  "reuse_only"
+                ]
+              },
+              "topic": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_category": {
+                "enum": [
+                  "guideline",
+                  "research",
+                  "classification",
+                  "external"
+                ]
+              },
+              "acceptable_source_categories": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "guideline",
+                    "research",
+                    "classification",
+                    "external"
+                  ]
+                },
+                "minItems": 1
+              },
+              "success_source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "success_source_ids_semantics": {
+                "const": "catalogue_examples_not_whitelist"
+              },
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "case_id",
+              "request_item_id",
+              "execution",
+              "topic",
+              "source_category",
+              "acceptable_source_categories",
+              "success_source_ids",
+              "success_source_ids_semantics",
+              "tools"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "retrieval_cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^[SIDEM][0-9]{2}$"
+              },
+              "request_item_id": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "variant": {
+                "enum": [
+                  "success",
+                  "no_results",
+                  "low_score",
+                  "wrong_category"
+                ]
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/source"
+                },
+                "minItems": 0
+              },
+              "applicable": {
+                "type": "boolean"
+              },
+              "selection_required_before_return": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "expected_evidence_gate": {
+                "enum": [
+                  "eligible_not_sufficient",
+                  "not_satisfied",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "case_id",
+              "request_item_id",
+              "variant",
+              "records",
+              "applicable",
+              "selection_required_before_return",
+              "expected_evidence_gate"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "query_rules": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "w7-query-selection-v1.1-candidate"
+            },
+            "normalization": {
+              "const": "NFKC_casefold_collapse_whitespace"
+            },
+            "matching": {
+              "const": "all_concept_groups_any_alias"
+            },
+            "latin_match": {
+              "const": "whole_words_or_phrases"
+            },
+            "han_match": {
+              "const": "substring"
+            },
+            "multiple_topics": {
+              "const": "reject_ambiguous"
+            },
+            "rq_only_fallback": {
+              "const": false
+            },
+            "topic_concept_groups": {
+              "type": "object",
+              "properties": {
+                "cough": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "minItems": 1
+                },
+                "exercise_sleep": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "minItems": 2
+                },
+                "hydration_headache": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "minItems": 2
+                }
+              },
+              "required": [
+                "cough",
+                "exercise_sleep",
+                "hydration_headache"
+              ],
+              "additionalProperties": false
+            },
+            "tool_collections": {
+              "type": "object",
+              "properties": {
+                "search_knowledge": {
+                  "const": "clinical_knowledge"
+                },
+                "clinical_guideline": {
+                  "const": "clinical_guidelines"
+                },
+                "disease_code": {
+                  "const": "clinical_guidelines"
+                }
+              },
+              "required": [
+                "search_knowledge",
+                "clinical_guideline",
+                "disease_code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "version",
+            "normalization",
+            "matching",
+            "latin_match",
+            "han_match",
+            "multiple_topics",
+            "rq_only_fallback",
+            "topic_concept_groups",
+            "tool_collections"
+          ],
+          "additionalProperties": false
+        },
+        "query_match_examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "example_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "case_id": {
+                "type": "string",
+                "pattern": "^[SIDEM][0-9]{2}$"
+              },
+              "request_item_id": {
+                "type": "string",
+                "pattern": "^RQ[1-9][0-9]*$"
+              },
+              "query": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string",
+                "minLength": 1
+              },
+              "collection": {
+                "type": "string",
+                "minLength": 1
+              },
+              "candidate_source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "expected_status": {
+                "enum": [
+                  "eligible",
+                  "no_topic_match",
+                  "wrong_topic",
+                  "ambiguous_topic",
+                  "tool_denied",
+                  "collection_mismatch",
+                  "source_ineligible"
+                ]
+              },
+              "expected_source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "example_id",
+              "case_id",
+              "request_item_id",
+              "query",
+              "tool",
+              "collection",
+              "candidate_source_ids",
+              "expected_status",
+              "expected_source_ids"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "selector_contract": {
+          "type": "object",
+          "properties": {
+            "implemented": {
+              "const": false
+            },
+            "must_match": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0
+            },
+            "no_match": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ambiguous_match": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_id_policy": {
+              "const": "catalogue_membership_required_not_example_id_whitelist"
+            },
+            "reference_predicate": {
+              "const": "validate_candidates.py::select_fixture_candidates"
+            },
+            "warning": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "implemented",
+            "must_match",
+            "no_match",
+            "ambiguous_match",
+            "source_id_policy",
+            "reference_predicate",
+            "warning"
+          ],
+          "additionalProperties": false
+        },
+        "response_variants": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "selection"
+            ],
+            "properties": {
+              "selection": {
+                "type": "string",
+                "minLength": 1
+              },
+              "score": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "fixture_version",
+        "approval_status",
+        "synthetic_only",
+        "admission_threshold",
+        "top_k",
+        "source_records",
+        "request_bindings",
+        "retrieval_cases",
+        "query_rules",
+        "query_match_examples",
+        "selector_contract",
+        "response_variants",
+        "limitations"
+      ],
+      "additionalProperties": false
+    },
+    "faults_document": {
+      "type": "object",
+      "properties": {
+        "fixture_version": {
+          "const": "w7-2b-v1-candidate"
+        },
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "implementation_status": {
+          "const": "DECLARATIVE_NOT_EXECUTED"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variant_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "base_case_id": {
+                "type": "string",
+                "pattern": "^[SIDEM][0-9]{2}$"
+              },
+              "injection": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_behavior": {
+                "type": "string",
+                "minLength": 1
+              },
+              "scope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "human_approval_required": {
+                "const": true
+              }
+            },
+            "required": [
+              "variant_id",
+              "base_case_id",
+              "injection",
+              "expected_behavior",
+              "scope",
+              "human_approval_required"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "payloads": {
+          "type": "object",
+          "properties": {
+            "injection": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cross_collection_conflict": {
+              "type": "object",
+              "properties": {
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "collections": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0
+                },
+                "texts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0
+                }
+              },
+              "required": [
+                "evidence_id",
+                "collections",
+                "texts"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "injection",
+            "cross_collection_conflict"
+          ],
+          "additionalProperties": false
+        },
+        "recovery_comparison": {
+          "type": "object",
+          "properties": {
+            "infrastructure_off": {
+              "type": "string",
+              "minLength": 1
+            },
+            "length_off": {
+              "type": "string",
+              "minLength": 1
+            },
+            "protocol_off": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "infrastructure_off",
+            "length_off",
+            "protocol_off"
+          ],
+          "additionalProperties": false
+        },
+        "http400": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "fixture_version",
+        "approval_status",
+        "implementation_status",
+        "variants",
+        "payloads",
+        "recovery_comparison",
+        "http400"
+      ],
+      "additionalProperties": false
+    },
+    "changes_document": {
+      "type": "object",
+      "properties": {
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^[SIDEM][0-9]{2}$"
+              },
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "applied": {
+                "type": "boolean"
+              },
+              "before": {
+                "type": "string"
+              },
+              "after": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "case_id",
+              "field",
+              "applied",
+              "before",
+              "after",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "original_questions_rewritten": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[SIDEM][0-9]{2}$"
+          },
+          "minItems": 0
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "approval_status",
+        "changes",
+        "original_questions_rewritten",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "provenance_document": {
+      "type": "object",
+      "properties": {
+        "fixture_version": {
+          "const": "w7-2b-v1-candidate"
+        },
+        "approval_status": {
+          "const": "CANDIDATE_PENDING_HUMAN_APPROVAL"
+        },
+        "core_interfaces_commit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_w6_baseline": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "annotation_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frozen": {
+          "const": false
+        }
+      },
+      "required": [
+        "fixture_version",
+        "approval_status",
+        "core_interfaces_commit",
+        "original_w6_baseline",
+        "source_documents",
+        "authority",
+        "annotation_method",
+        "frozen"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/cases_document"
+    },
+    {
+      "$ref": "#/$defs/corpus_document"
+    },
+    {
+      "$ref": "#/$defs/faults_document"
+    },
+    {
+      "$ref": "#/$defs/changes_document"
+    },
+    {
+      "$ref": "#/$defs/provenance_document"
+    }
+  ]
+}

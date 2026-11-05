@@ -154,10 +154,11 @@ def build_retrieval_summary(execution: dict[str, Any]) -> dict[str, Any] | None:
         for admission in result.get("admission", [])
         if isinstance(admission, dict)
     ]
-    logical = next(
-        (str(item.get("collection")) for item in queries if item.get("collection")),
-        str(retrieval.get("collection") or "") or None,
-    )
+    collections = list(dict.fromkeys(str(item["collection"])
+                                    for item in queries if item.get("collection")))
+    if not collections and retrieval.get("collection"):
+        collections = [str(retrieval["collection"])]
+    logical = collections[0] if len(collections) == 1 else None
     query_values = list(
         dict.fromkeys(str(item.get("query")) for item in queries if item.get("query"))
     )
@@ -170,7 +171,7 @@ def build_retrieval_summary(execution: dict[str, Any]) -> dict[str, Any] | None:
     ]
     admitted_ids = retrieval.get("admitted_evidence_ids")
     admitted_ids = admitted_ids if isinstance(admitted_ids, list) else []
-    return {
+    summary = {
         "query": query_values[0] if query_values else None,
         "queries": query_values,
         "query_count": len(query_values),
@@ -186,6 +187,10 @@ def build_retrieval_summary(execution: dict[str, Any]) -> dict[str, Any] | None:
         "unique_evidence_count": len(admitted_ids),
         "top_score": max(scores) if scores else None,
     }
+    if len(collections) > 1:
+        summary["logical_collections"] = collections
+        summary["physical_collections"] = [_physical_collection(c) for c in collections]
+    return summary
 
 
 class PresentationAdapter:
