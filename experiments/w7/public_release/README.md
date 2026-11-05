@@ -39,6 +39,10 @@ hashes remains an internal-archive check. No test suppresses or relabels that ch
 as a public success. The public regression invokes the subset check instead and
 retains its case/rubric/scoring assertions.
 
-Publication still needs the owner's concrete source/demo/benchmark/history rights
-confirmation described in [release review](../../../docs/FINAL_RELEASE_REVIEW.md).
-Excluding two documents does not grant a license to the retained code or fixtures.
+Publication was completed through [PR #1](https://github.com/young-svg/medagent-harness/pull/1)
+within the owner's confirmed public scope; see the historical
+[release review](../../../docs/FINAL_RELEASE_REVIEW.md). Retained synthetic cases,
+retrieval materials and scoring materials remain subject to the existing
+All Rights Reserved / No Open-Source License statement. The two original design
+reports remain non-public. Public subset validation does not establish provenance
+against those original documents or grant a license to the retained code or fixtures.
