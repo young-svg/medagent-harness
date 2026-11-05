@@ -6,7 +6,7 @@ A compound request can hide several outputs; one task may need another's result;
 
 [Static Demo](https://young-svg.github.io/medagent-harness/) · [Architecture](docs/ARCHITECTURE.md) · [Experiment results](docs/W7_REAL_MODEL_RESULTS.md)
 
-> **Integration review candidate:** this branch includes the validated implementation from `499d2fa` and reviewed documentation from `2884f86`, integrated over release `6147196`. See [release scope and validation](docs/FINAL_RELEASE_REVIEW.md) and [source mapping](docs/ARCHITECTURE.md#version-and-source-mapping). It has not been promoted to the release branch.
+> **Release version:** this branch includes the validated implementation from `499d2fa` and reviewed documentation from `2884f86`, integrated over release base `6147196`. The architecture and source links describe the implementation in this checkout. See [release scope and validation](docs/FINAL_RELEASE_REVIEW.md) and [source mapping](docs/ARCHITECTURE.md#version-and-source-mapping).
 
 ## Architecture
 
@@ -74,7 +74,7 @@ npm run dev
 npm run build
 ```
 
-For the candidate Python runtime, use Python 3.11+:
+For the Python runtime, use Python 3.11+:
 
 ```bash
 python -m venv .venv

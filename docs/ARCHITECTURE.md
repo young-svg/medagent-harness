@@ -1,6 +1,6 @@
 # Architecture
 
-> **Integrated candidate:** the implementation described here is included in this branch. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see [release review](FINAL_RELEASE_REVIEW.md). This is not a release-branch promotion.
+> **Release version:** the implementation described here is included in this checkout. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see the historical [release review](FINAL_RELEASE_REVIEW.md).
 
 ## Core design decisions
 
@@ -17,13 +17,13 @@ Worker outputs, while a single Worker proceeds directly to the same final gates.
 
 ## Version and source mapping
 
-The candidate imports reviewed file snapshots rather than merging development
+The release imports reviewed file snapshots rather than merging development
 history. Shared source links below now refer to the corresponding integrated code.
 Historical experiment commits identify the original runs; their raw artifacts are
 not included. [Release review](FINAL_RELEASE_REVIEW.md) records exact file selection,
 the portable pinned-baseline test fixture, excluded internal originals and owner decisions.
 
-| Control boundary | Candidate implementation |
+| Control boundary | Release implementation |
 | --- | --- |
 | Task Contract | [RequestSpec](../medagent/context/request_spec.py), [Contract](../medagent/context/contract.py), [source-aligned semantic extraction](../medagent/runtime/semantic_validation.py) |
 | Plan and dispatch | [Planner/Policy](../medagent/planning/planner.py), [DAG models](../medagent/planning/models.py), [NativeEngine](../medagent/runtime/native_engine.py), [Handoff](../medagent/runtime/handoff.py) |
@@ -32,7 +32,7 @@ the portable pinned-baseline test fixture, excluded internal originals and owner
 | Reproducible evaluation | [Frozen inputs](../medagent/runtime/evaluation_inputs.py), [drift guard](../medagent/runtime/evaluation_guard.py), [Runner](../eval/w7/README.md), [frozen dataset](../experiments/w7/public_release/README.md) |
 
 The [runtime example](RUNTIME_ARCHITECTURE.md#reproduce-a-dependent-run-without-a-provider)
-explicitly selects structural-only testing; default candidate analysis retains
+explicitly selects structural-only testing; default analysis retains
 semantic gates. The static Demo is still fixture-only.
 
 ## System Objective

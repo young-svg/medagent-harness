@@ -1,6 +1,6 @@
 # W7 execution-layer evidence and architecture decisions
 
-> **Integrated candidate:** the implementation described here is included in this branch. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see [release review](FINAL_RELEASE_REVIEW.md). This is not a release-branch promotion.
+> **Release version:** the implementation described here is included in this checkout. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see the historical [release review](FINAL_RELEASE_REVIEW.md). Experiment dates, metrics and scoring status below are unchanged.
 
 Documentation snapshot: 2026-11-05. This is a public aggregate summary of existing
 records, not a new experiment or a clinical evaluation. All cases are SYNTHETIC.

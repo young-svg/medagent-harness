@@ -1,6 +1,6 @@
 # Runtime Architecture
 
-> **Integrated candidate:** the implementation described here is included in this branch. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see [release review](FINAL_RELEASE_REVIEW.md). This is not a release-branch promotion.
+> **Release version:** the implementation described here is included in this checkout. It is imported from validated `499d2fa`, with reviewed `2884f86` documentation; see the historical [release review](FINAL_RELEASE_REVIEW.md).
 
 ![MedAgent Harness Runtime Architecture: W1 specification and deterministic Policy, DAG-ready bounded Workers and Handoff, shared structural, evidence and W2 semantic acceptance.](assets/medagent-architecture.svg)
 
@@ -91,12 +91,12 @@ guarantees medical correctness.
 
 This is a deterministic scheduling example, not a reasoning or acceptance-quality
 test. It is runnable on the public release checkout and explicitly adapts to the
-candidate configuration (the release row explains compatibility):
+semantic-validation configuration (the legacy row explains compatibility):
 
 | Version | Request / acceptance configuration | Scripted model calls |
 | --- | --- | --- |
-| Public release `6147196` | No semantic-validation field or model-assisted requirement/acceptance stages | Planner + two Workers + Synthesis |
-| Integrated candidate / original `499d2fa` | `semantic_validation_enabled=False` explicitly selects structural-only mode | Same four calls; no extraction, independent review or semantic acceptance |
+| Legacy release `6147196` | No semantic-validation field or model-assisted requirement/acceptance stages | Planner + two Workers + Synthesis |
+| Current release / original `499d2fa` | `semantic_validation_enabled=False` explicitly selects structural-only mode | Same four calls; no extraction, independent review or semantic acceptance |
 
 The example supplies the graph and answers. The empty Synthesis response exercises
 deterministic per-RQ fallback, not another model repair. Program safety/evidence checks
