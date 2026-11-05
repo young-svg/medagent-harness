@@ -1,5 +1,12 @@
 # Public Release Audit
 
+> **Current publication status:** `release/github-ready` was updated through
+> [PR #1](https://github.com/young-svg/medagent-harness/pull/1), merge commit
+> `ae43019d6c58`, under the owner's confirmed publication authority and scope.
+> The audit findings and pending-status statements below remain as historical
+> records. Publication does not certify comprehensive third-party copyright,
+> privacy, or clinical compliance; existing rights statements and limitations remain.
+
 ## Current review: integration at `aba3dec` (2026-10-28)
 
 **TECHNICAL_CHECKS_PASSED; PUBLICATION_AUTHORIZATION_PENDING**

@@ -1,5 +1,12 @@
 # Final publication-scope review
 
+> **Published:** [PR #1](https://github.com/young-svg/medagent-harness/pull/1)
+> was merged into `release/github-ready` as `ae43019d6c58`.
+> This document preserves the pre-release review process. References below to
+> BLOCKED, PENDING, authorization outstanding, or no Push/merge describe their
+> historical review state, not the current publication status. The original
+> conclusions and evidence remain unchanged.
+
 Status: **TECHNICALLY READY TO REQUEST OWNER PUBLICATION AUTHORIZATION**.
 This is not publication permission, a new open-source license, clinical validation,
 or a certification of every historical artifact. No Push or merge is performed.

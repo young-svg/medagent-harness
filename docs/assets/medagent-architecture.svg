@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1140" viewBox="0 0 1640 1140" role="img" aria-labelledby="title description">
-  <title id="title">MedAgent Harness Runtime Architecture</title>
-  <desc id="description">Integrated candidate design. Corresponding runtime source is included in this candidate branch; promotion and publication review are pending. Three execution layers: W1 source-aligned semantic specification with independent review and program checks, LLM planning and deterministic contract policy; DAG-ready bounded Worker loops with parallel tasks or structured Handoff; Worker gates, conditional synthesis, safety edits, final structural coverage, per-request evidence and W2 semantic acceptance. Memory and Tools with optional RAG are separate context supports. Recovery, budgets and metadata causal tracing span execution. Model-assisted acceptance does not prove clinical correctness. W7 frozen evaluation interfaces are not part of this normal runtime flow.</desc>
+  <title id="title">MedAgent Harness Runtime Architecture — Release Version</title>
+  <desc id="description">Release version. Corresponding runtime source is published on release/github-ready through PR #1. Three execution layers: W1 source-aligned semantic specification with independent review and program checks, LLM planning and deterministic contract policy; DAG-ready bounded Worker loops with parallel tasks or structured Handoff; Worker gates, conditional synthesis, safety edits, final structural coverage, per-request evidence and W2 semantic acceptance. Memory and Tools with optional RAG are separate context supports. Recovery, budgets and metadata causal tracing span execution. Model-assisted acceptance does not prove clinical correctness. W7 frozen evaluation interfaces are not part of this normal runtime flow.</desc>
   <!-- Editable SVG: native text, simple paths, no embedded image, font or external resource.
        Code correspondence (repository-relative):
        Specification: runtime/semantic_validation.py SemanticValidator.extract / contract_for_spec;
@@ -48,7 +48,7 @@
   <rect width="1640" height="1140" fill="#fff"/>
   <text class="title" x="40" y="65">MedAgent Harness</text>
   <text class="subtitle" x="40" y="101">Task Contract → planned work → verified delivery</text>
-  <text class="tag" x="1598" y="65" text-anchor="end">INTEGRATED CANDIDATE</text>
+  <text class="tag" x="1598" y="65" text-anchor="end">RELEASE VERSION</text>
 
   <!-- 01: LLM proposals are not the final executable plan. -->
   <g id="task-specification-planning">
