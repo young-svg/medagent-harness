@@ -8,6 +8,7 @@ from httpx import AsyncClient, MockTransport, Request, Response
 
 from medagent.llm import LLMResponse, OpenAICompatibleLLM, ScriptedLLM, ToolCall
 from medagent.memory.session import SessionMemory
+from medagent.observability.privacy import metadata_payload
 from medagent.observability.replay import read_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.retrieval.backend import (
@@ -55,7 +56,9 @@ async def test_memory_is_injected_into_actual_planner_and_worker_requests(tmp_pa
         ]
     )
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)),
         llm=llm,
         memory=SessionMemory(recent_limit=10),
     )
@@ -96,7 +99,9 @@ async def test_empty_or_disabled_memory_runs_with_explicit_empty_context(
 ) -> None:
     llm = ScriptedLLM([_single_plan(), "Fresh-session answer"])
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)),
         llm=llm,
         memory=SessionMemory(enabled=memory_enabled),
     )
@@ -109,6 +114,7 @@ async def test_empty_or_disabled_memory_runs_with_explicit_empty_context(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("content_mode", ["metadata", "raw"])
 @pytest.mark.parametrize(
     ("agent", "skill_key"),
     [
@@ -118,10 +124,11 @@ async def test_empty_or_disabled_memory_runs_with_explicit_empty_context(
     ],
 )
 async def test_worker_skill_is_in_actual_system_message(
-    tmp_path: Path, agent: str, skill_key: str
+    tmp_path: Path, agent: str, skill_key: str, content_mode: str
 ) -> None:
     llm = ScriptedLLM([_single_plan(agent), "Role-specific answer"])
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path / agent)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode=content_mode,
+        semantic_validation_enabled=False, trace_dir=str(tmp_path / agent)), llm=llm)
     result = await engine.analyze("Synthetic role case", "Complete the role task", agent)
 
     worker_system = str(llm.requests[1]["messages"][0]["content"])
@@ -133,11 +140,23 @@ async def test_worker_skill_is_in_actual_system_message(
         "skill_name": skill.name,
         "skill_sha256": skill.sha256,
     }
+    worker_request = next(event for event in events
+                          if event["event_type"] == "llm_request" and event["stage"] == "worker")
+    assert worker_request["agent"] == skill_key
+    worker_response = next(event for event in events
+                           if event["event_type"] == "llm_response"
+                           and event["parent_event_id"] == worker_request["event_id"])
+    assert worker_response["agent"] == skill_key
+    if content_mode == "metadata":
+        assert "messages" not in worker_request["payload"]
     await engine.close()
 
 
 @pytest.mark.asyncio
-async def test_synthesis_skill_is_in_actual_system_message(tmp_path: Path) -> None:
+@pytest.mark.parametrize("content_mode", ["metadata", "raw"])
+async def test_synthesis_skill_is_in_actual_system_message(
+    tmp_path: Path, content_mode: str
+) -> None:
     llm = ScriptedLLM(
         [
             {
@@ -150,7 +169,7 @@ async def test_synthesis_skill_is_in_actual_system_message(tmp_path: Path) -> No
                     {
                         "subtask_id": "r",
                         "description": "Research",
-                        "assigned_agent": "research_agent",
+                        "assigned_agent": "consultation_agent",
                     },
                 ]
             },
@@ -159,9 +178,10 @@ async def test_synthesis_skill_is_in_actual_system_message(tmp_path: Path) -> No
             "Combined draft",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode=content_mode,
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
     result = await engine.analyze(
-        "Synthetic synthesis case", "Diagnosis and research", "synthesis"
+        "Synthetic synthesis case", "Diagnosis and treatment", "synthesis"
     )
 
     synthesis_skill = load_public_skills()["synthesizer"]
@@ -182,9 +202,128 @@ async def test_synthesis_skill_is_in_actual_system_message(tmp_path: Path) -> No
         for event in events
         if event["event_type"] == "llm_response" and event["stage"] == "synthesis"
     )
-    assert synthesis_skill.instructions in synthesis_request["payload"]["messages"][0]["content"]
-    assert synthesis_response["payload"]["content"] == "Combined draft"
+    assert synthesis_request["agent"] == "synthesizer"
+    assert synthesis_response["parent_event_id"] == synthesis_request["event_id"]
+    assert events[0]["payload"]["skills"]["synthesizer"] == {
+        "skill_name": synthesis_skill.name, "skill_sha256": synthesis_skill.sha256,
+    }
+    if content_mode == "raw":
+        assert synthesis_skill.instructions in (
+            synthesis_request["payload"]["messages"][0]["content"]
+        )
+        assert synthesis_response["payload"]["content"] == "Combined draft"
+    else:
+        assert "messages" not in synthesis_request["payload"]
+        assert "content" not in synthesis_response["payload"]
     await engine.close()
+
+
+@pytest.mark.parametrize("name", [
+    "unknown", "synthesis", "../diagnosis.md", "Diagnosis", "diagnosis\n", "",
+    {"name": "diagnosis"}, ["diagnosis"], None,
+])
+def test_role_spec_metadata_rejects_invalid_names(name: object) -> None:
+    assert metadata_payload({"skills": {"diagnostic_agent": {
+        "skill_name": name, "skill_sha256": "a" * 64,
+    }}}) == {}
+
+
+@pytest.mark.parametrize("digest", [
+    "A" * 64, "g" * 64, "a" * 63, "a" * 65, "a" * 64 + "\n",
+    " " + "a" * 64, "../private.txt", {"hash": "a" * 64}, ["a" * 64], None, 64,
+])
+def test_role_spec_metadata_rejects_invalid_hashes(digest: object) -> None:
+    assert metadata_payload({"skills": {"diagnostic_agent": {
+        "skill_name": "diagnosis", "skill_sha256": digest,
+    }}}) == {}
+
+
+@pytest.mark.parametrize("manifest", [
+    None, "diagnosis", [], {"diagnostic_agent": []},
+    {"../private": {"skill_name": "diagnosis", "skill_sha256": "a" * 64}},
+    {"diagnostic_agent": {"nested": {"skill_name": "diagnosis", "skill_sha256": "a" * 64}}},
+])
+def test_role_spec_metadata_rejects_invalid_manifest_shapes(manifest: object) -> None:
+    assert metadata_payload({"skills": manifest}) == {}
+
+
+def test_role_spec_metadata_drops_body_paths_and_sensitive_nested_data(tmp_path: Path) -> None:
+    specs = load_public_skills()
+    manifest = {agent: {"skill_name": skill.name, "skill_sha256": skill.sha256,
+                        "instructions": skill.instructions, "path": "PRIVATE_PATH",
+                        "nested": {"memory": "PRIVATE_MEMORY", "count": 1}}
+                for agent, skill in specs.items()}
+    trace = TraceRecorder(tmp_path)
+    trace.record("run_start", {"skills": manifest, "prompt": "PRIVATE_PROMPT",
+                              "memory": "PRIVATE_MEMORY", "case": "PRIVATE_CASE",
+                              "messages": [{"content": "PRIVATE_MESSAGE"}],
+                              "result": {"content": "PRIVATE_TOOL_RESULT"},
+                              "skill_name": "diagnosis", "skill_sha256": "b" * 64})
+    payload = read_trace(trace.run_dir)[0]["payload"]
+    assert payload["skills"] == {
+        agent: {"skill_name": skill.name, "skill_sha256": skill.sha256}
+        for agent, skill in specs.items()
+    }
+    assert "skill_name" not in payload and "skill_sha256" not in payload
+    text = trace.path.read_text(encoding="utf-8")
+    assert "PRIVATE_" not in text
+    for skill in specs.values():
+        assert skill.instructions not in json.dumps(payload, ensure_ascii=False)
+    assert "instructions" not in text and "nested" not in text and '"path"' not in text
+
+
+@pytest.mark.asyncio
+async def test_default_metadata_loaded_specs_do_not_claim_all_roles_executed(
+    tmp_path: Path,
+) -> None:
+    llm = ScriptedLLM([_single_plan(), "PRIVATE_ANSWER"])
+    engine = NativeMedAgentEngine(
+        RuntimeConfig(semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm,
+    )
+    try:
+        result = await engine.analyze("PRIVATE_CASE", "Assess the case", "private-session")
+        events = read_trace(tmp_path / result["run_id"])
+        manifest = events[0]["payload"]["skills"]
+        specs = load_public_skills()
+        assert manifest == {agent: {"skill_name": skill.name, "skill_sha256": skill.sha256}
+                            for agent, skill in specs.items()}
+        requests = [event for event in events if event["event_type"] == "llm_request"]
+        assert [(event["stage"], event["agent"]) for event in requests] == [
+            ("planning", "planner"), ("worker", "diagnostic_agent"),
+        ]
+        assert specs["diagnostic_agent"].instructions in llm.requests[1]["messages"][0]["content"]
+        assert all(specs["synthesizer"].instructions not in str(request["messages"])
+                   for request in llm.requests)
+        assert not any(event["stage"] == "synthesis" and event["event_type"] == "llm_request"
+                       for event in events)
+        assert "PRIVATE_" not in json.dumps(events, ensure_ascii=False)
+    finally:
+        await engine.close()
+
+
+@pytest.mark.asyncio
+async def test_role_spec_audit_distinguishes_protocol_repair_from_worker(tmp_path: Path) -> None:
+    llm = ScriptedLLM([
+        _single_plan(), LLMResponse('{"request_item_answers": [', finish_reason="stop"),
+        {"request_item_answers": [{"request_item_id": "RQ1", "answer": "Repaired answer"}]},
+    ])
+    engine = NativeMedAgentEngine(
+        RuntimeConfig(semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm,
+    )
+    try:
+        result = await engine.analyze("Synthetic case", "Assess the case", "repair")
+        events = read_trace(tmp_path / result["run_id"])
+        requests = [event for event in events if event["event_type"] == "llm_request"]
+        assert [(event["stage"], event["agent"]) for event in requests] == [
+            ("planning", "planner"), ("worker", "diagnostic_agent"),
+            ("worker_protocol_recovery", "diagnostic_agent"),
+        ]
+        instructions = load_public_skills()["diagnostic_agent"].instructions
+        assert instructions in llm.requests[1]["messages"][0]["content"]
+        assert instructions not in llm.requests[2]["messages"][0]["content"]
+        assert all("messages" not in event["payload"] for event in requests)
+    finally:
+        await engine.close()
 
 
 def test_retrieval_backend_factory_modes_and_validation(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -223,10 +362,11 @@ async def test_fake_rag_factory_drives_real_tool_retrieval_chain(tmp_path: Path)
             LLMResponse(
                 tool_calls=[ToolCall("rag-1", "search_knowledge", {"query": "assessment"})]
             ),
-            "Evidence-aware answer",
+            "Evidence-aware answer [EVIDENCE:public-evidence-1]",
         ]
     )
-    config = RuntimeConfig(
+    config = RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False,
         trace_dir=str(tmp_path),
         retrieval_mode="fake",
         generic_collection="public_generic_test",
@@ -288,7 +428,8 @@ async def test_full_llm_trace_and_central_redaction(tmp_path: Path) -> None:
             ),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
     result = await engine.analyze(
         f"Patient has secretory diarrhea. Authorization: Bearer {bearer}; api_key={api_key}",
         "Assess safely",
@@ -332,7 +473,7 @@ async def test_full_llm_trace_and_central_redaction(tmp_path: Path) -> None:
 
 
 def test_redaction_applies_at_single_trace_write_boundary(tmp_path: Path) -> None:
-    trace = TraceRecorder(tmp_path, "redaction-boundary")
+    trace = TraceRecorder(tmp_path, "redaction-boundary", content_mode="raw")
     trace.record(
         "context_built",
         {
@@ -356,7 +497,7 @@ async def test_milvus_backend_loads_collection_and_resolves_unique_vector_field(
             self.closed = False
 
         def describe_collection(self, *, collection_name: str) -> dict[str, object]:
-            assert collection_name == "configured_collection"
+            assert collection_name in {"configured_collection", "another_collection"}
             return {
                 "fields": [
                     {"name": "id", "type": "INT64"},
@@ -404,10 +545,13 @@ async def test_milvus_backend_loads_collection_and_resolves_unique_vector_field(
     assert backend._client.anns_field == "vector"
     assert backend.resolved_vector_fields == {"configured_collection": "vector"}
     assert items[0].text == "evidence"
-    assert items[0].evidence_id == "milvus-7"
+    assert items[0].evidence_id == "milvus-9dca0498c5ef-7"
     assert items[0].document_id == "doc-7"
     assert items[0].title == "Synthetic title"
     assert items[0].section == "overview"
+    other_collection = await backend.search("query", "another_collection", 1)
+    assert other_collection[0].document_id == items[0].document_id
+    assert other_collection[0].evidence_id != items[0].evidence_id
     assert items[0].source == "Synthetic source"
     await backend.close()
     assert backend._client.closed is True

@@ -15,14 +15,13 @@ from medagent.planning.complexity import build_complexity_profile, build_respons
 from medagent.planning.models import Subtask
 from medagent.runtime.agent_loop import AgentLoop
 from medagent.runtime.config import RuntimeConfig
-from medagent.runtime.engine import EngineExecutionError
 from medagent.runtime.native_engine import NativeMedAgentEngine
 from medagent.skills.loader import load_public_skills
 from medagent.tools.registry import ToolRegistry
 
 
 def test_concurrent_events_without_known_parent_are_independent(tmp_path):
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
 
     async def run():
         started = asyncio.Event()
@@ -49,7 +48,7 @@ def test_concurrent_events_without_known_parent_are_independent(tmp_path):
 
 @pytest.mark.parametrize("mode", ["plain", "tool", "invalid_tool", "failure", "retry", "length"])
 def test_concurrent_worker_causal_chains_and_replay(tmp_path, mode):
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
     root = trace.record("capability_policy_applied", stage="routing")
     question = "Assess safely"
     spec = build_request_spec(question)
@@ -190,7 +189,7 @@ def test_concurrent_worker_causal_chains_and_replay(tmp_path, mode):
 def test_engine_worker_fanout_and_failure_parents(tmp_path, monkeypatch, mode):
     agents = ["diagnostic_agent"]
     if mode != "single":
-        agents.append("research_agent")
+        agents.append("research_agent" if mode == "timeout" else "consultation_agent")
     llm = ScriptedLLM(
         [
             {
@@ -203,7 +202,8 @@ def test_engine_worker_fanout_and_failure_parents(tmp_path, monkeypatch, mode):
             "A cautious combined assessment.",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
     if mode == "timeout":
 
         async def timed_out(*args, **kwargs):
@@ -215,10 +215,14 @@ def test_engine_worker_fanout_and_failure_parents(tmp_path, monkeypatch, mode):
     async def run():
         try:
             if mode == "timeout":
-                with pytest.raises(EngineExecutionError, match="all workers failed"):
-                    await engine.analyze("Synthetic symptom", "diagnosis with research evidence")
+                result = await engine.analyze(
+                    "Synthetic symptom", "diagnosis with research evidence",
+                )
+                assert result["status"] == "incomplete"
+                assert all(item["worker_status"] == "worker_timeout"
+                           for item in result["execution_failures"])
             else:
-                question = "diagnosis" if mode == "single" else "diagnosis with research evidence"
+                question = "diagnosis" if mode == "single" else "diagnosis and treatment"
                 result = await engine.analyze("Synthetic symptom", question)
                 assert replay(tmp_path / result["run_id"])["final_answer"] == result["final_answer"]
         finally:

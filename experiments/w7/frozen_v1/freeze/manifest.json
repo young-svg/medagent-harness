@@ -1,0 +1,90 @@
+{
+  "dataset_version": "w7-architecture-evaluation-v1",
+  "status": "APPROVED_FROZEN",
+  "frozen": true,
+  "approval_basis": "Explicit user approval of the 24 candidate cases and both retrieval-rule refinements in the current freeze request; not medical validation",
+  "core_interfaces_commit": "1f43fb003c99ec512c43e6cdf0196171bb542012",
+  "w6_baseline": "59a783f39e23bef514dffa7ab416373f11c2dca2",
+  "candidate_origin": "experiments/w7/candidate_v1",
+  "candidate_fixture_version": "w7-2b-v1-candidate",
+  "selection_rules_version": "w7-query-selection-v1.1-candidate",
+  "approved_candidate_manifest_sha256": "e77a123682e2c4d0154cec34a0ee300b3d4991c797f910f6ab0d2794eb7aff90",
+  "approved_snapshot_sha256": "35238e765ddab0bb9f680be4919e8467308cde4619d56ea512fa4a2d125bbfe6",
+  "snapshot_hash_definition": "SHA-256 of UTF-8 canonical JSON of approved_candidate_files: sorted keys, compact separators",
+  "generation": "Byte-for-byte copy of 14 approved files; no data regeneration, edits, model answers or scoring revisions during freezing",
+  "embedded_candidate_metadata": "Preserved historical candidate labels; this outer manifest records formal approval",
+  "original_design_sources": [
+    {
+      "path": "W7-1_original_design_report.md",
+      "sha256": "6707546aeccc9257709c19142aebf7a6f4f6f120f0a312d998a15c830adc281f"
+    },
+    {
+      "path": "W7-1_24_case_draft_original.md",
+      "sha256": "69522d08de68cc8ec0eec0c747d80c96c5858ee89f16907755b90b01b8c2ab8f"
+    }
+  ],
+  "source_document_location": "reference/",
+  "source_authority": "Original report section 4 cases; sections 5-8 fixture/protocol definitions",
+  "expected_validation": {
+    "case_count": 24,
+    "rq_count": 40,
+    "category_counts": {
+      "simple": 4,
+      "independent": 5,
+      "dependent": 5,
+      "external_evidence": 6,
+      "memory": 4
+    },
+    "query_examples": 29,
+    "e05_checks": 3,
+    "tamper_counterexamples": 8,
+    "source_records": 9,
+    "retrieval_variants": 36,
+    "fault_variants": 18
+  },
+  "limitations": [
+    "Synthetic engineering cases only; no clinical validity claim",
+    "All guidelines, papers and codes are SYNTHETIC; current means fixture version only",
+    "Finite query aliases and conservative multi-topic rejection; no general recall guarantee",
+    "No Runner, retrieval adapter or executable fault injector delivered",
+    "No real Provider/Milvus validation or cost experiment",
+    "Future experiments require shared budgets, usage UNKNOWN handling and independent human scoring",
+    "HTTP400 remains UNKNOWN and unfixed"
+  ],
+  "approved_candidate_files": {
+    "cases.json": "be12cecebc20250415874f616a955353b06c8cfc391e9dc62514be130f097305",
+    "fault_variants.json": "67dbd8cda3d9cf2a60cd3473bfc2076896efa0e3cd7893dacfed2c097879349e",
+    "manifest.json": "e77a123682e2c4d0154cec34a0ee300b3d4991c797f910f6ab0d2794eb7aff90",
+    "prepare_candidates.py": "00541af6032de858f9673d42ca69f142b043b48e0bf2c8a8d5b316288a0004f5",
+    "provenance.json": "20efbcbb69fc4a0d43f7c32e681b14dcdb0fd79788cb55a399d4811205958b68",
+    "README.md": "9e79f60a79602bd3b57aa0186dff089a77f153a0752bce1c6083eb4cf01d4696",
+    "retrieval_corpus.json": "3ba9dabd869c9418d6c8aae331a14f2257eec68d0b6756d1b4ed39b62841594d",
+    "REVIEW_CHECKLIST.md": "cfd9cc18a8019b93eed9084abcd279ed5ff7d640a0dff1a22c20323738c4bec0",
+    "schema.json": "69d33153b37082d7aa4c35ffcadd4ddd90531e8b2a3720281fc60f3adff5a05e",
+    "schema_definition.py": "ee30e0cd005e1c32f3ff74b315501a5202c9ea6962194e05831f3eab8770fc3b",
+    "SCORING.md": "a7437108263e7d909253d1eaf43e01a8eca1370facf06b6b86ad1ff03565a425",
+    "SHA256SUMS.txt": "752d4fe939efbc8ae2f2ca51d31e689b91175123a50e4e1dd62e3110766837cb",
+    "validate_candidates.py": "376926e3d2721b650140d3b116ca6a251e05841267ad8346e396ffbaf0e0b143",
+    "wording_changes.json": "e10fa39444fbee03aa36b53451f714f280bea3205effbedd7bdd25a2926b3f64"
+  },
+  "files": {
+    "README.md": "9e79f60a79602bd3b57aa0186dff089a77f153a0752bce1c6083eb4cf01d4696",
+    "REVIEW_CHECKLIST.md": "cfd9cc18a8019b93eed9084abcd279ed5ff7d640a0dff1a22c20323738c4bec0",
+    "SCORING.md": "a7437108263e7d909253d1eaf43e01a8eca1370facf06b6b86ad1ff03565a425",
+    "SHA256SUMS.txt": "752d4fe939efbc8ae2f2ca51d31e689b91175123a50e4e1dd62e3110766837cb",
+    "cases.json": "be12cecebc20250415874f616a955353b06c8cfc391e9dc62514be130f097305",
+    "fault_variants.json": "67dbd8cda3d9cf2a60cd3473bfc2076896efa0e3cd7893dacfed2c097879349e",
+    "freeze/README.md": "7e2b2e92765484a8d6ae633041b09cab441070951829a099648bf965d5870639",
+    "freeze/validate_frozen.py": "24831b0e8f445de5bcb974b0098d2313e3b7837c6216cd23d6ac448bcda65ed9",
+    "manifest.json": "e77a123682e2c4d0154cec34a0ee300b3d4991c797f910f6ab0d2794eb7aff90",
+    "prepare_candidates.py": "00541af6032de858f9673d42ca69f142b043b48e0bf2c8a8d5b316288a0004f5",
+    "provenance.json": "20efbcbb69fc4a0d43f7c32e681b14dcdb0fd79788cb55a399d4811205958b68",
+    "reference/W7-1_24_case_draft_original.md": "69522d08de68cc8ec0eec0c747d80c96c5858ee89f16907755b90b01b8c2ab8f",
+    "reference/W7-1_original_design_report.md": "6707546aeccc9257709c19142aebf7a6f4f6f120f0a312d998a15c830adc281f",
+    "retrieval_corpus.json": "3ba9dabd869c9418d6c8aae331a14f2257eec68d0b6756d1b4ed39b62841594d",
+    "schema.json": "69d33153b37082d7aa4c35ffcadd4ddd90531e8b2a3720281fc60f3adff5a05e",
+    "schema_definition.py": "ee30e0cd005e1c32f3ff74b315501a5202c9ea6962194e05831f3eab8770fc3b",
+    "validate_candidates.py": "376926e3d2721b650140d3b116ca6a251e05841267ad8346e396ffbaf0e0b143",
+    "wording_changes.json": "e10fa39444fbee03aa36b53451f714f280bea3205effbedd7bdd25a2926b3f64"
+  }
+}

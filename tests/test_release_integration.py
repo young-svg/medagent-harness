@@ -73,7 +73,8 @@ async def test_protocol_recovery_and_retry_preserve_handoff_gate(tmp_path, recov
         responses.extend([answers("RQ2", CARE), {"answers": []}])
     llm = OfflineFailureLLM(responses)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
             trace_dir=str(tmp_path), worker_infrastructure_retry_base_delay_seconds=0
         ),
         llm=llm,
@@ -135,7 +136,9 @@ async def test_release_presentation_respects_final_coverage(tmp_path, monkeypatc
         ["Invalid presentation." if mode == "presentation_invalid" else sectioned_output(["RQ1"])]
     )
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)), llm=llm, presentation_llm=presentation_llm
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path)), llm=llm, presentation_llm=presentation_llm
     )
     try:
         result = await engine.analyze("Synthetic fixture only.", "Assess", "presentation")

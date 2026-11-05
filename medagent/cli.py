@@ -15,7 +15,7 @@ def _run(args: argparse.Namespace) -> int:
     case = json.loads(Path(args.case).read_text(encoding="utf-8"))
     result = asyncio.run(
         analyze_case(
-            case["description"], case["question"], case.get("session_id", "cli"), args.trace_root
+            case["description"], case["question"], case.get("session_id"), args.trace_root
         )
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -25,7 +25,9 @@ def _run(args: argparse.Namespace) -> int:
 def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    uvicorn.run("api.main:app", host=args.host, port=args.port, reload=False)
+    if args.host not in {"localhost", "127.0.0.1", "::1"}:
+        raise ValueError("the demo API supports loopback binding only")
+    uvicorn.run("api.main:app", host=args.host, port=args.port, reload=False, proxy_headers=False)
     return 0
 
 

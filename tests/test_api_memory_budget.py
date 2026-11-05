@@ -22,7 +22,9 @@ def test_api_initialization_uses_budget_and_keeps_session_memory(
 ):
     for key, value in {
         "MEDAGENT_RUNTIME_MODE": "native",
+        "MEDAGENT_SEMANTIC_VALIDATION": "false",
         "MEDAGENT_TRACE_DIR": str(tmp_path),
+        "MEDAGENT_TRACE_CONTENT": "raw",
         "MEDAGENT_LLM_BASE_URL": "",
         "MEDAGENT_LLM_API_KEY": "",
         "MEDAGENT_RETRIEVAL_MODE": "off",
@@ -60,7 +62,9 @@ def test_api_initialization_uses_budget_and_keeps_session_memory(
     )
     coordinator.engine.llm = llm
     results = []
-    with TestClient(module.app) as client:
+    with TestClient(
+        module.app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)
+    ) as client:
         for description, session in [
             ("FIRST_SESSION_A_CASE", "session-a"),
             ("SECOND_SESSION_A_CASE", "session-a"),
@@ -119,7 +123,9 @@ def test_api_initialization_uses_budget_and_keeps_session_memory(
 def test_coordinator_preserves_explicit_custom_memory_configuration(tmp_path):
     memory = SessionMemory(token_budget=None, recent_limit=3, enabled=False)
     coordinator = Coordinator(
-        RuntimeConfig(trace_dir=str(tmp_path), memory_token_budget=0), memory=memory
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
+            trace_dir=str(tmp_path), memory_token_budget=0), memory=memory
     )
     try:
         assert coordinator.engine.memory is memory

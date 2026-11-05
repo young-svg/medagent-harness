@@ -1,30 +1,82 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass
 
 from medagent.agents.base import WorkerResult
 from medagent.context.contract import AnswerContract
 from medagent.context.request_spec import RequestSpec
+from medagent.planning.complexity import EVIDENCE_TOOLS, evidence_requirements
 from medagent.planning.models import Subtask
+from medagent.retrieval.evidence import EvidenceBundle
 from medagent.runtime.final_answers import has_answer_content
 
 
-def _coverage_key(value: str) -> str:
-    return " ".join(value.replace("_", " ").casefold().split())
+def cited_evidence_ids(text: str) -> set[str]:
+    return set(re.findall(r"\[EVIDENCE:([^\]\n]+)\]", text))
+
+
+def evaluate_evidence_coverage(
+    spec: RequestSpec, answers: dict[str, str], bundle: EvidenceBundle,
+    allowed: dict[str, set[str]],
+    *, subtask_id: str | None = None,
+) -> dict[str, object]:
+    """Deterministic provenance/citation gate, not entailment or medical verification."""
+    items = []
+    for item in spec.items:
+        declaration = bundle.requirement_for(item.id)
+        kinds = (evidence_requirements(item.text) if bundle.evidence_requirements is None
+                 else {declaration.source_category} if declaration else set())
+        required = declaration.required if declaration else item.required and bool(kinds)
+        citations = cited_evidence_ids(answers.get(item.id, ""))
+        receipts = [r for r in bundle.receipts(item.id, subtask_id)
+                    if r["evidence_id"] in allowed.get(item.id, set())
+                    and (subtask_id is not None or r["evidence_id"] in
+                         bundle.accepted_by_task.get((r["subtask_id"], item.id), set()))]
+        available = {r["evidence_id"] for r in receipts}
+        records = [r for r in bundle.retrievals if item.id in r["request_item_ids"]]
+        if citations - available:
+            status = "invalid_citation"
+        elif declaration and citations and any(not any(
+            r["evidence_id"] == identifier and declaration.accepts_delivery(r) for r in receipts
+        ) for identifier in citations):
+            status = "missing_evidence_kind"
+        elif not required:
+            status = "not_required"
+        elif available:
+            status = "satisfied" if citations else "uncited_evidence"
+            if declaration is None and citations and any(not any(
+                r["tool"] in EVIDENCE_TOOLS[kind] and r["evidence_id"] in citations
+                and (kind == "external" or r.get("source_kind") == kind)
+                for r in receipts
+            ) for kind in kinds):
+                status = "missing_evidence_kind"
+        elif not records:
+            status = "not_retrieved"
+        else:
+            # Prefer an informative retrieval failure over a secondary missing citation.
+            statuses = {r["status"] for r in records}
+            status = next((s for s in ("disabled", "retrieval_error", "low_quality",
+                                      "no_results") if s in statuses), "undelivered_evidence")
+        used = [r for r in receipts if r["evidence_id"] in citations]
+        items.append({"request_item_id": item.id, "required": required, "status": status,
+                      "source_event_ids": list(dict.fromkeys(r["source_event_id"] for r in used)),
+                      "handoff_event_ids": list(dict.fromkeys(
+                          r["handoff_event_id"] for r in used if r.get("handoff_event_id"))),
+                      "origin_request_item_ids": list(dict.fromkeys(
+                          r["origin_request_item_id"] for r in used)),
+                      "evidence_links": [{k: r[k] for k in (
+                          "request_item_id", "origin_request_item_id",
+                          "source_event_id", "handoff_event_id",
+                      ) if k in r} for r in used]})
+    return {"complete": all(v["status"] in {"satisfied", "not_required"} for v in items),
+            "items": items}
 
 
 def required_deliverable_ids(contract: AnswerContract) -> list[str]:
     """Resolve required contract text to the existing deliverable ID taxonomy."""
 
-    required_keys = {_coverage_key(item) for item in contract.must_cover}
-    required_keys.update(
-        _coverage_key(item.item) for item in contract.coverage_checklist if item.priority == "MUST"
-    )
-    return [
-        deliverable
-        for deliverable in contract.requested_deliverables
-        if _coverage_key(deliverable) in required_keys
-    ]
+    return contract.required_deliverable_ids
 
 
 @dataclass(frozen=True, slots=True)

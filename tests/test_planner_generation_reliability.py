@@ -61,7 +61,7 @@ async def run_plan(llm: ScriptedLLM, trace: TraceRecorder | None = None):
 @async_test
 async def test_planner_recovers_once_after_empty_length_response(tmp_path) -> None:
     llm = ScriptedLLM([length_response(), LLMResponse(valid_plan(), finish_reason="stop")])
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
 
     plan = await run_plan(llm, trace)
 
@@ -81,7 +81,7 @@ async def test_planner_recovers_once_after_empty_length_response(tmp_path) -> No
 @async_test
 async def test_planner_stops_after_one_failed_length_recovery(tmp_path) -> None:
     llm = ScriptedLLM([length_response(), length_response()])
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
 
     plan = await run_plan(llm, trace)
 
@@ -138,7 +138,9 @@ async def test_stage_budgets_are_independent_from_generic_client_default(tmp_pat
         ]
     )
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)),
         llm=llm,
     )
     await engine.analyze("Synthetic case", "Assess safely", "budget-test")

@@ -72,7 +72,8 @@ async def test_worker_recovers_once_after_empty_length_response(tmp_path) -> Non
             LLMResponse("VALID_WORKER_DRAFT", finish_reason="stop"),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "Assess safely", "worker-recovery")
     await engine.close()
@@ -121,10 +122,12 @@ async def test_worker_length_exhaustion_fails_without_fake_draft(tmp_path) -> No
     llm = ScriptedLLM(
         [plan("diagnostic_agent"), length_response(), length_response()]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
-    with pytest.raises(EngineExecutionError, match="all workers failed"):
-        await engine.analyze("Synthetic case", "Assess safely", "worker-exhausted")
+    result = await engine.analyze("Synthetic case", "Assess safely", "worker-exhausted")
+    assert result["status"] == "incomplete"
+    assert result["execution_failures"][0]["worker_status"] == "budget_exhausted"
     await engine.close()
     events = only_trace(tmp_path)
     draft = next(event for event in events if event["event_type"] == "worker_draft")
@@ -135,7 +138,7 @@ async def test_worker_length_exhaustion_fails_without_fake_draft(tmp_path) -> No
     assert draft["payload"]["generation_status"] == "length_exhausted"
     assert draft["payload"]["failure_reason"] == "generation_length_exhausted"
     assert events[-1]["event_type"] == "run_end"
-    assert events[-1]["payload"]["status"] == "failed"
+    assert events[-1]["payload"]["status"] == "incomplete"
 
 
 @async_test
@@ -151,7 +154,8 @@ async def test_worker_tool_call_is_usable_without_length_recovery(tmp_path) -> N
             LLMResponse("VALID_TOOL_AWARE_DRAFT", finish_reason="stop"),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     result = await engine.analyze("Synthetic case", "Assess safely", "tool-call")
     await engine.close()
@@ -169,16 +173,17 @@ async def test_worker_tool_call_is_usable_without_length_recovery(tmp_path) -> N
 async def test_synthesis_recovers_once_after_empty_length_response(tmp_path) -> None:
     llm = ScriptedLLM(
         [
-            plan("diagnostic_agent", "research_agent"),
+            plan("diagnostic_agent", "consultation_agent"),
             "Diagnostic draft",
             "Research draft",
             length_response(),
             {"answers": [{"request_item_id": "RQ1", "answer": "VALID_SYNTHESIZED_ANSWER"}]},
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
-    result = await engine.analyze("Synthetic case", "Assess and research", "synth-recovery")
+    result = await engine.analyze("Synthetic case", "Diagnosis and treatment", "synth-recovery")
     await engine.close()
     events = read_trace(tmp_path / result["run_id"])
     output = next(event for event in events if event["event_type"] == "synthesis_output")
@@ -193,17 +198,18 @@ async def test_synthesis_recovers_once_after_empty_length_response(tmp_path) -> 
 async def test_synthesis_length_exhaustion_marks_run_failed(tmp_path) -> None:
     llm = ScriptedLLM(
         [
-            plan("diagnostic_agent", "research_agent"),
+            plan("diagnostic_agent", "consultation_agent"),
             "Diagnostic draft",
             "Research draft",
             length_response(),
             length_response(),
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     with pytest.raises(EngineExecutionError, match="synthesis generation failed"):
-        await engine.analyze("Synthetic case", "Assess and research", "synth-exhausted")
+        await engine.analyze("Synthetic case", "Diagnosis and treatment", "synth-exhausted")
     await engine.close()
     events = only_trace(tmp_path)
     output = next(event for event in events if event["event_type"] == "synthesis_output")
@@ -225,7 +231,9 @@ async def test_synthesis_length_exhaustion_marks_run_failed(tmp_path) -> None:
 
 @async_test
 async def test_stage_generation_budgets_are_independent(tmp_path) -> None:
-    config = RuntimeConfig(trace_dir=str(tmp_path))
+    config = RuntimeConfig(
+        trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path))
     assert config.llm_max_tokens == 1200
     assert config.planner_max_tokens == 8192
     assert config.worker_max_tokens == 8192
@@ -255,15 +263,16 @@ async def test_stage_generation_budgets_are_independent(tmp_path) -> None:
 async def test_normal_worker_and_synthesis_do_not_add_calls(tmp_path) -> None:
     llm = ScriptedLLM(
         [
-            plan("diagnostic_agent", "research_agent"),
+            plan("diagnostic_agent", "consultation_agent"),
             "Diagnostic draft",
             "Research draft",
             "Synthesis draft",
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
-    result = await engine.analyze("Synthetic case", "Assess and research", "no-recovery")
+    result = await engine.analyze("Synthetic case", "Diagnosis and treatment", "no-recovery")
     await engine.close()
     events = read_trace(tmp_path / result["run_id"])
     summaries = generation_summaries(events, "worker") + generation_summaries(

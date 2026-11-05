@@ -10,6 +10,10 @@ class PlanDependencyError(ValueError):
     """A plan cannot safely express or preserve its execution dependencies."""
 
 
+class PlanBudgetError(ValueError):
+    """Reject the entire oversized plan, never truncate a dependency graph."""
+
+
 @dataclass(slots=True)
 class Subtask:
     subtask_id: str
@@ -48,6 +52,10 @@ class Plan:
     @property
     def planner_parse_failure(self) -> bool:
         return self.planner_parse_status == "fallback"
+
+    def validate_budget(self, max_subtasks: int) -> None:
+        if len(self.subtasks) > max_subtasks:
+            raise PlanBudgetError("subtask_budget_exhausted")
 
     def validate(self) -> None:
         if not self.subtasks:

@@ -26,6 +26,19 @@ TOOL_SCHEMAS: dict[str, dict[str, object]] = {
     )
 }
 
+RETRIEVAL_TOOLS = {
+    "clinical_guideline", "disease_code", "recommend_lifestyle",
+    "deep_research", "search_knowledge",
+}
+for _name in RETRIEVAL_TOOLS:
+    TOOL_SCHEMAS[_name]["function"]["parameters"]["properties"]["request_item_id"] = {
+        "type": "string", "minLength": 1, "maxLength": 5,
+    }
+
+
+class ToolArgumentError(TypeError):
+    """Trusted schema diagnostic containing no model-supplied values."""
+
 
 def validate_tool_arguments(name: str, arguments: object) -> None:
     """Validate the public flat object/string schemas without coercing input.
@@ -36,24 +49,24 @@ def validate_tool_arguments(name: str, arguments: object) -> None:
     parameters = TOOL_SCHEMAS[name]["function"]["parameters"]
     prefix = f"invalid arguments for tool {name!r}: "
     if not isinstance(arguments, dict):
-        raise TypeError(prefix + "expected an object")
+        raise ToolArgumentError(prefix + "expected an object")
     for field in parameters.get("required", []):
         if field not in arguments:
-            raise TypeError(prefix + f"missing required field {field!r}")
+            raise ToolArgumentError(prefix + f"missing required field {field!r}")
     properties = parameters["properties"]
     if parameters.get("additionalProperties") is False and any(
         field not in properties for field in arguments
     ):
-        raise TypeError(prefix + "additional fields are not allowed")
+        raise ToolArgumentError(prefix + "additional fields are not allowed")
     for field, definition in properties.items():
         if field not in arguments:
             continue
         if definition["type"] != "string":
-            raise TypeError(prefix + "unsupported field schema")
+            raise ToolArgumentError(prefix + "unsupported field schema")
         value = arguments[field]
         if not isinstance(value, str):
-            raise TypeError(prefix + f"field {field!r} must be a string")
+            raise ToolArgumentError(prefix + f"field {field!r} must be a string")
         if "minLength" in definition and len(value) < definition["minLength"]:
-            raise TypeError(prefix + f"field {field!r} is shorter than minLength")
+            raise ToolArgumentError(prefix + f"field {field!r} is shorter than minLength")
         if "maxLength" in definition and len(value) > definition["maxLength"]:
-            raise TypeError(prefix + f"field {field!r} exceeds maxLength")
+            raise ToolArgumentError(prefix + f"field {field!r} exceeds maxLength")

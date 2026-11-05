@@ -21,6 +21,11 @@ def trace_summary(run_dir: str | Path) -> dict[str, Any]:
     events = read_trace(run_dir)
     final = next((item for item in reversed(events) if item["event_type"] == "run_end"), None)
     payload = (final or {}).get("payload") or {}
+    semantic = next((item.get("payload", {}) for item in reversed(events)
+                     if item["event_type"] == "semantic_acceptance"), {})
+    evidence = next((item.get("payload", {}) for item in reversed(events)
+                     if item["event_type"] == "evidence_acceptance"
+                     and item.get("stage") == "final_completion"), {})
     coverage = next(
         (
             item.get("payload") or {}
@@ -37,16 +42,24 @@ def trace_summary(run_dir: str | Path) -> dict[str, Any]:
         ),
         {},
     )
-    return {
+    summary = {
         "run_id": events[0].get("run_id") if events else None,
         "status": payload.get("status", "incomplete"),
         "event_count": len(events),
+        "execution_failures": next((e.get("payload", {}).get("execution_failures", [])
+            for e in reversed(events) if e["event_type"] == "execution_outcome"), []),
         "events": [item["event_type"] for item in events],
         "latency_ms": payload.get("latency_ms"),
         "missing_required_deliverables": coverage.get("missing_required_deliverables", []),
         "missing_required_request_items": request_coverage.get("missing_request_items", []),
-        "user_request_complete": request_coverage.get("user_request_complete", False),
+        "user_request_complete": request_coverage.get("user_request_complete", False)
+        and semantic.get("complete") is not False and evidence.get("complete") is not False,
+        "semantic_validation": semantic,
+        "structural_user_request_complete": request_coverage.get("user_request_complete", False),
     }
+    if evidence:
+        summary["evidence_validation"] = evidence
+    return summary
 
 
 def replay(run_dir: str | Path) -> dict[str, Any]:
@@ -54,6 +67,7 @@ def replay(run_dir: str | Path) -> dict[str, Any]:
     final = next((item for item in reversed(events) if item["event_type"] == "final_answer"), None)
     return {
         "mode": "replay",
+        "content_available": bool(final) and "answer" in (final.get("payload") or {}),
         "summary": trace_summary(run_dir),
         "final_answer": ((final or {}).get("payload") or {}).get("answer", ""),
     }

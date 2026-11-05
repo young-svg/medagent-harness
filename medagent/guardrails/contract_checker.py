@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.guardrails.stable_patch import EditAction, StableDraft, StableEdit
+from medagent.guardrails.untrusted_context import contains_instruction_spoof, context_risk
 
 
 @dataclass(slots=True)
@@ -13,6 +14,8 @@ class CheckResult:
     passed: bool
     issues: list[str] = field(default_factory=list)
     edits: list[StableEdit] = field(default_factory=list)
+    blocking_issues: list[str] = field(default_factory=list)
+    context_risk_count: int = 0
 
     @property
     def missing(self) -> list[str]:
@@ -30,6 +33,8 @@ class CheckResult:
         return {
             "passed": self.passed,
             "issues": self.issues,
+            "blocking_issues": self.blocking_issues,
+            "context_risk_count": self.context_risk_count,
             "edits": [asdict(edit) for edit in self.edits],
         }
 
@@ -50,7 +55,7 @@ class Guardrail:
         issues: list[str] = []
         edits: list[StableEdit] = []
         lower_answer = answer.casefold()
-        for deliverable in contract.requested_deliverables:
+        for deliverable in contract.required_deliverable_ids:
             words = deliverable.replace("_", " ").casefold()
             if words not in lower_answer and len(contract.requested_deliverables) > 1:
                 issues.append(f"missing_deliverable:{deliverable}")
@@ -74,7 +79,9 @@ class Guardrail:
                         )
                     )
                     break
-        return CheckResult(not issues, issues, edits)
+        blocking = ["instruction_spoof_in_answer"] if contains_instruction_spoof(answer) else []
+        return CheckResult(not issues and not blocking, issues, edits, blocking,
+                           int(context_risk(answer) == "suspicious"))
 
 
 class ContractChecker(Guardrail):

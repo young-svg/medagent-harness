@@ -214,7 +214,9 @@ async def test_tool_continuation_400_records_safe_diagnostics_and_does_not_retry
 
     client = await mock_client(handler)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)), llm=client,
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=client,
         retrieval_backend=FakeRetrievalBackend([]),
     )
     try:

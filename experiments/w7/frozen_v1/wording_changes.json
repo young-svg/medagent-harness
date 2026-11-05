@@ -1,0 +1,113 @@
+{
+  "approval_status": "CANDIDATE_PENDING_HUMAN_APPROVAL",
+  "changes": [
+    {
+      "case_id": "I05",
+      "field": "question",
+      "applied": true,
+      "before": "What symptoms are known?\\nWhat important information is missing?",
+      "after": "What symptoms are known?\nWhat important information is missing?",
+      "reason": "将原表格字面转义解释为非编号多行问题；待人工批准。"
+    },
+    {
+      "case_id": "D05",
+      "field": "description",
+      "applied": true,
+      "before": "病例：成人咳嗽，其他资料未知。",
+      "after": "病例：成人咳嗽，其他资料未知。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E01",
+      "field": "description",
+      "applied": true,
+      "before": "合成病例：成人咳嗽。",
+      "after": "合成病例：成人咳嗽。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E02",
+      "field": "description",
+      "applied": true,
+      "before": "合成主题：运动与睡眠。",
+      "after": "合成主题：运动与睡眠。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E03",
+      "field": "description",
+      "applied": true,
+      "before": "合成病例：成人咳嗽。",
+      "after": "合成病例：成人咳嗽。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E04",
+      "field": "description",
+      "applied": true,
+      "before": "",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "reason": "原文无病例背景，补充非临床包装以满足非空内部接口；不新增病例事实。"
+    },
+    {
+      "case_id": "E04",
+      "field": "description",
+      "applied": true,
+      "before": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E05",
+      "field": "description",
+      "applied": true,
+      "before": "合成主题：咳嗽。",
+      "after": "合成主题：咳嗽。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "E06",
+      "field": "description",
+      "applied": true,
+      "before": "病例：成人咳嗽一天。",
+      "after": "病例：成人咳嗽一天。\nSYNTHETIC evaluation material only. Retrieval fixtures are fictional guideline, paper or coding test records, not real external medical sources; current refers only to fixture_version, not real-world recency.",
+      "reason": "显式区分 SYNTHETIC 测试资料与真实外部来源；不修改原问题或要求。"
+    },
+    {
+      "case_id": "M01",
+      "field": "description",
+      "applied": true,
+      "before": "",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "reason": "原文无病例背景，补充非临床包装以满足非空内部接口；不新增病例事实。"
+    },
+    {
+      "case_id": "M02",
+      "field": "description",
+      "applied": true,
+      "before": "",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "reason": "原文无病例背景，补充非临床包装以满足非空内部接口；不新增病例事实。"
+    },
+    {
+      "case_id": "M03",
+      "field": "description",
+      "applied": true,
+      "before": "",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "reason": "原文无病例背景，补充非临床包装以满足非空内部接口；不新增病例事实。"
+    },
+    {
+      "case_id": "M04",
+      "field": "description",
+      "applied": true,
+      "before": "",
+      "after": "SYNTHETIC evaluation wrapper; no additional case facts supplied.",
+      "reason": "原文无病例背景，补充非临床包装以满足非空内部接口；不新增病例事实。"
+    }
+  ],
+  "original_questions_rewritten": [
+    "I05"
+  ],
+  "note": "原始输入和表格列完整保留；所有补充都待批准。"
+}

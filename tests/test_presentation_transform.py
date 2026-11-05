@@ -234,7 +234,9 @@ def run_engine(tmp_path, presentation_llm: ScriptedLLM) -> dict:  # type: ignore
         ]
     )
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)),
         llm=worker_llm,
         presentation_llm=presentation_llm,
     )

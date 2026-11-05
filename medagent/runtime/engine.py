@@ -24,7 +24,7 @@ class Engine(Protocol):
     mode: str
 
     async def analyze(
-        self, description: str, question: str, session_id: str = "default"
+        self, description: str, question: str, session_id: str | None = None
     ) -> dict[str, Any]: ...
 
     async def close(self) -> None: ...

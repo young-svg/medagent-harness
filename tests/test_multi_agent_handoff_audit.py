@@ -40,11 +40,11 @@ def _with_private_block(public, reasoning_format):
 def test_parallel_or_dependency_execution_and_failure_gate(tmp_path, scenario, reasoning_format):
     independent = scenario == "independent"
     question = (
-        "1. Give a diagnosis.\n2. Summarize independent research evidence."
+        "1. Give a diagnosis.\n2. Give a treatment plan independently."
         if independent
         else "1. Give a diagnosis.\n2. Give a treatment plan based on that diagnosis."
     )
-    downstream = "research_agent" if independent else "consultation_agent"
+    downstream = "consultation_agent"
     raw_plan = {
         "subtasks": [
             {
@@ -61,7 +61,7 @@ def test_parallel_or_dependency_execution_and_failure_gate(tmp_path, scenario, r
                 "description": "Summarize independent literature."
                 if independent
                 else "Wait for diagnose, then use its result to prepare treatment.",
-                "deliverable_ids": ["DIAGNOSIS_WITH_BASIS" if independent else "TREATMENT_PLAN"],
+                "deliverable_ids": ["TREATMENT_PLAN"],
                 "request_item_ids": ["RQ2"],
                 "depends_on": [] if independent else ["diagnose"],
             },
@@ -121,7 +121,8 @@ def test_parallel_or_dependency_execution_and_failure_gate(tmp_path, scenario, r
 
     llm = BarrierLLM()
     engine = NativeMedAgentEngine(
-        RuntimeConfig(
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False,
             trace_dir=str(tmp_path),
             worker_timeout_seconds=0.05 if scenario == "upstream_timeout" else 5,
         ),
@@ -265,7 +266,8 @@ def test_invalid_graphs_cannot_fall_back_to_parallel_execution(tmp_path, bad):
     else:
         second["depends_on"] = {"string": "a", "null": None, "duplicate_edge": ["a", "a"]}[bad]
     llm = ScriptedLLM([{"subtasks": [first, second]}])
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     async def run():
         try:
@@ -372,7 +374,8 @@ def test_multilevel_fanin_same_role_forward_references_and_order(tmp_path, failu
             )
 
     llm = GraphLLM()
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     async def run():
         try:
@@ -534,7 +537,8 @@ def test_multi_answer_handoff_checks_every_required_answer_before_downstream(
             {"answers": []},
         ]
     )
-    engine = NativeMedAgentEngine(RuntimeConfig(trace_dir=str(tmp_path)), llm=llm)
+    engine = NativeMedAgentEngine(RuntimeConfig(trace_content_mode="raw",
+        semantic_validation_enabled=False, trace_dir=str(tmp_path)), llm=llm)
 
     async def run():
         try:

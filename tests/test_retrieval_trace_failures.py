@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from medagent.llm import LLMResponse, ScriptedLLM, ToolCall
@@ -47,11 +49,13 @@ async def _run(tmp_path, backend, *, tool_calls: int = 1):
             )
             for index in range(tool_calls)
         ],
-        {"answers": [{"request_item_id": "RQ1", "answer": "Synthetic result only."}]},
+        {"answers": [{"request_item_id": "RQ1", "answer":
+                      "Synthetic result [EVIDENCE:synthetic-1]."}]},
     ]
     llm = ScriptedLLM(responses)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path), max_tool_calls=tool_calls),
+        RuntimeConfig(trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path), max_tool_calls=tool_calls),
         llm=llm,
         retrieval_backend=backend,
     )
@@ -78,7 +82,7 @@ async def test_first_empty_admission_is_no_relevant_evidence(tmp_path) -> None:
     assert tool_result["payload"]["result"]["evidence_status"] == "no_relevant_evidence"
     assert tool_result["payload"]["result"]["admitted"] == []
     assert retrieval_result["payload"]["admission"][0]["admitted"] is False
-    assert result["status"] == "completed"
+    assert result["status"] == "incomplete"
     assert len(llm.requests) == 3
 
 
@@ -135,9 +139,11 @@ async def test_failed_retrieval_preserves_query_and_error_causality(tmp_path) ->
     }
     assert tool_result["parent_event_id"] == error["event_id"]
     assert tool_result["payload"]["result"] == {
-        "error": "synthetic collection unavailable"
+        "error": "RetrievalSchemaError", "error_type": "RetrievalSchemaError",
+        "message": "tool execution failed",
     }
+    assert "synthetic collection unavailable" not in json.dumps(events)
     assert by_id[call["parent_event_id"]]["event_type"] == "llm_response"
     assert not any(event["event_type"] == "retrieval_result" for event in events)
-    assert result["status"] == "completed"  # A valid abstaining answer may still complete.
+    assert result["status"] == "incomplete"  # Explicit source requirement remains unmet.
     assert len(llm.requests) == 3

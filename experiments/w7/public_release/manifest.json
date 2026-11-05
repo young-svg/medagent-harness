@@ -1,0 +1,31 @@
+{
+  "package_version": "w7-public-subset-v1",
+  "kind": "PUBLIC_SUBSET_NOT_FULL_ORIGINAL_ARCHIVE",
+  "original_manifest_sha256": "33adc420b2b7e5e8117084954439daad8dba12700f241858a38c3e237f18b1cd",
+  "included_files": {
+    "README.md": "9e79f60a79602bd3b57aa0186dff089a77f153a0752bce1c6083eb4cf01d4696",
+    "REVIEW_CHECKLIST.md": "cfd9cc18a8019b93eed9084abcd279ed5ff7d640a0dff1a22c20323738c4bec0",
+    "SCORING.md": "a7437108263e7d909253d1eaf43e01a8eca1370facf06b6b86ad1ff03565a425",
+    "SHA256SUMS.txt": "752d4fe939efbc8ae2f2ca51d31e689b91175123a50e4e1dd62e3110766837cb",
+    "cases.json": "be12cecebc20250415874f616a955353b06c8cfc391e9dc62514be130f097305",
+    "fault_variants.json": "67dbd8cda3d9cf2a60cd3473bfc2076896efa0e3cd7893dacfed2c097879349e",
+    "freeze/README.md": "7e2b2e92765484a8d6ae633041b09cab441070951829a099648bf965d5870639",
+    "freeze/validate_frozen.py": "24831b0e8f445de5bcb974b0098d2313e3b7837c6216cd23d6ac448bcda65ed9",
+    "manifest.json": "e77a123682e2c4d0154cec34a0ee300b3d4991c797f910f6ab0d2794eb7aff90",
+    "prepare_candidates.py": "00541af6032de858f9673d42ca69f142b043b48e0bf2c8a8d5b316288a0004f5",
+    "provenance.json": "20efbcbb69fc4a0d43f7c32e681b14dcdb0fd79788cb55a399d4811205958b68",
+    "retrieval_corpus.json": "3ba9dabd869c9418d6c8aae331a14f2257eec68d0b6756d1b4ed39b62841594d",
+    "schema.json": "69d33153b37082d7aa4c35ffcadd4ddd90531e8b2a3720281fc60f3adff5a05e",
+    "schema_definition.py": "ee30e0cd005e1c32f3ff74b315501a5202c9ea6962194e05831f3eab8770fc3b",
+    "validate_candidates.py": "376926e3d2721b650140d3b116ca6a251e05841267ad8346e396ffbaf0e0b143",
+    "wording_changes.json": "e10fa39444fbee03aa36b53451f714f280bea3205effbedd7bdd25a2926b3f64",
+    "freeze/manifest.json": "33adc420b2b7e5e8117084954439daad8dba12700f241858a38c3e237f18b1cd",
+    "freeze/SHA256SUMS.txt": "511cdca62374748fce6d1d2525ec3ccc8b0bff132dfac97fbd02a01258fdf995"
+  },
+  "archived_originals": {
+    "reference/W7-1_24_case_draft_original.md": "69522d08de68cc8ec0eec0c747d80c96c5858ee89f16907755b90b01b8c2ab8f",
+    "reference/W7-1_original_design_report.md": "6707546aeccc9257709c19142aebf7a6f4f6f120f0a312d998a15c830adc281f"
+  },
+  "source_document_verification": "NOT_PERFORMED_IN_PUBLIC_PACKAGE",
+  "original_archive_preserved": true
+}

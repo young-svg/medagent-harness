@@ -223,7 +223,7 @@ def test_agent_loop_traces_validation_errors_without_extra_generation(
             {"answers": [{"request_item_id": item, "answer": "Draft"} for item in request_ids]},
         ]
     )
-    trace = TraceRecorder(tmp_path)
+    trace = TraceRecorder(tmp_path, content_mode="raw")
 
     result = asyncio.run(
         AgentLoop(llm, registry).execute(

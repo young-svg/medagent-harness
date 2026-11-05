@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from medagent.llm.client import LLMClient, LLMResponse
+from medagent.llm.client import LLMClient, LLMProtocolError, LLMResponse
 from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder, redact_trace_value
 
@@ -48,6 +48,8 @@ class GenerationResult:
 def is_retryable_infrastructure_error(error: BaseException) -> bool:
     """Classify only transient transport and provider-capacity failures as retryable."""
 
+    if isinstance(error, LLMProtocolError):
+        return False
     current: BaseException | None = error
     seen: set[int] = set()
     while current is not None and id(current) not in seen:
@@ -122,6 +124,7 @@ async def run_with_length_recovery(
     worker_id: str | None = None,
     subtask_id: str | None = None,
     provider_attempt_index_offset: int = 0,
+    before_call: Callable[[], None] | None = None,
 ) -> GenerationResult:
     """Run one generation plus at most one same-input recovery after truncation."""
 
@@ -133,6 +136,7 @@ async def run_with_length_recovery(
     started = perf_counter()
     usage = _empty_usage()
     recovery_count = 0
+    performed_recovery_count = 0
     infrastructure_retry_count = 0
     attempt_count = 0
     last_response = LLMResponse()
@@ -147,7 +151,7 @@ async def run_with_length_recovery(
                 {
                     "purpose": purpose,
                     "generation_status": status,
-                    "length_recovery_count": recovery_count,
+                    "length_recovery_count": performed_recovery_count,
                     "attempt_count": attempt_count,
                     "usage": usage,
                     "latency_ms": latency_ms,
@@ -160,7 +164,7 @@ async def run_with_length_recovery(
             last_response,
             last_response_id,
             status,
-            recovery_count,
+            performed_recovery_count,
             attempt_count,
             usage,
             latency_ms,
@@ -169,7 +173,20 @@ async def run_with_length_recovery(
         )
 
     while True:
+        if before_call is not None:
+            try:
+                before_call()  # Includes retries/length recovery; never replays any tool.
+            except Exception as error:
+                error.infrastructure_retry_count = (
+                    infrastructure_retry_count - int(pending_infrastructure_retry)
+                )
+                error.length_recovery_count = performed_recovery_count
+                error.provider_attempt_count = attempt_count
+                finish("budget_exhausted")
+                raise
         attempt_count += 1
+        if recovery_count and not pending_infrastructure_retry:
+            performed_recovery_count = recovery_count
         recovery_type = (
             "infrastructure_retry"
             if pending_infrastructure_retry
@@ -255,6 +272,7 @@ async def run_with_length_recovery(
             for name, value in (
                 ("infrastructure_retry_count", infrastructure_retry_count),
                 ("provider_attempt_count", attempt_count),
+                ("length_recovery_count", performed_recovery_count),
             ):
                 try:
                     setattr(error, name, value)

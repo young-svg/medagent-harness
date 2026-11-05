@@ -1,0 +1,2516 @@
+{
+  "fixture_version": "w7-2b-v1-candidate",
+  "approval_status": "CANDIDATE_PENDING_HUMAN_APPROVAL",
+  "synthetic_only": true,
+  "admission_threshold": 0.63,
+  "top_k": 5,
+  "source_records": [
+    {
+      "evidence_id": "SYNTHETIC-G-COUGH",
+      "document_id": "SYNTHETIC-DOC-G-COUGH",
+      "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+      "title": "SYNTHETIC guideline test material: cough",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "cough",
+      "metadata": {
+        "source_kind": "guideline",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+      "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+      "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+      "title": "SYNTHETIC guideline test material: cough",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_guidelines",
+      "topic": "cough",
+      "metadata": {
+        "source_kind": "guideline",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-R-SLEEP",
+      "document_id": "SYNTHETIC-DOC-R-SLEEP",
+      "source_id": "SYNTHETIC-CATALOGUE-R-SLEEP",
+      "title": "SYNTHETIC research test material: exercise_sleep",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "exercise_sleep",
+      "metadata": {
+        "source_kind": "research",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-R-COUGH",
+      "document_id": "SYNTHETIC-DOC-R-COUGH",
+      "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+      "title": "SYNTHETIC research test material: cough",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "cough",
+      "metadata": {
+        "source_kind": "research",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-R-HEADACHE",
+      "document_id": "SYNTHETIC-DOC-R-HEADACHE",
+      "source_id": "SYNTHETIC-CATALOGUE-R-HEADACHE",
+      "title": "SYNTHETIC research test material: hydration_headache",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "hydration_headache",
+      "metadata": {
+        "source_kind": "research",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-C-COUGH",
+      "document_id": "SYNTHETIC-DOC-C-COUGH",
+      "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+      "title": "SYNTHETIC classification test material: cough",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_guidelines",
+      "topic": "cough",
+      "metadata": {
+        "source_kind": "classification",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-X-COUGH",
+      "document_id": "SYNTHETIC-DOC-X-COUGH",
+      "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+      "title": "SYNTHETIC external test material: cough",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "cough",
+      "metadata": {
+        "source_kind": "external",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-G-SLEEP-NEGATIVE",
+      "document_id": "SYNTHETIC-DOC-G-SLEEP-NEGATIVE",
+      "source_id": "SYNTHETIC-CATALOGUE-G-SLEEP-NEGATIVE",
+      "title": "SYNTHETIC guideline test material: exercise_sleep",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "exercise_sleep",
+      "metadata": {
+        "source_kind": "guideline",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    },
+    {
+      "evidence_id": "SYNTHETIC-G-HEADACHE-NEGATIVE",
+      "document_id": "SYNTHETIC-DOC-G-HEADACHE-NEGATIVE",
+      "source_id": "SYNTHETIC-CATALOGUE-G-HEADACHE-NEGATIVE",
+      "title": "SYNTHETIC guideline test material: hydration_headache",
+      "section": "SYNTHETIC",
+      "source": "SYNTHETIC offline W7 catalogue; no real publication",
+      "url": null,
+      "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+      "score": 0.9,
+      "rank": 1,
+      "admitted": false,
+      "admission_reason": "not_evaluated",
+      "collection": "clinical_knowledge",
+      "topic": "hydration_headache",
+      "metadata": {
+        "source_kind": "guideline",
+        "synthetic": true,
+        "fixture_version": "w7-2b-v1-candidate",
+        "fixture_date": "2026-11-04",
+        "real_world_currentness": "NOT_ASSERTED"
+      }
+    }
+  ],
+  "request_bindings": [
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "guideline",
+      "acceptable_source_categories": [
+        "guideline"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-G-COUGH-SPECIAL"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge",
+        "clinical_guideline"
+      ]
+    },
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ2",
+      "execution": "reuse_only",
+      "topic": "cough",
+      "source_category": "guideline",
+      "acceptable_source_categories": [
+        "guideline"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-G-COUGH-SPECIAL"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge",
+        "clinical_guideline"
+      ]
+    },
+    {
+      "case_id": "E01",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "guideline",
+      "acceptable_source_categories": [
+        "guideline"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-G-COUGH-SPECIAL"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge",
+        "clinical_guideline"
+      ]
+    },
+    {
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "exercise_sleep",
+      "source_category": "research",
+      "acceptable_source_categories": [
+        "research"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "classification",
+      "acceptable_source_categories": [
+        "classification"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-C-COUGH"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "disease_code"
+      ]
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ2",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "research",
+      "acceptable_source_categories": [
+        "research"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-R-COUGH"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "exercise_sleep",
+      "source_category": "research",
+      "acceptable_source_categories": [
+        "research"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "execution": "retrieve",
+      "topic": "hydration_headache",
+      "source_category": "research",
+      "acceptable_source_categories": [
+        "research"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "external",
+      "acceptable_source_categories": [
+        "guideline",
+        "research",
+        "classification",
+        "external"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-R-COUGH",
+        "SYNTHETIC-X-COUGH"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "case_id": "E06",
+      "request_item_id": "RQ2",
+      "execution": "retrieve",
+      "topic": "cough",
+      "source_category": "guideline",
+      "acceptable_source_categories": [
+        "guideline"
+      ],
+      "success_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-G-COUGH-SPECIAL"
+      ],
+      "success_source_ids_semantics": "catalogue_examples_not_whitelist",
+      "tools": [
+        "search_knowledge",
+        "clinical_guideline"
+      ]
+    }
+  ],
+  "retrieval_cases": [
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "D05",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E01",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E01",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E01",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E01",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-SLEEP",
+          "document_id": "SYNTHETIC-DOC-R-SLEEP",
+          "source_id": "SYNTHETIC-CATALOGUE-R-SLEEP",
+          "title": "SYNTHETIC research test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-SLEEP",
+          "document_id": "SYNTHETIC-DOC-R-SLEEP",
+          "source_id": "SYNTHETIC-CATALOGUE-R-SLEEP",
+          "title": "SYNTHETIC research test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-SLEEP-NEGATIVE",
+          "document_id": "SYNTHETIC-DOC-G-SLEEP-NEGATIVE",
+          "source_id": "SYNTHETIC-CATALOGUE-G-SLEEP-NEGATIVE",
+          "title": "SYNTHETIC guideline test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ2",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ2",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ2",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E03",
+      "request_item_id": "RQ2",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-SLEEP",
+          "document_id": "SYNTHETIC-DOC-R-SLEEP",
+          "source_id": "SYNTHETIC-CATALOGUE-R-SLEEP",
+          "title": "SYNTHETIC research test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-SLEEP",
+          "document_id": "SYNTHETIC-DOC-R-SLEEP",
+          "source_id": "SYNTHETIC-CATALOGUE-R-SLEEP",
+          "title": "SYNTHETIC research test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-SLEEP-NEGATIVE",
+          "document_id": "SYNTHETIC-DOC-G-SLEEP-NEGATIVE",
+          "source_id": "SYNTHETIC-CATALOGUE-G-SLEEP-NEGATIVE",
+          "title": "SYNTHETIC guideline test material: exercise_sleep",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "exercise_sleep",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-HEADACHE",
+          "document_id": "SYNTHETIC-DOC-R-HEADACHE",
+          "source_id": "SYNTHETIC-CATALOGUE-R-HEADACHE",
+          "title": "SYNTHETIC research test material: hydration_headache",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "hydration_headache",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-HEADACHE",
+          "document_id": "SYNTHETIC-DOC-R-HEADACHE",
+          "source_id": "SYNTHETIC-CATALOGUE-R-HEADACHE",
+          "title": "SYNTHETIC research test material: hydration_headache",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "hydration_headache",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-HEADACHE-NEGATIVE",
+          "document_id": "SYNTHETIC-DOC-G-HEADACHE-NEGATIVE",
+          "source_id": "SYNTHETIC-CATALOGUE-G-HEADACHE-NEGATIVE",
+          "title": "SYNTHETIC guideline test material: hydration_headache",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "hydration_headache",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "variant": "wrong_category",
+      "records": [],
+      "applicable": false,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_applicable"
+    },
+    {
+      "case_id": "E06",
+      "request_item_id": "RQ2",
+      "variant": "success",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "eligible_not_sufficient"
+    },
+    {
+      "case_id": "E06",
+      "request_item_id": "RQ2",
+      "variant": "no_results",
+      "records": [],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E06",
+      "request_item_id": "RQ2",
+      "variant": "low_score",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH",
+          "document_id": "SYNTHETIC-DOC-G-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-G-COUGH-SPECIAL",
+          "document_id": "SYNTHETIC-DOC-G-COUGH-SPECIAL",
+          "source_id": "SYNTHETIC-CATALOGUE-G-COUGH-SPECIAL",
+          "title": "SYNTHETIC guideline test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC guideline-like test material: record supplied symptoms and unknown details; management descriptions remain conditional. Not a real clinical guideline or recommendation.",
+          "score": 0.2,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "guideline",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    },
+    {
+      "case_id": "E06",
+      "request_item_id": "RQ2",
+      "variant": "wrong_category",
+      "records": [
+        {
+          "evidence_id": "SYNTHETIC-R-COUGH",
+          "document_id": "SYNTHETIC-DOC-R-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-R-COUGH",
+          "title": "SYNTHETIC research test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC paper-like test material for provenance testing only. No real participants, results, publication, DOI or causal effect is asserted.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "research",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-C-COUGH",
+          "document_id": "SYNTHETIC-DOC-C-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-C-COUGH",
+          "title": "SYNTHETIC classification test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC coding test material: SYNTHETIC-CODE-COUGH-001 is an invented test identifier, NOT an ICD or other real disease code.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_guidelines",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "classification",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        },
+        {
+          "evidence_id": "SYNTHETIC-X-COUGH",
+          "document_id": "SYNTHETIC-DOC-X-COUGH",
+          "source_id": "SYNTHETIC-CATALOGUE-X-COUGH",
+          "title": "SYNTHETIC external test material: cough",
+          "section": "SYNTHETIC",
+          "source": "SYNTHETIC offline W7 catalogue; no real publication",
+          "url": null,
+          "text": "SYNTHETIC external reference test material: supplied and unknown case information must remain separate. Not a real medical source.",
+          "score": 0.9,
+          "rank": 1,
+          "admitted": false,
+          "admission_reason": "not_evaluated",
+          "collection": "clinical_knowledge",
+          "topic": "cough",
+          "metadata": {
+            "source_kind": "external",
+            "synthetic": true,
+            "fixture_version": "w7-2b-v1-candidate",
+            "fixture_date": "2026-11-04",
+            "real_world_currentness": "NOT_ASSERTED"
+          }
+        }
+      ],
+      "applicable": true,
+      "selection_required_before_return": [
+        "tool",
+        "collection",
+        "topic"
+      ],
+      "expected_evidence_gate": "not_satisfied"
+    }
+  ],
+  "query_rules": {
+    "version": "w7-query-selection-v1.1-candidate",
+    "normalization": "NFKC_casefold_collapse_whitespace",
+    "matching": "all_concept_groups_any_alias",
+    "latin_match": "whole_words_or_phrases",
+    "han_match": "substring",
+    "multiple_topics": "reject_ambiguous",
+    "rq_only_fallback": false,
+    "topic_concept_groups": {
+      "cough": [
+        [
+          "cough",
+          "coughs",
+          "coughing",
+          "咳嗽"
+        ]
+      ],
+      "exercise_sleep": [
+        [
+          "exercise",
+          "physical activity",
+          "physical activities",
+          "workout",
+          "workouts",
+          "运动",
+          "锻炼",
+          "体育活动"
+        ],
+        [
+          "sleep",
+          "sleeping",
+          "sleep quality",
+          "nighttime rest",
+          "睡眠",
+          "入睡"
+        ]
+      ],
+      "hydration_headache": [
+        [
+          "hydration",
+          "fluid intake",
+          "water intake",
+          "drinking water",
+          "饮水",
+          "补水",
+          "水分摄入"
+        ],
+        [
+          "headache",
+          "headaches",
+          "head pain",
+          "头痛",
+          "头疼"
+        ]
+      ]
+    },
+    "tool_collections": {
+      "search_knowledge": "clinical_knowledge",
+      "clinical_guideline": "clinical_guidelines",
+      "disease_code": "clinical_guidelines"
+    }
+  },
+  "query_match_examples": [
+    {
+      "example_id": "E02-en-synonyms",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "physical activity and sleep quality papers",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E02-zh-synonyms",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "锻炼与入睡相关研究",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E02-reordered",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "nighttime rest after workouts",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E02-normalized",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "ＰＨＹＳＩＣＡＬ　ＡＣＴＩＶＩＴＹ and SLEEP",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E04-rq1-en",
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "query": "research on workouts and sleeping",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E04-rq1-zh",
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "query": "体育活动和睡眠的文献",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ]
+    },
+    {
+      "example_id": "E04-rq2-en",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "fluid intake and head pain articles",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ]
+    },
+    {
+      "example_id": "E04-rq2-zh",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "补水与头疼的研究",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ]
+    },
+    {
+      "example_id": "E04-rq2-alternative",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "headaches related to drinking water",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ]
+    },
+    {
+      "example_id": "E02RQ1-wrong-topic",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "fluid intake head pain",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "wrong_topic",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E02RQ1-wrong-collection",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "physical activity sleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_guidelines",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "collection_mismatch",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04RQ1-wrong-topic",
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "query": "fluid intake head pain",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "wrong_topic",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04RQ1-wrong-collection",
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "query": "physical activity sleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_guidelines",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "collection_mismatch",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04RQ2-wrong-topic",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "physical activity sleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "wrong_topic",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04RQ2-wrong-collection",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "fluid intake head pain",
+      "tool": "search_knowledge",
+      "collection": "clinical_guidelines",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "collection_mismatch",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E02-one-concept",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "sleep quality only",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "no_topic_match",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04-one-concept",
+      "case_id": "E04",
+      "request_item_id": "RQ2",
+      "query": "headaches only",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-HEADACHE"
+      ],
+      "expected_status": "no_topic_match",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E02-subword",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "exercise oversleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "no_topic_match",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E02-empty-query",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "no_topic_match",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E04-ambiguous",
+      "case_id": "E04",
+      "request_item_id": "RQ1",
+      "query": "exercise sleep and fluid intake headache",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "ambiguous_topic",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E02-unrelated-source",
+      "case_id": "E02",
+      "request_item_id": "RQ1",
+      "query": "exercise sleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-COUGH"
+      ],
+      "expected_status": "source_ineligible",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E05-guideline",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "coughing reference material",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-G-COUGH"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-G-COUGH"
+      ]
+    },
+    {
+      "example_id": "E05-research",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "coughing reference material",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-COUGH"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-R-COUGH"
+      ]
+    },
+    {
+      "example_id": "E05-external",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "coughing reference material",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-X-COUGH"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-X-COUGH"
+      ]
+    },
+    {
+      "example_id": "E05-all-reasonable",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "咳嗽相关资料",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-R-COUGH",
+        "SYNTHETIC-X-COUGH"
+      ],
+      "expected_status": "eligible",
+      "expected_source_ids": [
+        "SYNTHETIC-G-COUGH",
+        "SYNTHETIC-R-COUGH",
+        "SYNTHETIC-X-COUGH"
+      ]
+    },
+    {
+      "example_id": "E05-no-new-tool",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "cough code",
+      "tool": "disease_code",
+      "collection": "clinical_guidelines",
+      "candidate_source_ids": [
+        "SYNTHETIC-C-COUGH"
+      ],
+      "expected_status": "tool_denied",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E05-wrong-collection",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "cough",
+      "tool": "search_knowledge",
+      "collection": "clinical_guidelines",
+      "candidate_source_ids": [
+        "SYNTHETIC-G-COUGH-SPECIAL"
+      ],
+      "expected_status": "collection_mismatch",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E05-source-collection",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "cough",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-C-COUGH"
+      ],
+      "expected_status": "source_ineligible",
+      "expected_source_ids": []
+    },
+    {
+      "example_id": "E05-wrong-topic",
+      "case_id": "E05",
+      "request_item_id": "RQ1",
+      "query": "exercise sleep",
+      "tool": "search_knowledge",
+      "collection": "clinical_knowledge",
+      "candidate_source_ids": [
+        "SYNTHETIC-R-SLEEP"
+      ],
+      "expected_status": "wrong_topic",
+      "expected_source_ids": []
+    }
+  ],
+  "selector_contract": {
+    "implemented": false,
+    "must_match": [
+      "case_id",
+      "request_item_id",
+      "tool",
+      "collection",
+      "query_topic"
+    ],
+    "no_match": "empty",
+    "ambiguous_match": "reject_and_report",
+    "source_id_policy": "catalogue_membership_required_not_example_id_whitelist",
+    "reference_predicate": "validate_candidates.py::select_fixture_candidates",
+    "warning": "Native Fake returns its input list, not this selector. Do not claim topic retrieval is implemented or measured."
+  },
+  "response_variants": {
+    "success": {
+      "selection": "catalogue sources matching actual query topic/tool/collection and allowed categories; example IDs do not authorize or restrict sources",
+      "score": 0.9
+    },
+    "no_results": {
+      "selection": "empty"
+    },
+    "low_score": {
+      "selection": "bound sources copied with low score",
+      "score": 0.2
+    },
+    "wrong_category": {
+      "selection": "same-topic sources outside allowed category",
+      "score": 0.9
+    },
+    "tool_error": {
+      "selection": "raise a synthetic test exception, no admitted sources"
+    },
+    "rag_off": {
+      "selection": "disabled backend, no admitted sources"
+    }
+  },
+  "limitations": [
+    "不是检索质量或医学蕴含实验",
+    "不验证真实文献/指南的时效性",
+    "不把 Fake 分数等同于 Milvus 相似度",
+    "语料与选择规则均待人工批准"
+  ]
+}

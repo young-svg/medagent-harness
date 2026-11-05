@@ -9,17 +9,29 @@ from medagent.agents.base import AgentDefinition, RequestItemAnswer, WorkerResul
 from medagent.context.contract import AnswerContract
 from medagent.context.evidence_ledger import EvidenceLedger
 from medagent.context.request_spec import RequestSpec
-from medagent.llm.client import LLMClient
+from medagent.guardrails.untrusted_context import (
+    CONTEXT_BOUNDARY,
+    contains_instruction_spoof,
+    context_risk,
+)
+from medagent.llm.client import LLMClient, LLMProtocolError, valid_tool_call_id
 from medagent.llm.generation import GenerationPolicy, run_with_length_recovery
 from medagent.observability.llm import complete_with_trace
 from medagent.observability.tracer import TraceRecorder
 from medagent.planning.complexity import ResponseProfile, TaskComplexityProfile
 from medagent.planning.models import Subtask
+from medagent.retrieval.evidence import EvidenceBundle
+from medagent.runtime.coverage import cited_evidence_ids, evaluate_evidence_coverage
 from medagent.runtime.handoff import WorkerHandoff
 from medagent.skills.loader import ProceduralSkill
 from medagent.tools.registry import ToolExecutionContext, ToolRegistry
+from medagent.tools.schemas import ToolArgumentError
 
 MAX_PROTOCOL_RECOVERY_PER_WORKER = 1
+
+
+class WorkerBudgetExceeded(RuntimeError):
+    """A terminal per-subtask budget failure, never a retryable provider error."""
 
 _PROTOCOL_RECOVERY_SYSTEM = """You are a serialization repair step.
 
@@ -63,6 +75,7 @@ class ProtocolRecoveryResult:
     success: bool
     provider_attempt_count: int
     response_id: str | None = None
+    provider_failed: bool = False
 
 
 def _validated_answers(
@@ -218,10 +231,14 @@ class AgentLoop:
         max_length_recoveries: int = 1,
         max_infrastructure_retries: int = 2,
         infrastructure_retry_base_delay_seconds: float = 1.0,
+        max_model_rounds: int = 8,
     ) -> None:
         self.llm = llm
         self.tools = tools
         self.max_tool_calls = max_tool_calls
+        if type(max_model_rounds) is not int or max_model_rounds < 1:
+            raise ValueError("max_model_rounds must be positive")
+        self.max_model_rounds = max_model_rounds
         self.generation_policy = GenerationPolicy(max_tokens, max_length_recoveries)
         self.max_infrastructure_retries = max_infrastructure_retries
         self.infrastructure_retry_base_delay_seconds = (
@@ -293,7 +310,8 @@ class AgentLoop:
                 parent_event_id=start_id,
             )
             return ProtocolRecoveryResult(
-                WorkerResponseParseResult([], "invalid"), True, False, 1
+                WorkerResponseParseResult([], "invalid"), True, False, 1,
+                provider_failed=not isinstance(error, LLMProtocolError),
             )
 
         parsed = (
@@ -345,6 +363,7 @@ class AgentLoop:
         *,
         parent_event_id: str | None = None,
         handoffs: tuple[WorkerHandoff, ...] = (),
+        evidence_bundle: EvidenceBundle | None = None,
     ) -> WorkerResult:
         messages: list[dict[str, object]] = [
             {
@@ -357,8 +376,20 @@ class AgentLoop:
                     "assigned request_item_ids, and answer each assigned item separately. "
                     "Use tools only when they materially help satisfy the requested "
                     "deliverables. Do not expand into unrequested clinical sections. "
+                    "When an assigned item explicitly requests external sources, retrieve "
+                    "them with an authorized tool or use a validated upstream source. Cite "
+                    "each used admitted source as [EVIDENCE:<evidence_id>] in that item's "
+                    "answer. Never invent source IDs or claim retrieval without results. "
+                    "An explicit paper request needs a result catalogued as research; a "
+                    "generic knowledge hit or a guideline/code is not proof of a paper. "
+                    "For retrieval with several assigned RQs, provide request_item_id for "
+                    "exactly one assigned RQ. Results are authorized only for that RQ; "
+                    "retrieve separately for another RQ. Upstream sources may be reused "
+                    "only when the current request explicitly asks to reuse them, not "
+                    "to satisfy a new independent lookup. "
                     f"Response objective: {response_profile.objective}\n\n"
                     f"Public procedural skill ({skill.name}):\n{skill.instructions}"
+                    + CONTEXT_BOUNDARY
                 ),
             },
             {
@@ -386,13 +417,23 @@ class AgentLoop:
             payload = json.loads(messages[1]["content"])
             payload["upstream_handoffs"] = [item.to_dict() for item in handoffs]
             messages[1]["content"] = json.dumps(payload, ensure_ascii=False)
+        if evidence_bundle is not None and evidence_bundle.evidence_requirements is not None:
+            payload = json.loads(messages[1]["content"])
+            payload["external_evidence_requirements"] = [
+                r.to_dict() for r in evidence_bundle.evidence_requirements
+                if r.request_item_id in subtask.request_item_ids
+            ]
+            messages[1]["content"] = json.dumps(payload, ensure_ascii=False)
         calls = 0
         length_recovery_count = 0
         infrastructure_retry_count = 0
         provider_attempt_count = 0
         protocol_recovery_count = 0
         protocol_recovery_success_count = 0
-        sent_evidence_ids: set[str] = set()
+        model_round_count = 0
+        tool_error_count = 0
+        sent_evidence_ids: set[tuple[str | None, str]] = set()
+        processed_tool_call_ids: set[str] = set()
         assigned_ids = set(subtask.request_item_ids)
         assigned_items = tuple(item for item in request_spec.items if item.id in assigned_ids)
         assigned_spans = {item.source_span for item in assigned_items}
@@ -409,12 +450,49 @@ class AgentLoop:
             ),
         )
         generation_parent_id = parent_event_id
+
+        def consume_model_round() -> None:
+            nonlocal model_round_count
+            if model_round_count >= self.max_model_rounds:
+                raise WorkerBudgetExceeded("model_round_budget_exhausted")
+            model_round_count += 1
+            trace.record("worker_model_round", {
+                "subtask_id": subtask.subtask_id,
+                "model_round_count": model_round_count,
+                "max_model_rounds": self.max_model_rounds,
+            }, stage="worker", agent=agent.agent_id, parent_event_id=generation_parent_id)
+
+        def fail(status: str, reason: str) -> WorkerResult:
+            result = WorkerResult(
+                worker=agent.agent_id, subtask_id=subtask.subtask_id, answer="", success=False,
+                tool_calls=calls, generation_status=status, worker_status=status,
+                failure_reason=reason, length_recovery_count=length_recovery_count,
+                infrastructure_retry_count=infrastructure_retry_count,
+                provider_attempt_count=model_round_count,
+                protocol_recovery_count=protocol_recovery_count,
+                protocol_recovery_success_count=protocol_recovery_success_count,
+                model_round_count=model_round_count, tool_error_count=tool_error_count,
+            )
+            result.trace_event_id = trace.record("worker_draft", result.to_dict(), stage="worker",
+                                                agent=agent.agent_id,
+                                                parent_event_id=generation_parent_id)
+            return result
+
         while True:
-            schemas = self.tools.schemas_for(agent.agent_id)
+            if evidence_bundle is not None and evidence_bundle.evidence_requirements is not None:
+                schemas = self.tools.schemas_for(agent.agent_id, context=tool_context) \
+                    if calls < self.max_tool_calls else []
+            else:
+                schemas = self.tools.schemas_for(agent.agent_id) \
+                    if calls < self.max_tool_calls else []
             try:
                 generation = await run_with_length_recovery(
                     self.llm,
-                    policy=self.generation_policy,
+                    policy=GenerationPolicy(
+                        self.generation_policy.max_tokens,
+                        max(0, self.generation_policy.max_length_recoveries
+                            - length_recovery_count),
+                    ),
                     stage="worker",
                     agent=agent.agent_id,
                     messages=messages,
@@ -428,42 +506,30 @@ class AgentLoop:
                     ),
                     trace=trace,
                     parent_event_id=generation_parent_id,
-                    max_infrastructure_retries=self.max_infrastructure_retries,
+                    max_infrastructure_retries=max(
+                        0, self.max_infrastructure_retries - infrastructure_retry_count,
+                    ),
                     infrastructure_retry_base_delay_seconds=(
                         self.infrastructure_retry_base_delay_seconds
                     ),
                     worker_id=agent.agent_id,
                     subtask_id=subtask.subtask_id,
                     provider_attempt_index_offset=provider_attempt_count,
+                    before_call=consume_model_round,
                 )
             except Exception as error:
+                length_recovery_count += int(getattr(error, "length_recovery_count", 0))
                 infrastructure_retry_count += int(
                     getattr(error, "infrastructure_retry_count", 0)
                 )
                 provider_attempt_count += int(getattr(error, "provider_attempt_count", 1))
-                result = WorkerResult(
-                    worker=agent.agent_id,
-                    subtask_id=subtask.subtask_id,
-                    answer="",
-                    success=False,
-                    tool_calls=calls,
-                    generation_status="provider_error",
-                    length_recovery_count=length_recovery_count,
-                    failure_reason="provider_error",
-                    infrastructure_retry_count=infrastructure_retry_count,
-                    provider_attempt_count=provider_attempt_count,
-                    protocol_recovery_count=protocol_recovery_count,
-                    protocol_recovery_success_count=protocol_recovery_success_count,
-                    worker_status="provider_error",
-                )
-                result.trace_event_id = trace.record(
-                    "worker_draft",
-                    result.to_dict(),
-                    stage="worker",
-                    agent=agent.agent_id,
-                    parent_event_id=generation_parent_id,
-                )
-                return result
+                if isinstance(error, WorkerBudgetExceeded):
+                    return fail("budget_exhausted", "model_round_budget_exhausted")
+                status = ("protocol_error" if isinstance(error, LLMProtocolError)
+                          else "provider_error")
+                reason = ("invalid_tool_call_id" if isinstance(error, LLMProtocolError)
+                          and str(error) == "invalid_tool_call_id" else status)
+                return fail(status, reason)
             infrastructure_retry_count += generation.infrastructure_retry_count
             provider_attempt_count += generation.provider_attempt_count
             response = generation.response
@@ -478,6 +544,7 @@ class AgentLoop:
                     response.content, subtask.request_item_ids
                 )
                 final_response_id = response_id
+                recovery_provider_failed = False
                 protocol_recovery_eligible = (
                     generation_status != "length_exhausted"
                     and response.finish_reason == "stop"
@@ -486,6 +553,10 @@ class AgentLoop:
                     and protocol_recovery_count < MAX_PROTOCOL_RECOVERY_PER_WORKER
                 )
                 if protocol_recovery_eligible:
+                    try:
+                        consume_model_round()
+                    except WorkerBudgetExceeded:
+                        return fail("budget_exhausted", "model_round_budget_exhausted")
                     recovery = await self._attempt_protocol_recovery(
                         agent=agent,
                         subtask=subtask,
@@ -497,6 +568,7 @@ class AgentLoop:
                     )
                     protocol_recovery_count += int(recovery.attempted)
                     protocol_recovery_success_count += int(recovery.success)
+                    recovery_provider_failed = recovery.provider_failed
                     provider_attempt_count += recovery.provider_attempt_count
                     if recovery.success:
                         parsed_response = recovery.parsed
@@ -508,10 +580,18 @@ class AgentLoop:
                 if generation_status == "length_exhausted":
                     failure_reason = "generation_length_exhausted"
                 elif not success:
-                    failure_reason = "invalid_or_empty_worker_response"
+                    failure_reason = ("provider_error" if recovery_provider_failed
+                                      else "invalid_or_empty_worker_response")
                 normalized_answer = "\n\n".join(
                     item.answer for item in request_item_answers
                 )
+                if contains_instruction_spoof(normalized_answer):
+                    success = False
+                    failure_reason = "instruction_spoof_in_worker_answer"
+                elif context_risk(normalized_answer) == "suspicious":
+                    trace.record("context_risk", {"context_risk_count": 1},
+                                 stage="worker", agent=agent.agent_id,
+                                 parent_event_id=final_response_id)
                 result = WorkerResult(
                     worker=agent.agent_id,
                     subtask_id=subtask.subtask_id,
@@ -527,7 +607,40 @@ class AgentLoop:
                     protocol_recovery_success_count=protocol_recovery_success_count,
                     worker_status="success" if success else "generation_error",
                     request_item_answers=request_item_answers,
+                    model_round_count=model_round_count,
+                    tool_error_count=tool_error_count,
                 )
+                if not success and failure_reason == "invalid_or_empty_worker_response":
+                    result.worker_status = "protocol_error"
+                elif not success and failure_reason == "provider_error":
+                    result.worker_status = "provider_error"
+                elif not success and failure_reason == "generation_length_exhausted":
+                    result.worker_status = "budget_exhausted"
+                if success and evidence_bundle is not None:
+                    allowed = {item.id: evidence_bundle.available(subtask.subtask_id, item.id)
+                               for item in assigned_items}
+                    evidence_check = evaluate_evidence_coverage(
+                        RequestSpec(list(assigned_items)),
+                        {a.request_item_id: a.answer for a in request_item_answers},
+                        evidence_bundle, allowed, subtask_id=subtask.subtask_id,
+                    )
+                    evidence_bundle.worker_checks[subtask.subtask_id] = evidence_check
+                    trace.record("evidence_acceptance", evidence_check, stage="worker",
+                                 agent=agent.agent_id, parent_event_id=final_response_id)
+                    if not evidence_check["complete"]:
+                        result.success = False
+                        result.worker_status = "evidence_error"
+                        result.failure_reason = "evidence_requirement_unsatisfied"
+                    else:
+                        for answer in request_item_answers:
+                            accepted = (cited_evidence_ids(answer.answer)
+                                        & allowed.get(answer.request_item_id, set()))
+                            evidence_bundle.accepted_by_request.setdefault(
+                                answer.request_item_id, set(),
+                            ).update(accepted)
+                            evidence_bundle.accepted_by_task.setdefault(
+                                (subtask.subtask_id, answer.request_item_id), set(),
+                            ).update(accepted)
                 worker_payload = result.to_dict()
                 worker_payload["parse_status"] = parsed_response.parse_status
                 worker_payload["recovery_method"] = parsed_response.recovery_method
@@ -539,6 +652,15 @@ class AgentLoop:
                     parent_event_id=final_response_id,
                 )
                 return result
+            # Validate the whole batch before appending an assistant/tool exchange or
+            # executing anything. Never continue a conversation with unmatched tool IDs.
+            batch_ids: set[str] = set()
+            for call in response.tool_calls:
+                if not valid_tool_call_id(call.id):
+                    return fail("protocol_error", "invalid_tool_call_id")
+                if call.id in processed_tool_call_ids or call.id in batch_ids:
+                    return fail("protocol_error", "duplicate_tool_call_id")
+                batch_ids.add(call.id)
             messages.append(
                 {
                     "role": "assistant",
@@ -558,11 +680,15 @@ class AgentLoop:
             )
             for call in response.tool_calls:
                 if calls >= self.max_tool_calls:
-                    output: object = {"error": "tool call budget exhausted"}
+                    return fail("budget_exhausted", "tool_call_budget_exhausted")
                 else:
+                    # Reserve before dispatch, including handlers that mutate then fail.
+                    # This local set survives every model/recovery turn of this task.
+                    processed_tool_call_ids.add(call.id)
                     call_id = trace.record(
                         "tool_call",
-                        {"name": call.name, "arguments": call.arguments},
+                        {"name": call.name, "arguments": call.arguments,
+                         "subtask_id": subtask.subtask_id},
                         stage="tool",
                         agent=agent.agent_id,
                         parent_event_id=response_id,
@@ -574,8 +700,15 @@ class AgentLoop:
                         output = await self.tools.execute(
                             agent.agent_id, call.name, call.arguments, context=tool_context
                         )
-                    except (LookupError, PermissionError, RuntimeError, TypeError) as error:
-                        output = {"error": str(error)}
+                    except Exception as error:
+                        tool_error_count += 1
+                        error_type = getattr(error, "retrieval_error_type", type(error).__name__)
+                        output = (
+                            {"error": str(error), "error_type": error_type}
+                            if isinstance(error, ToolArgumentError)
+                            else {"error": error_type, "error_type": error_type,
+                                  "message": "tool execution failed"}
+                        )
                         retrieval_trace = getattr(error, "retrieval_trace", None)
                         retrieval_error_type = getattr(error, "retrieval_error_type", None)
                     if isinstance(output, dict) and "_trace_retrieval" in output:
@@ -586,6 +719,7 @@ class AgentLoop:
                             "retrieval_query",
                             {
                                 "tool": call.name,
+                                "retrieval_id": retrieval_trace.get("retrieval_id"),
                                 "query": retrieval_trace.get("query"),
                                 "collection": retrieval_trace.get("collection"),
                                 "routing_reason": retrieval_trace.get("routing_reason"),
@@ -617,24 +751,42 @@ class AgentLoop:
                                 "retrieval_result",
                                 {
                                     "tool": call.name,
+                                    "request_item_ids": retrieval_trace.get("request_item_ids", []),
+                                    "retrieval_id": retrieval_trace.get("retrieval_id"),
+                                    "admitted_count": len(
+                                        retrieval_trace.get("compact_evidence", [])),
                                     "raw_candidates": retrieval_trace.get("raw_candidates", []),
                                     "admission": retrieval_trace.get("admission", []),
                                     "compact_evidence": retrieval_trace.get("compact_evidence", []),
+                                    "quarantined_count": retrieval_trace.get(
+                                        "quarantined_count", 0,
+                                    ),
+                                    "context_risk_count": retrieval_trace.get(
+                                        "context_risk_count", 0,
+                                    ),
                                 },
                                 stage="retrieval",
                                 agent=agent.agent_id,
                                 parent_event_id=query_id,
                             )
+                        if evidence_bundle is not None:
+                            for record in evidence_bundle.retrievals:
+                                if record.get("retrieval_id") == retrieval_trace.get(
+                                    "retrieval_id",
+                                ):
+                                    record.update(query_event_id=query_id,
+                                                  source_event_id=result_parent)
+                    target_ids = retrieval_trace.get("request_item_ids", []) \
+                        if isinstance(retrieval_trace, dict) else []
+                    target_id = target_ids[0] if len(target_ids) == 1 else None
                     if isinstance(output, dict) and isinstance(output.get("admitted"), list):
                         deduplicated = []
                         for evidence in output["admitted"]:
                             if not isinstance(evidence, dict):
                                 continue
                             evidence_id = str(evidence.get("evidence_id") or "")
-                            if evidence_id and evidence_id in sent_evidence_ids:
+                            if evidence_id and (target_id, evidence_id) in sent_evidence_ids:
                                 continue
-                            if evidence_id:
-                                sent_evidence_ids.add(evidence_id)
                             deduplicated.append(evidence)
                         output = {
                             **output,
@@ -649,9 +801,33 @@ class AgentLoop:
                             ),
                             "admitted": deduplicated,
                         }
+                    if contains_instruction_spoof(output):
+                        output = {"error": "untrusted_context_quarantined"}
+                    elif context_risk(output) == "suspicious":
+                        trace.record("context_risk", {"context_risk_count": 1},
+                                     stage="tool", agent=agent.agent_id,
+                                     parent_event_id=result_parent)
+                    if isinstance(output, dict) and isinstance(output.get("admitted"), list):
+                        delivered = {str(e["evidence_id"]) for e in output["admitted"]
+                                     if isinstance(e, dict) and e.get("evidence_id")}
+                        sent_evidence_ids.update((target_id, value) for value in delivered)
+                        if evidence_bundle is not None:
+                            if target_id and not retrieval_error_type:
+                                admitted = {str(e["evidence_id"]): e for e in
+                                            retrieval_trace.get("compact_evidence", [])}
+                                evidence_bundle.deliveries.extend({
+                                    "subtask_id": subtask.subtask_id,
+                                    "request_item_id": target_id,
+                                    "origin_request_item_id": target_id,
+                                    "tool": call.name, "evidence_id": value,
+                                    "source_kind": admitted[value]["source_kind"],
+                                    "source_event_id": result_parent,
+                                } for value in delivered & admitted.keys())
                     generation_parent_id = trace.record(
                         "tool_result",
-                        {"name": call.name, "result": output},
+                        {"name": call.name, "result": output, "subtask_id": subtask.subtask_id,
+                         "status": "tool_error" if isinstance(output, dict) and "error" in output
+                         else "success"},
                         stage="tool",
                         agent=agent.agent_id,
                         parent_event_id=result_parent,

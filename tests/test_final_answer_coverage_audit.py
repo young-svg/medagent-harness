@@ -94,7 +94,9 @@ def _run(
         responses = [plan, _answer(("RQ1", DIAGNOSIS)), _answer(*care_pairs), synthesis]
     llm = ScriptedLLM(responses)
     engine = NativeMedAgentEngine(
-        RuntimeConfig(trace_dir=str(tmp_path)),
+        RuntimeConfig(
+            trace_content_mode="raw",
+            semantic_validation_enabled=False, trace_dir=str(tmp_path)),
         llm=llm,
         retrieval_backend=FakeRetrievalBackend([]),
     )
@@ -329,7 +331,9 @@ def test_content_removed_by_patch_is_recovered_and_checked_again(
     assert result["status"] == "completed"
     assert _payload(events, "final_request_coverage")["recovered_request_items"] == ["RQ2"]
     checks = [event["payload"] for event in events if event["event_type"] == "checker_input"]
-    assert len(checks) == 2
+    assert [check["attempt"] for check in checks if "attempt" in check] == [0, 1]
+    assert checks[-1]["phase"] == "final"
+    assert len(checks) == 3
     assert CARE in checks[-1]["draft"] and "synth-only" not in checks[-1]["draft"]
 
 
@@ -490,7 +494,7 @@ def test_cross_section_sanitization_cannot_keep_stale_coverage(tmp_path):
     assert _payload(events, "final_request_coverage")["recovered_request_items"] == []
 
 
-def test_guardrail_treats_optional_deliverable_as_missing():
+def test_guardrail_does_not_treat_optional_deliverable_as_missing():
     contract = AnswerContract(
         intent="multi_deliverable",
         requested_deliverables=["DIAGNOSIS_WITH_BASIS", "TREATMENT_PLAN"],
@@ -499,8 +503,8 @@ def test_guardrail_treats_optional_deliverable_as_missing():
     )
     contract.validate()
     check = Guardrail().check(DIAGNOSIS, contract, EvidenceLedger())
-    assert check.passed is False
-    assert check.missing == ["TREATMENT_PLAN"]
+    assert check.passed is True
+    assert check.missing == []
     assert check.edits == []
 
 
