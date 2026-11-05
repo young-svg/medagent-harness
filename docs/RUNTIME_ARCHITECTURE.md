@@ -1,6 +1,6 @@
 # Runtime Architecture
 
-> **Version boundary — documentation-only review.** This branch is based on release `6147196` and adds only five documentation/SVG files. The W1–W7 implementation described here belongs to the unpublished local development snapshot `499d2fa`; it is **not included in this branch**. Shared source paths here still resolve to older release code and do not verify the development claims. The existing static Demo is unchanged.
+> **Development snapshot `499d2fa`.** This docs-only branch retains release `6147196` code. Development additions below are not shipped here; shared source links open the older release. See [version mapping](ARCHITECTURE.md#version-and-source-mapping).
 
 ![MedAgent Harness Runtime Architecture: W1 specification and deterministic Policy, DAG-ready bounded Workers and Handoff, shared structural, evidence and W2 semantic acceptance.](assets/medagent-architecture.svg)
 
@@ -38,7 +38,7 @@ dispatch. Invalid dependency plans do not silently become independent work.
 plans. For a graph containing dependencies, it preserves identities and dependencies,
 skips focused/low-scope collapse and same-role merging, and rejects policy removal
 of any graph task. RequestSpec ownership is still checked by existing policy.
-The release reconciliation pass also restores missing required deliverable ownership
+The development reconciliation pass also restores missing required deliverable ownership
 without changing dependency identities; assignment alone never establishes completion.
 
 The engine rejects plans exceeding `max_subtasks` (default 16), both before policy
@@ -89,15 +89,27 @@ guarantees medical correctness.
 
 ## Reproduce a dependent run without a provider
 
-Run this from the installed repository; all text below is a synthetic fixture.
-The empty synthesis object deliberately exercises deterministic recovery, not model
-reasoning. This example disables W1/W2 explicitly to isolate structural scheduling;
-it is not semantic acceptance evidence. Inspect `worker_handoff` and `dependency_*`
-in the returned run's Trace.
+This is a deterministic scheduling example, not a reasoning or acceptance-quality
+test. It is runnable on the public release checkout and explicitly adapts to the
+development configuration:
+
+| Version | Request / acceptance configuration | Scripted model calls |
+| --- | --- | --- |
+| Public release `6147196` | No semantic-validation field or model-assisted requirement/acceptance stages | Planner + two Workers + Synthesis |
+| Development `499d2fa` | `semantic_validation_enabled=False` explicitly selects structural-only mode | Same four calls; no extraction, independent review or semantic acceptance |
+
+The example supplies the graph and answers. The empty Synthesis response exercises
+deterministic per-RQ fallback, not another model repair. Program safety/evidence checks
+still apply where implemented. Success here is not evidence that the semantic gates ran.
 
 ```python
 import asyncio
+from pathlib import Path
+from tempfile import gettempdir
+from uuid import uuid4
+
 from medagent.llm import ScriptedLLM
+from medagent.observability.replay import read_trace
 from medagent.runtime.config import RuntimeConfig
 from medagent.runtime.native_engine import NativeMedAgentEngine
 
@@ -115,29 +127,45 @@ async def main():
         {"answers": [{"request_item_id": "RQ2", "answer": "Synthetic care draft."}]},
         {"answers": []},
     ])
-    engine = NativeMedAgentEngine(
-        RuntimeConfig(semantic_validation_enabled=False), llm=llm)
+    trace_dir = Path(gettempdir()) / ("medagent-doc-example-" + uuid4().hex)
+    settings = {"trace_dir": str(trace_dir), "retrieval_mode": "off"}
+    # The public release has no W1/W2 setting; never pass it an unknown field.
+    if "semantic_validation_enabled" in RuntimeConfig.__dataclass_fields__:
+        settings["semantic_validation_enabled"] = False
+    engine = NativeMedAgentEngine(RuntimeConfig(**settings), llm=llm)
     try:
         result = await engine.analyze(
             "Synthetic example only.",
             "1. Give a diagnosis.\n2. Give a treatment plan.", "dependency-demo")
-        print(result["status"], result["run_id"])
+        events = read_trace(trace_dir / result["run_id"])
+        handoffs = [e for e in events if e["event_type"] == "worker_handoff"]
+        assert len(llm.requests) == 4
+        assert len(handoffs) == 1
+        print(result["status"], "calls:", len(llm.requests), "handoffs:", len(handoffs))
     finally:
         await engine.close()
 
 asyncio.run(main())
 ```
 
-For assertions of actual concurrency, forward references, multi-level/fan-in dependencies,
-same-role work, failure propagation, sanitization, result ordering, and Replay, run
-`pytest -q tests/test_multi_agent_handoff_audit.py`.
+The script uses an injected ScriptedLLM and new temporary local Trace directory,
+not an endpoint or clinical service. The branch's four-call path can be checked from
+`llm.requests`; dependency events and the Handoff's source UUID are independently
+inspectable in the saved Trace. This does not test actual concurrency with one
+dependent chain. Broader offline dependency assertions are in
+[the Handoff tests](../tests/test_multi_agent_handoff_audit.py).
+
+Documentation check on this release-based branch: `completed`, 4 scripted calls,
+1 Handoff, zero Provider requests. The development-only configuration branch was
+checked against stored `499d2fa` source; it is not a run of default semantic validation.
+
 
 ## Operating boundaries
 
-The release's bounded infrastructure retries and serialization-only Worker protocol
+The runtime's bounded infrastructure retries and serialization-only Worker protocol
 recovery remain available before Handoff validation. A repaired result must pass the
 same public-content checks; it does not bypass dependency failure blocking. The optional
-release presentation transform runs only after an accepted completed final answer,
+optional presentation transform runs only after an accepted completed final answer,
 with deterministic fallback on failure. These existing paths can add provider attempts;
 Handoff validation and deterministic final-answer recovery do not.
 

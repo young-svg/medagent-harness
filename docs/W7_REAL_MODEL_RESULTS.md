@@ -1,12 +1,11 @@
 # W7 execution-layer evidence and architecture decisions
 
-> **Version boundary — documentation-only review.** This branch is based on release `6147196` and adds only five documentation/SVG files. The W1–W7 implementation described here belongs to the unpublished local development snapshot `499d2fa`; it is **not included in this branch**. Shared source paths here still resolve to older release code and do not verify the development claims. The existing static Demo is unchanged.
+> **Development snapshot `499d2fa`.** This docs-only branch retains release `6147196` code. Development additions below are not shipped here; shared source links open the older release. See [version mapping](ARCHITECTURE.md#version-and-source-mapping).
 
 Documentation snapshot: 2026-11-05. This is a public aggregate summary of existing
 records, not a new experiment or a clinical evaluation. All cases are SYNTHETIC.
 No answers, raw Trace, model reasoning, credentials or original HTTP bodies are
-imported here. Independent quality remains **UNSCORED**; no completed human review
-or quality initial assessment is available.
+imported here. Formal independent human quality remains **UNSCORED**.
 
 ## Inputs, implementation and comparison scope
 
@@ -141,6 +140,20 @@ Latest recorded full offline suite: **986 passed in 33.70s**, after adding 13
 mocked-HTTP live-adapter tests (59 targeted tests including Runner). This historical
 run was not repeated for W8. E03 full live retrieval quality, real Milvus quality,
 real failure recovery and broad W1 semantic accuracy remain unvalidated by W7.
+
+## AI-assisted observations versus formal scoring
+
+The architectural interpretations in this report are AI-assisted review of saved
+texts and execution records. They are qualitative engineering observations, not a
+blinded clinical assessment or a completed independent human scorecard. No numerical
+answer-quality scores are assigned here.
+
+Any AI-assisted textual first impression must remain separate from formal scoring:
+it cannot change UNSCORED to PASS, cannot use internal completed/W2 satisfied as a
+reference answer, and cannot establish an accuracy ranking. No archived case-level
+AI preliminary grade sheet has been supplied for publication. Formal human scoring
+must use the frozen rubric, named reviewer records and independently justified per-RQ
+decisions. All nine Pilot answers and all six follow-ups remain UNSCORED.
 
 ## Decision and limits
 

@@ -1,6 +1,38 @@
 # Architecture
 
-> **Version boundary — documentation-only review.** This branch is based on release `6147196` and adds only five documentation/SVG files. The W1–W7 implementation described here belongs to the unpublished local development snapshot `499d2fa`; it is **not included in this branch**. Shared source paths here still resolve to older release code and do not verify the development claims. The existing static Demo is unchanged.
+> **Development snapshot `499d2fa`.** This docs-only branch retains release `6147196` code. Development additions below are not shipped here; shared source links open the older release. See [version mapping](#version-and-source-mapping).
+
+## Core design decisions
+
+| Design | Requirement and alternative | Mechanism / development source |
+| --- | --- | --- |
+| Task Contract | Preserve several outputs and restrictions; prompt-only scope is difficult to audit | Stable RQ IDs and Contract priorities follow the result. `context/request_spec.py`, `context/contract.py`; development `runtime/semantic_validation.py::SemanticValidator.extract` checks source-aligned inventories in separate contexts. |
+| Dependency-aware orchestration | Some work is independent, some needs upstream results; a sequential chain wastes independence and free-form Agent chat hides prerequisites | `planning/planner.py::apply_contract_policy`, `planning/models.py::Plan.validate`, `runtime/native_engine.py::_analyze` own the executable graph; `runtime/handoff.py::build_handoff` transfers validated public results. |
+| Reliable Execution Harness | Non-empty text and model self-approval cannot establish delivery | `runtime/agent_loop.py::AgentLoop.execute` and `tools/registry.py::ToolRegistry.execute` constrain execution. Development `runtime/acceptance.py::FinalAcceptance.evaluate` combines structural, evidence, safety and semantic gates. |
+
+Paths above are relative to `medagent/` at local development commit `499d2fa`.
+Memory, RAG and fixed role instructions support these three decisions; they are not
+separate orchestration layers. Conditional Synthesis consolidates multiple usable
+Worker outputs, while a single Worker proceeds directly to the same final gates.
+
+## Version and source mapping
+
+This branch intentionally publishes five documentation/SVG files, not the ten
+development commits. It is a design review; final release must align these documents
+with their corresponding implementation before removing the development notice.
+
+| Source scope | Available in this branch | Development-only behavior described |
+| --- | --- | --- |
+| [RequestSpec](../medagent/context/request_spec.py) / [Contract](../medagent/context/contract.py) | Release builders and stable request protocol | Model-assisted extraction/review, source checks and aligned restrictions in `runtime/semantic_validation.py` |
+| [Planner](../medagent/planning/planner.py), [NativeEngine](../medagent/runtime/native_engine.py), [Handoff](../medagent/runtime/handoff.py) | Existing planning, dependency scheduling and structured transfer | Revised scheduling budgets, independent subtask quotas and the shared acceptance seam |
+| [AgentLoop](../medagent/runtime/agent_loop.py), [registry](../medagent/tools/registry.py), [coverage](../medagent/runtime/coverage.py) | Release model/tool loops and structural checks | Tool-call replay rejection, per-RQ evidence authorization and semantic acceptance |
+| [Memory](../medagent/memory/session.py) / [Trace](../medagent/observability/tracer.py) | Process-local history and causal records | Fresh default Sessions, local API controls and metadata projection in `observability/privacy.py` |
+| Evaluation data and Runner | Not included | `experiments/w7/frozen_v1/`, `eval/w7/`, frozen-input/replay interfaces and reported execution experiments |
+
+A source link in this branch is an older-release reference, not proof that its
+development additions are present. [Runtime example](RUNTIME_ARCHITECTURE.md#reproduce-a-dependent-run-without-a-provider)
+explicitly handles the configuration difference. [Experiment results](W7_REAL_MODEL_RESULTS.md)
+identify the actual evaluated commits; the released static Demo remains fixture-only.
 
 ## System Objective
 

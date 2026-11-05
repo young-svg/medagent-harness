@@ -25,11 +25,11 @@
       .layer { fill: #f5f7fa; stroke: #e2e8f0; stroke-width: 1; }
       .card { fill: #fff; stroke: #cfd9e5; stroke-width: 1.4; }
       .llm { fill: #f0f5ff; stroke: #91b2ed; stroke-width: 1.5; }
-      .section { font-size: 19px; font-weight: 700; }
+      .section { font-size: 21px; font-weight: 700; }
       .number { font-size: 13px; font-weight: 700; fill: #356cbe; letter-spacing: 1px; }
-      .heading { font-size: 22px; font-weight: 600; }
-      .body { font-size: 19px; fill: #52657b; }
-      .small { font-size: 17px; fill: #627287; }
+      .heading { font-size: 24px; font-weight: 600; }
+      .body { font-size: 22px; fill: #52657b; }
+      .small { font-size: 20px; fill: #627287; }
       .tag { font-size: 12px; font-weight: 700; fill: #356cbe; letter-spacing: 1px; }
       .accent { fill: #2563b8; }
       .port { fill: #eaf1fc; stroke: #b7cceb; stroke-width: 1; }
@@ -46,36 +46,36 @@
     </marker>
   </defs>
   <rect width="1640" height="1140" fill="#fff"/>
-  <text class="title" x="40" y="65">MedAgent Harness Runtime Architecture</text>
-  <text class="subtitle" x="40" y="101">Unpublished development snapshot · implementation is not included in this docs-only branch.</text>
-  <text class="tag" x="1598" y="65" text-anchor="end">DEVELOPMENT DESIGN · W1–W7</text>
+  <text class="title" x="40" y="65">MedAgent Harness</text>
+  <text class="subtitle" x="40" y="101">Task Contract → planned work → verified delivery</text>
+  <text class="tag" x="1598" y="65" text-anchor="end">DEVELOPMENT SNAPSHOT</text>
 
   <!-- 01: LLM proposals are not the final executable plan. -->
   <g id="task-specification-planning">
     <rect class="layer" x="40" y="137" width="1280" height="200" rx="16"/>
     <text class="number" x="70" y="167">01</text>
-    <text class="section" x="105" y="167">Task Specification &amp; Planning</text>
+    <text class="section" x="105" y="167">Task Contract &amp; Planning</text>
     <rect class="card" x="70" y="190" width="360" height="120" rx="12"/>
-    <text class="tag" x="90" y="210">W1 · MODEL + PROGRAM CHECKS</text>
-    <text class="heading" x="90" y="240">RequestSpec + AnswerContract</text>
-    <text class="body" x="90" y="270">Extract + independently review scope</text>
-    <text class="small" x="90" y="298">Source spans · priorities · restrictions</text>
+    <text class="tag" x="90" y="210">MODEL + PROGRAM CHECKS</text>
+    <text class="heading" x="90" y="240">Task Contract</text>
+    <text class="body" x="90" y="270">RequestSpec + AnswerContract</text>
+    <text class="small" x="90" y="298">Source spans · priorities · scope</text>
 
     <path class="flow" d="M430 250 H480"/>
     <rect class="llm" x="480" y="190" width="270" height="120" rx="12"/>
     <text class="tag" x="500" y="210">LLM PROPOSAL</text>
     <text class="heading" x="500" y="240">Planner</text>
     <text class="body" x="500" y="270">Tasks + dependencies</text>
-    <text class="small" x="500" y="298">Request-ID ownership</text>
+    <text class="small" x="500" y="298">RQ ownership</text>
     <rect class="port" x="707" y="200" width="28" height="25" rx="6"/>
     <text class="port-text" x="721" y="218">M</text>
 
     <path class="flow" d="M750 250 H800"/>
     <rect class="card" x="800" y="190" width="490" height="120" rx="12"/>
     <text class="tag" x="820" y="210">DETERMINISTIC POLICY</text>
-    <text class="heading" x="820" y="240">Contract Policy + DAG validation</text>
-    <text class="body" x="820" y="270">Constrain scope; reconcile required ownership</text>
-    <text class="small" x="820" y="298">Task-count limit; dependency IDs stay stable.</text>
+    <text class="heading" x="820" y="240">Policy + DAG validation</text>
+    <text class="body" x="820" y="270">Scope + required ownership</text>
+    <text class="small" x="820" y="298">Validate graph before dispatch</text>
   </g>
 
   <!-- Policy -> Router/Scheduler -> Worker loops. Middle layer flows right to left. -->
@@ -83,33 +83,33 @@
   <g id="runtime-orchestration">
     <rect class="layer" x="40" y="378" width="1280" height="245" rx="16"/>
     <text class="number" x="70" y="407">02</text>
-    <text class="section" x="105" y="407">Runtime Orchestration</text>
+    <text class="section" x="105" y="407">Dependency-aware Execution</text>
     <rect class="card" x="1005" y="432" width="285" height="165" rx="12"/>
-    <text class="tag" x="1025" y="458">DETERMINISTIC DISPATCH</text>
-    <text class="heading" x="1025" y="489">Router + Scheduler</text>
-    <text class="body" x="1025" y="517">DAG-ready tasks acquire slots.</text>
-    <text class="body" x="1025" y="546">Dependency waits hold no slot.</text>
-    <text class="small" x="1025" y="573">Bad upstream → no model call</text>
+    <text class="tag" x="1025" y="458">PROGRAM CONTROL</text>
+    <text class="heading" x="1025" y="489">DAG Scheduler</text>
+    <text class="body" x="1025" y="517">Run ready tasks</text>
+    <text class="body" x="1025" y="546">Wait outside slots</text>
+    <text class="small" x="1025" y="573">Bad upstream → blocked</text>
     <text class="small" x="975" y="501" text-anchor="middle" style="font-size:12px">ready</text>
     <text class="small" x="975" y="518" text-anchor="middle" style="font-size:12px">tasks</text>
     <path class="flow" d="M1005 535 H945"/>
 
-    <rect class="card" x="70" y="432" width="875" height="165" rx="12"/>
-    <text class="heading" x="90" y="462">Role-scoped Workers · AgentLoop</text>
+    <rect class="llm" x="70" y="432" width="875" height="165" rx="12"/>
+    <text class="heading" x="90" y="462">Worker loops · LLM + Tools</text>
     <rect class="port" x="861" y="445" width="28" height="25" rx="6"/>
     <text class="port-text" x="875" y="463">M</text>
     <rect class="port" x="900" y="565" width="28" height="25" rx="6"/>
     <text class="port-text" x="914" y="583">E</text>
-    <text class="body" x="90" y="496">Independent tasks</text>
+    <text class="body" x="90" y="496">Independent</text>
     <path class="flow" d="M270 491 H320"/>
-    <text class="body" x="340" y="496">Parallel bounded ReAct loops · RQ ownership</text>
+    <text class="body" x="340" y="496">Concurrent bounded loops</text>
     <line class="divider" x1="90" y1="514" x2="925" y2="514"/>
-    <text class="body" x="90" y="544">Upstream Worker</text>
+    <text class="body" x="90" y="544">Upstream</text>
     <path class="flow" d="M270 539 H320"/>
-    <text class="body accent" x="340" y="544">Validated Handoff</text>
-    <path class="flow" d="M515 539 H565"/>
-    <text class="body" x="585" y="544">Dependent Worker</text>
-    <text class="small" x="90" y="577">Sanitized public RQ answers + source lineage; provisional output, not patient facts.</text>
+    <text class="body accent" x="340" y="544">Structured Handoff</text>
+    <path class="flow" d="M550 539 H600"/>
+    <text class="body" x="620" y="544">Dependent</text>
+    <text class="small" x="90" y="577">Validated public answers + provenance; not new patient facts.</text>
   </g>
   <path class="flow" d="M1145 310 V432"/>
   <!-- Enter completion only after Worker-level coverage and dependency checks. -->
@@ -117,36 +117,36 @@
   <g id="completion-verification">
     <rect class="layer" x="40" y="664" width="1280" height="226" rx="16"/>
     <text class="number" x="70" y="693">03</text>
-    <text class="section" x="105" y="693">Shared Final Acceptance</text>
+    <text class="section" x="105" y="693">Completion &amp; Verification</text>
     <rect class="card" x="70" y="718" width="230" height="145" rx="12"/>
     <text class="heading" x="88" y="747">Worker gates</text>
-    <text class="body" x="88" y="777">RQ + Contract coverage</text>
-    <text class="body" x="88" y="806" style="font-size:17px">Evidence + dependencies</text>
+    <text class="body" x="88" y="777">RQ + Contract</text>
+    <text class="body" x="88" y="806">Evidence + DAG</text>
     <text class="small" x="88" y="841">Fail → incomplete</text>
     <path class="flow" d="M300 779 H340"/>
 
-    <rect class="card" x="340" y="718" width="300" height="145" rx="12"/>
+    <rect class="llm" x="340" y="718" width="300" height="145" rx="12"/>
     <text class="heading" x="358" y="747">Conditional synthesis</text>
-    <text class="body" x="358" y="777">1 successful Worker → direct</text>
-    <text class="body" x="358" y="806">≥2 successful → LLM synthesis</text>
-    <text class="small" x="358" y="841">Answers keyed by request ID</text>
+    <text class="body" x="358" y="777">Single → direct</text>
+    <text class="body" x="358" y="806">Multiple → Synthesis</text>
+    <text class="small" x="358" y="841">Only after Worker gates</text>
     <path class="flow" d="M640 779 H680"/>
 
     <rect class="card" x="680" y="718" width="245" height="145" rx="12"/>
-    <text class="heading" x="698" y="747">Sanitize + Guardrail</text>
-    <text class="body" x="698" y="779" style="font-size:18px">Sanitize; stable safety edits</text>
-    <text class="body" x="698" y="804" style="font-size:18px">Safe per-ID fallback from</text>
-    <text class="body" x="698" y="829" style="font-size:18px">validated Worker answers</text>
+    <text class="heading" x="698" y="747">Safety edits</text>
+    <text class="body" x="698" y="779">Sanitize + Guardrail</text>
+    <text class="body" x="698" y="804">Per-RQ fallback</text>
+    <text class="body" x="698" y="829">Recheck hard blocks</text>
     <path class="flow" d="M925 779 H965"/>
 
     <rect class="llm" x="965" y="718" width="325" height="145" rx="12" style="fill:#fff;stroke:#91b2ed"/>
     <text class="heading" x="983" y="747">Final verification</text>
-    <text class="body" x="983" y="777">Structure + Evidence Gate</text>
-    <text class="body" x="983" y="806" style="font-size:18px">W2 semantics + hard safety blocks</text>
-    <text class="body accent" x="983" y="841">completed / incomplete</text>
+    <text class="body" x="983" y="777">Structure + Evidence</text>
+    <text class="body" x="983" y="806">Semantic acceptance</text>
+    <text class="body accent" x="983" y="841">Final Answer + status</text>
   </g>
   <path class="flow" d="M70 566 H54 V779 H70"/>
-  <text x="70" y="922" font-size="18" font-weight="600">Structure, source lineage and model-assisted acceptance ≠ clinical validation.</text>
+  <text x="70" y="922" font-size="18" font-weight="600">Acceptance checks ≠ clinical validation.</text>
 
   <!-- Support paths route through gutters, never through execution cards.
        M: same read-time history snapshot, shared by Planner and Workers.
@@ -157,15 +157,15 @@
     <rect class="port" x="90" y="968" width="28" height="25" rx="6"/>
     <text class="port-text" x="104" y="986">M</text>
     <text class="heading" x="132" y="989">Session Memory</text>
-    <text class="body" x="90" y="1018">One bounded history snapshot → model stages</text>
-    <text class="small" x="90" y="1043">Session-isolated · process-local · estimated, not a hard cap</text>
+    <text class="body" x="90" y="1018">Bounded history for model stages</text>
+    <text class="small" x="90" y="1043">Session-local · one shared snapshot</text>
 
     <rect class="card" x="690" y="949" width="600" height="112" rx="12"/>
     <rect class="port" x="710" y="968" width="28" height="25" rx="6"/>
     <text class="port-text" x="724" y="986">E</text>
     <text class="heading" x="752" y="989">Tools / optional RAG</text>
-    <text class="body" x="710" y="1018">Role ∩ task permissions · schemas · attempt limits</text>
-    <text class="small" x="710" y="1043">RQ query → admission → delivery + citation / valid reuse</text>
+    <text class="body" x="710" y="1018">Permissions · schemas · attempt limits</text>
+    <text class="small" x="710" y="1043">RQ retrieval → admitted sources → citations</text>
   </g>
 
   <!-- Cross-cutting mechanisms; no claim of a new autonomous recovery Agent. -->
@@ -174,29 +174,29 @@
     <text class="tag" x="1382" y="169">CROSS-CUTTING</text>
     <text class="small" x="1382" y="194">Across execution stages</text>
     <line class="divider" x1="1382" y1="215" x2="1578" y2="215"/>
-    <text class="heading" x="1382" y="258">Bounded Recovery</text>
-    <text class="body" x="1382" y="292">Transport retry</text>
-    <text class="body" x="1382" y="326">Length completion</text>
-    <text class="body" x="1382" y="360">Protocol repair</text>
-    <text class="small" x="1382" y="412">Actual-attempt ceilings;</text>
-    <text class="small" x="1382" y="436">no tool-ID replay.</text>
+    <text class="heading" x="1382" y="258" style="font-size:22px">Budget / Recovery</text>
+    <text class="body" x="1382" y="292">Attempt limits</text>
+    <text class="body" x="1382" y="326">Timeouts</text>
+    <text class="body" x="1382" y="360">Bounded repair</text>
+    <text class="small" x="1382" y="412">No tool-ID replay.</text>
+    <text class="small" x="1382" y="436">No replanning.</text>
     <line class="divider" x1="1382" y1="459" x2="1578" y2="459"/>
     <text class="heading" x="1382" y="506">Causal Trace</text>
-    <text class="body" x="1382" y="540">Explicit parent IDs</text>
-    <text class="body" x="1382" y="574">Model / tool events</text>
-    <text class="body" x="1382" y="608">Task dependencies</text>
-    <text class="small" x="1382" y="650">JSONL · Summary · Replay</text>
-    <text class="small" x="1382" y="692">Causality ≠ append order.</text>
+    <text class="body" x="1382" y="540">Parent / source IDs</text>
+    <text class="body" x="1382" y="574">Timing + usage</text>
+    <text class="body" x="1382" y="608">Dependency graph</text>
+    <text class="small" x="1382" y="650">Summary / Replay</text>
+    <text class="small" x="1382" y="692">Causal links, not order.</text>
     <line class="divider" x1="1382" y1="718" x2="1578" y2="718"/>
-    <text class="small" x="1382" y="760">Metadata by default.</text>
-    <text class="small" x="1382" y="784">Validated IDs, no body.</text>
-    <text class="small" x="1382" y="834">Explicit raw may retain</text>
-    <text class="small" x="1382" y="858">sensitive text; keep local.</text>
+    <text class="small" x="1382" y="760">Metadata default</text>
+    <text class="small" x="1382" y="784">IDs, status, usage</text>
+    <text class="small" x="1382" y="834">Raw may contain text</text>
+    <text class="small" x="1382" y="858">Keep raw local.</text>
   </g>
   <g id="support-relationships">
     <path class="support" d="M90 980 H20 V178 H721 V200"/>
     <path class="support" d="M20 420 H875 V445"/>
     <path class="support" d="M724 968 V936 H1338 V612 H914 V590"/>
   </g>
-  <text class="small" x="70" y="1105">Solid: execution / control. Dashed M / E: history / tools and external evidence. Presentation views omitted.</text>
+  <text class="small" x="70" y="1105">Solid: control flow. Dashed: context. LLM generation is bounded by program checks.</text>
 </svg>
