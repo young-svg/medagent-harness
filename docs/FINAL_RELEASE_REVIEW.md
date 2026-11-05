@@ -94,8 +94,19 @@ Current clean-candidate minimal regression:
 - No model experiment, live Provider request or new offline experimental batch was
   run. Prior Smoke/build/experiment results remain historical, not new results.
 
-Final independent-clone and newly reachable object checks will be recorded after
-the initial content commit. No publication authority is inferred from these checks.
+Independent single-branch clone of content commit
+`8c919457fbde34a65ccfc3a6b12fb32e190ac1a8`:
+
+- Public subset validation passed without either original document present.
+- Seven integrity/default-analyze regression cases passed in 1.67s; Ruff passed.
+- Neither excluded original blob exists in the independent clone's object store;
+  the previous candidate commit is absent as well. The clone was created without
+  local object sharing or hardlinks.
+- Both excluded filenames and blob IDs are absent from the candidate's entire
+  reachable object inventory. The initial content commit has the release base as
+  its direct parent, with no development/candidate ancestry imported.
+
+No publication authority is inferred from these checks.
 
 ## Exact change scope relative to the prior candidate
 
