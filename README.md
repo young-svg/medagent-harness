@@ -6,7 +6,7 @@ A compound request can hide several outputs; one task may need another's result;
 
 [Static Demo](https://young-svg.github.io/medagent-harness/) · [Architecture](docs/ARCHITECTURE.md) · [Experiment results](docs/W7_REAL_MODEL_RESULTS.md)
 
-> **Release version:** this branch includes the validated implementation from `499d2fa` and reviewed documentation from `2884f86`, integrated over release base `6147196`. The architecture and source links describe the implementation in this checkout. See [release scope and validation](docs/FINAL_RELEASE_REVIEW.md) and [source mapping](docs/ARCHITECTURE.md#version-and-source-mapping).
+> **Release version:** the architecture and source links describe the implementation in this checkout. See [architecture and source mapping](docs/ARCHITECTURE.md#version-and-source-mapping).
 
 ## Architecture
 
@@ -45,6 +45,16 @@ Compared with accepting non-empty text or a model's own completion claim, shared
 | Partial, off-topic or unsafe final answer | Preserve hard blocks and distinguish incomplete, uncertain and execution-error outcomes |
 
 Session Memory, optional RAG and fixed role instructions support this lifecycle. Causal Trace connects model, tool, Handoff and acceptance events; default development metadata retains diagnostics without recording arbitrary prompt bodies.
+
+## Fixed 60-case evaluation: final results
+
+**MedAgent 4.67/5 vs DeepSeek Web 4.39/5** on a fixed, paired 60-case evaluation.
+
+| Overall score (out of 5) | MedAgent | DeepSeek Web |
+| --- | ---: | ---: |
+| Final fixed-set result | **4.67** | **4.39** |
+
+These are model-assisted scores under a project-defined clinical decision-support rubric on a fixed development set, not independent human grading or clinical validation. See [evaluation method, exact scores and evaluated revision](docs/BENCHMARK.md). The architecture experiments below are a separate evaluation.
 
 ## Experiments: measure the orchestration trade-off
 

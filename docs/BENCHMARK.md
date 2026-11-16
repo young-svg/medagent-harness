@@ -2,15 +2,11 @@
 
 ## Scope
 
-This release reports two frozen development evaluations:
+**Final result of the fixed 60-case comparison: MedAgent 4.67/5 vs DeepSeek Web 4.39/5.**
 
-Version boundary: the results below are the existing pre-A1-C1 release evaluation
-record (release baseline `80c98fe`), not measurements of the integrated runtime.
-The integration is checked with offline regressions; no real-provider, real-Milvus
-or clinical-score rerun is claimed and no delta is attributed to A1-C1.
-
-1. a 60-case execution reliability benchmark;
-2. a 60-case matched comparison with DeepSeek Web.
+This report covers a fixed 60-case execution-reliability evaluation and a paired
+60-case comparison with DeepSeek Web. The scores summarize the frozen answers
+under the project-defined model-assisted rubric.
 
 The cases, candidate answer dumps, judge inputs, and local traces are not distributed. This avoids publishing data without clear redistribution permission and keeps the repository free of potentially sensitive clinical material.
 
@@ -28,7 +24,7 @@ The reported set contains one valid execution per ordered case. A Provider attem
 
 This infrastructure-validity rule does not change the separately frozen clinical-quality comparison below or its judge scores.
 
-## Clinical-quality comparison
+## Clinical-quality comparison: final fixed-set results
 
 All 60 cases were matched one-to-one. DeepSeek Web served as a baseline of saved product outputs collected before evaluation. Candidate answers were frozen before evaluation and were not edited or regenerated. The rubric asked which answer was more useful and reliable for clinical decision support, using medical correctness, completeness, clinical workflow, and safety/uncertainty handling. Writing style and answer length were explicitly excluded as winning criteria.
 
@@ -53,6 +49,15 @@ Winner counts:
 | Tie | 0 |
 
 MedAgent's Overall Clinical Agent Score (OCAS) was 4.6733 versus 4.3883 for DeepSeek Web, a difference of +0.2850 (+6.49%). In this repository, OCAS / Overall Clinical Quality is a project-defined composite evaluation criterion; it is not presented as an official MedCli score or as an independently standardized clinical metric. The main observed advantages were requirement coverage, structured clinical workflow, and safety-aware reasoning.
+
+## Evaluation method and reproducibility
+
+Evaluated source revision: `80c98fe`. The scores apply to the frozen case/answer
+set evaluated at that revision. All exact scores and evaluation records are unchanged.
+
+The separate [architecture experiments](W7_REAL_MODEL_RESULTS.md) measure execution
+and orchestration costs; their formal independent human quality scores remain
+UNSCORED. They do not inherit the fixed 60-case scores.
 
 ## Interpretation limits
 
